@@ -19,6 +19,7 @@ It supports powerful features like:
 -  **Safe Deserialization via Registered Handlers**
 -  **Extensive Logging for Debugging**
 -  **Schema Versioning with Upgrade Path Support**
+-  **Thread-Safe and non thread API for concurrent access and modifications.**
 
 ---
 

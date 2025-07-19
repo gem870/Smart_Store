@@ -54,7 +54,7 @@ It supports powerful features like:
 #
 ## Example:
 
-<pre> ```
+<pre>
 #include "Smart_Store/ItemManager.h"
 
     
@@ -77,7 +77,7 @@ int main(){
     return 0;
 }
         
- ``` </pre>
+  </pre>
 
 
 
@@ -102,14 +102,14 @@ int main(){
 
 ## Installation
 
-<pre> ```bash git clone https://github.com/gem870/Smart_Store.git 
+<pre> bash git clone https://github.com/gem870/Smart_Store.git 
     cd Smart_Store
     mkdir build
     cd build
     cmake ..
     cmake --build .
     ./TestApp 
-``` </pre>
+ </pre>
 
 
 ## License

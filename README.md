@@ -51,22 +51,7 @@ It supports powerful features like:
 
 ##  Directory Structure
 
-Smart_Store/
-├─ assets/
-├─ lib/
-│  ├─ nlohmann/    (nlohmann.hpp)
-│  ├─ tinyxml2/    (tinyxml2.hpp)
-├─ src/
-│  ├─ err-log/     Logger.hpp
-│  ├─ interface/   BaseItem.hpp
-│  ├─ t_manager/   ItemManager.hpp, ItemManager.tpp
-│  ├─ t_wrapper/   ItemWrapper.hpp, ItemManager.tpp
-│  ├─ utils/       AtomicFileWriter.hpp
-│  ├─ versionForMigration/ MigrationRegistry.hpp, .cpp
-├─ tests/          test_itemManager.cpp
-├─ CMakeLists.txt
-├─ README.md
-├─ LICENSE
+> ![Smart_Store Banner](assets/structure.png)
 
 
 

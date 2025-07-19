@@ -51,7 +51,7 @@ It supports powerful features like:
 
 ##  Directory Structure
 
-> ![Smart_Store Banner](assets/structure.png)
+ ![Smart_Store Banner](assets/structure.png)
 
 
 

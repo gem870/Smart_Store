@@ -114,6 +114,17 @@ int main(){
 
 ## License
 MIT License. See LICENSE for details.
+#
+## Contributing
+We welcome contributions from the community!
+Whether it's fixing bugs, suggesting new features, improving documentation, or refactoring code, your help is appreciated.
+
+# How to Contribute
+* Fork the repository.
+* Create a branch for your feature or bugfix.
+* Commit your changes with clear messages.
+* Open a Pull Request (PR) with a detailed description of your changes.
+* Ensure your contribution aligns with the project's guidelines.
 
 
 ## Important Resources

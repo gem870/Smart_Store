@@ -55,7 +55,7 @@ It supports powerful features like:
 ## Example:
 
 <pre> ```
-#include "ItemManager.h"
+#include "Smart_Store/ItemManager.h"
 
     
 int main(){

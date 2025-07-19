@@ -119,7 +119,7 @@ MIT License. See LICENSE for details.
 We welcome contributions from the community!
 Whether it's fixing bugs, suggesting new features, improving documentation, or refactoring code, your help is appreciated.
 
-# How to Contribute
+## How to Contribute
 * Fork the repository.
 * Create a branch for your feature or bugfix.
 * Commit your changes with clear messages.
@@ -136,7 +136,7 @@ Whether it's fixing bugs, suggesting new features, improving documentation, or r
 
 
 
-# Contact </br>
+## Contact </br>
 Author: Emmanuel Chibuike Victor</br></br>
 Email: ve48381@gmail.com </br>
 LinkedIn: linkedin.com/in/chibuike-emmanuel-b8b29b269/ </br>

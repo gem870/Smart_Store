@@ -53,10 +53,13 @@ It supports powerful features like:
 ![file structure](https://github.com/gem870/Smart_Store/blob/main/assets/file%20structure.PNG)
 #
 ## Example:
+
+<pre> ```
 #include "ItemManager.h"
 
+    
 int main(){
-ItemManager manager;
+    ItemManager manager;
 
     manager.addItem(std::make_shared<int>(42), "item1");
     manager.displayByTag("item1");  // Directly display the item
@@ -71,9 +74,10 @@ ItemManager manager;
     manager.undo();
     manager.redo();
 
-
     return 0;
 }
+        
+ ``` </pre>
 
 
 
@@ -98,26 +102,34 @@ ItemManager manager;
 
 ## Installation
 
-git clone https://github.com/gem870/Smart_Store.git
-cd Smart_Store
-mkdir build
-cd build
-cmake ..
-cmake --build .
-./TestApp
+<pre> ```bash git clone https://github.com/gem870/Smart_Store.git 
+    cd Smart_Store
+    mkdir build
+    cd build
+    cmake ..
+    cmake --build .
+    ./TestApp 
+``` </pre>
 
 
 ## License
 MIT License. See LICENSE for details.
 
 
-## Contributing
-Contributions are welcome! Please open issues for bugs or feature suggestions, or submit pull requests for improvements.
+## Important Resources
+🔗 Code of Conduct
+
+🔗 Contribution Guidelines
+
+🔗 Project Documentation (Wiki)
 
 
-# Contact
-Author: Emmanuel Chibuike Victor
-Email: ve48381@gmail.com
-LinkedIn: https://www.linkedin.com/in/chibuike-emmanuel-b8b29b269/
-Portfolio: https://emmanuelvictor-portfolio.vercel.app/
+
+# Contact </br>
+Author: Emmanuel Chibuike Victor</br></br>
+Email: ve48381@gmail.com </br>
+LinkedIn: linkedin.com/in/chibuike-emmanuel-b8b29b269/ </br>
+Portfolio: emmanuelvictor-portfolio.vercel.app </br>
+
+
 

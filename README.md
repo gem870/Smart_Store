@@ -117,11 +117,11 @@ MIT License. See LICENSE for details.
 
 
 ## Important Resources
-🔗 Code of Conduct
+ Code of Conduct: https://github.com/gem870/Smart_Store/blob/main/CODE_OF_CONDUCT.md
 
-🔗 Contribution Guidelines
+ Contribution Guidelines: https://github.com/gem870/Smart_Store/blob/main/CONTRIBUTING.md
 
-🔗 Project Documentation (Wiki)
+ Project Documentation (Wiki):https://github.com/gem870/Smart_Store/wiki
 
 
 

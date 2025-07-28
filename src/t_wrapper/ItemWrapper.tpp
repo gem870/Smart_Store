@@ -7,6 +7,7 @@
 #include <iostream>
 #include <type_traits>
 
+
 // Helper trait to check if a type is streamable (C++17-compatible)
 template<typename T, typename = void>
 struct is_streamable : std::false_type {};
@@ -14,7 +15,11 @@ struct is_streamable : std::false_type {};
 template<typename T>
 struct is_streamable<T, std::void_t<decltype(std::declval<std::ostream&>() << std::declval<T>())>> : std::true_type {};
 
-// Template function implementations for ItemWrapper
+
+// :: Template function implementations for ItemWrapper
+// ****************************************************
+
+
 template<typename T>
 void ItemWrapper<T>::display() const {
     std::cout << "Type: " << getTypeName();
@@ -52,51 +57,54 @@ json ItemWrapper<T>::serialize() const {
     j["id"] = id_;
     j["tag"] = tag;
     j["type"] = getTypeName();
-    
-
-    // Direct arithmetic values like int, float, etc.
-    if constexpr (std::is_arithmetic_v<T>) {
-        j["data"] = *data;
-        return j;
-    }
 
 #if defined(__cpp_concepts) && __cpp_concepts >= 201907L
-    // If T defines a custom .serialize() method returning json
-    else if constexpr (requires(const T& obj) { { obj.serialize() } -> std::same_as<json>; }) {
+    // C++20 concepts-based checks
+    if constexpr (has_to_json<T>::value) {
+        nlohmann::json dataJson;
+        to_json(dataJson, *data);
+        j["data"] = dataJson;
+        return j;
+    } else if constexpr (std::is_arithmetic_v<T> || std::is_same_v<T, std::string>) {
+        j["data"] = *data;
+        return j;
+    } else if constexpr (requires(const T& obj) { { obj.serialize() } -> std::same_as<json>; }) {
         j["data"] = data->serialize();
         return j;
-    }
-    // If T is streamable to ostream
-    else if constexpr (requires(std::ostream& os, const T& obj) { os << obj; }) {
+    } else if constexpr (requires(std::ostream& os, const T& obj) { os << obj; }) {
         std::ostringstream oss;
         oss << *data;
         j["data"] = oss.str();
+        return j;
+    } else {
+        // fallback: store as empty object
+        j["data"] = nlohmann::json();
         return j;
     }
 #else
-    // Legacy fallback if not using concepts
-    else if constexpr (has_serialize<T>::value) {
+    // SFINAE-based checks for C++17 and older
+    if constexpr (has_to_json<T>::value) {
+        nlohmann::json dataJson;
+        to_json(dataJson, *data);
+        j["data"] = dataJson;
+        return j;
+    } else if constexpr (std::is_arithmetic_v<T> || std::is_same_v<T, std::string>) {
+        j["data"] = *data;
+        return j;
+    } else if constexpr (has_serialize<T>::value) {
         j["data"] = data->serialize();
         return j;
-    }
-    else if constexpr (is_streamable<T>::value) {
+    } else if constexpr (is_streamable<T>::value) {
         std::ostringstream oss;
         oss << *data;
         j["data"] = oss.str();
         return j;
+    } else {
+        // fallback: store as empty object
+        j["data"] = nlohmann::json();
+        return j;
     }
 #endif
-
-    // Catch-all: try converting to nlohmann::json
-    else {
-        try {
-            j["data"] = nlohmann::json(*data);
-            return j;
-        } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Serialization failed for type '" + getTypeName() + "': " + e.what());
-            return j;
-        }
-    }
 }
 
 template<typename T>
@@ -130,8 +138,17 @@ T& ItemWrapper<T>::getMutableData() {
     return *data;
 }
 
-template <typename T>
+template<typename T>
 nlohmann::json ItemWrapper<T>::toJson() const {
-    return *data;  
+    if constexpr (has_to_json<T>::value) {
+        nlohmann::json j;
+        to_json(j, *data);
+        return j;
+    } else if constexpr (std::is_arithmetic_v<T> || std::is_same_v<T, std::string>) {
+        return nlohmann::json(*data);
+    } else {
+        // fallback: return an empty object or string representation
+        return nlohmann::json();
+    }
 }
 

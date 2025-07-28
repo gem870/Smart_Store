@@ -15,27 +15,22 @@
 #include <iomanip>
 #include "versionForMigration/MigrationRegistry.h"
 #include "err_log/Logger.hpp"
+#include "utils/Json_traits.hpp"
 
 using json = nlohmann::json;
-
-
-
 
 //    ==========================================================
 //   |-- This ItemWrapper class  wraps every single item        |
 //   |-- that are stored in the ItemManagert class.             |
 //    ==========================================================
 
-// namespace IdProvider {
-//     inline std::atomic<size_t> counter{0};
 
-//     inline std::string generateId() {
-//         return "obj_no_" + std::to_string(++counter);
-//     }
-// }
+
+
+// :: Forward declaration of IdProvider to generate unique IDs
+// ***********************************************************
 
 namespace IdProvider {
-
     inline std::string generateId() {
         static std::random_device rd;
         static std::mt19937 gen(rd());
@@ -55,7 +50,6 @@ namespace IdProvider {
         for (int i = 0; i < 12; ++i) ss << std::hex << dis(gen);
         return ss.str();
     }
-
 }
 
 
@@ -68,26 +62,35 @@ private:
 protected:
 mutable std::string id_; // Unique ID for each item, mutable to allow modification in const methods
 
-    
-
 public:
 public:
     ItemWrapper(std::shared_ptr<T> obj, const std::string& tag = "")
          : data(std::move(obj)), tag(tag),id_(IdProvider::generateId()) {} 
 
-
     ItemWrapper(const json& j)
-    : data(std::make_shared<T>(j.at("data").get<T>())),
-      tag(j.value("tag", ""))
-    {
-        std::string resolvedId = 
-            j.contains("id") && !j.at("id").get<std::string>().empty()
-                ? j.at("id").get<std::string>()
-                : IdProvider::generateId();
+    : data(std::make_shared<T>()), tag(j.value("tag", ""))
+{
+    std::string resolvedId =
+        j.contains("id") && !j.at("id").get<std::string>().empty()
+            ? j.at("id").get<std::string>()
+            : IdProvider::generateId();
 
-        id_ = resolvedId;
+    id_ = resolvedId;
+
+    if (j.contains("data")) {
+        if constexpr (has_from_json<T>::value) {
+            from_json(j.at("data"), *data);
+        } else {
+            // Only call get_to if T is supported by nlohmann::json
+            try {
+                j.at("data").get_to(*data);
+            } catch (...) {
+                // fallback: leave data default-constructed
+            }
+        }
     }
-
+}
+    
     std::string getId() const override {
         return id_;
     }
@@ -95,7 +98,6 @@ public:
     void logId() const override {
             std::cout <<Logger::getColorCode(LogColor::WHITE) + "::: [ItemWrapper] Tag: " << tag << " | ID: " << id_ << Logger::getColorCode(LogColor::RESET) << std::endl;
     }
-
 
     void display() const override;
 

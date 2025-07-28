@@ -3,6 +3,7 @@
 #define ITEM_WRAPPER_H
 #include <string>
 #include <memory>
+#include <iostream>
 #include <nlohmann/json.hpp>
 
 

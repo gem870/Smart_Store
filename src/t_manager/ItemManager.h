@@ -102,7 +102,6 @@ public:
 
     ItemManager() = default;
     ~ItemManager() {
-        std::cout << "::: Debug: ItemManager destructor called\n";
         try {
             {
                 std::lock_guard<std::mutex> lock(mutex_);
@@ -118,7 +117,6 @@ public:
         } catch (const std::exception& e) {
             std::cerr << ":::| ERROR during ItemManager cleanup: " << e.what() << "\n";
         }
-        std::cout << "::: Debug: ItemManager cleanup completed\n";
     }
 
     void printId()

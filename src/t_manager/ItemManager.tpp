@@ -2,6 +2,7 @@
 #include "nlohmann/json.hpp"
 #include "err_log/Logger.hpp"
 #include "utils/AtomicFileWriter .hpp"
+#include "utils/Json_traits.hpp"
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -14,30 +15,9 @@
 #include <cxxabi.h> // For abi::__cxa_demangle
 #endif
 
-
-
-
 using json = nlohmann::json;
 
-// Check if a type has a 'to_json' function
-template <typename T, typename = void>
-struct has_to_json : std::false_type {};
 
-template <typename T>
-struct has_to_json<T, std::void_t<decltype(to_json(std::declval<json&>(), std::declval<T>()))>> : std::true_type {};
-
-// Check if a type has a 'from_json' function
-template <typename T, typename = void>
-struct has_from_json : std::false_type {};
-
-template <typename T>
-struct has_from_json<T, std::void_t<decltype(from_json(std::declval<const json&>(), std::declval<T&>()))>> : std::true_type {};
-
-template<typename T, typename = void>
-struct has_schema : std::false_type {};
-
-template<typename T>
-struct has_schema<T, std::void_t<decltype(T::schema())>> : std::true_type {};
 
 //::::: PRIVATE FUNCTIONS ::::::
 //******************************
@@ -73,7 +53,16 @@ std::shared_ptr<BaseItem> ItemManager::deserializeItemById(const json& j) {
     if (idMap.count(id)) {
         return idMap[id];
     }
-    auto item = std::make_shared<ItemWrapper<T>>(j);
+    // Only call deserialization for supported types
+    std::shared_ptr<ItemWrapper<T>> item;
+    if constexpr (has_from_json<T>::value) {
+        item = std::make_shared<ItemWrapper<T>>(j);
+    } else if constexpr (std::is_arithmetic_v<T> || std::is_same_v<T, std::string>) {
+        item = std::make_shared<ItemWrapper<T>>(j);
+    } else {
+        // fallback: construct with default data only
+        item = std::make_shared<ItemWrapper<T>>(std::make_shared<T>(), j.value("tag", ""));
+    }
     idMap[id] = item;
     // Recursively deserialize children, using idMap
     return item;

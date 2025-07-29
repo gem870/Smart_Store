@@ -56,12 +56,16 @@ private:
     // Maps type names to their usage count. This allows tracking how many times each type is used
     // This is useful for optimization and understanding which types are most common in the system
     std::unordered_map<std::string, int> typeUsage;
+    
     // Maps item IDs to their BaseItem pointers for fast lookup. This allows quick access to items by their unique ID
     std::unordered_map<std::string, std::shared_ptr<BaseItem>> idMap;
+
     // Maps for managing type registration and schema. This maps type names to their std::type_index for fast lookup
     std::unordered_map<std::string, std::type_index> registeredTypes;
+
     // Maps type names to their schema functions. This maps type names to functions that return their schema as json
     std::unordered_map<std::string, std::function<json()>> schemaRegistry;
+
     // Maps type names to their deserialization functions. This maps type names to functions that deserialize json into BaseItem pointers
     std::unordered_map<std::string, std::function<std::shared_ptr<BaseItem>(const json&, const std::string&)>> deserializers;
     
@@ -98,6 +102,7 @@ private:
    
     //::->       PUBLIC FUNCTIONS.
     //****************************************
+
 public:
 
     ItemManager() = default;

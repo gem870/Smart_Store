@@ -16,6 +16,8 @@
 #include "versionForMigration/MigrationRegistry.h"
 #include "err_log/Logger.hpp"
 #include "utils/Json_traits.hpp"
+#include <cstdlib>    // for free()
+
 
 using json = nlohmann::json;
 
@@ -58,6 +60,29 @@ class ItemWrapper : public BaseItem {
 private:
     std::shared_ptr<T> data;
     std::string tag;
+
+    std::string demangleType(const std::string& mangledName) const{
+        #if defined(__GNUC__) || defined(__clang__)
+        int status;
+        char* demangled = abi::__cxa_demangle(mangledName.c_str(), nullptr, nullptr, &status);
+
+        std::string result;
+        if (status == 0 && demangled) {
+            result = std::string(demangled);  // Store safely in std::string
+            free(demangled);  // Ensure valid memory cleanup
+            demangled = nullptr;  // Prevent accidental reuse
+        } else {
+            Logger::log(LogLevel::WARNING, "Demangling failed for: " + mangledName);
+            result = mangledName.c_str();
+        }
+
+        return result;
+        #elif defined(_MSC_VER)
+            return mangledName.c_str();
+        #else
+            return "Unknown compiler";
+        #endif
+   }
 
 protected:
 mutable std::string id_; // Unique ID for each item, mutable to allow modification in const methods

@@ -85,7 +85,7 @@ void ItemManager::registerType() {
             std::cout << Logger::getColorCode(LogColor::WHITE) + "::: Registered schema for type: " << typeName << Logger::getColorCode(LogColor::RESET) <<"\n";
         }
 
-        std::cout << Logger::getColorCode(LogColor::MAGENTA) + "\n:::| Automatically registered type (without adding item): " << typeName << Logger::getColorCode(LogColor::RESET) + "\n";
+        std::cout << Logger::getColorCode(LogColor::MAGENTA) + "\n:::| Automatically registered type (without adding item): " << demangleType(typeName) << Logger::getColorCode(LogColor::RESET) + "\n";
     }
 }
 
@@ -120,7 +120,7 @@ void ItemManager::displayRegisteredDeserializers() {
         return;
     }
     for (const auto& entry : registeredTypes) {
-        Logger::log(LogLevel::DEBUG, "Type: " + demangleType(entry.first) + " -> Type Index: " + entry.second.name());
+        Logger::log(LogLevel::DEBUG, "Type: " + demangleType(entry.first) + " -> Type Index: " + demangleType(entry.second.name()));
     }
     std::cout << "\n::::::::::::::::::::::::::::::::::::::::::::::::\n";
 }
@@ -157,7 +157,7 @@ template<typename T>
 void ItemManager::addItem(std::shared_ptr<T> obj, const std::string& tag) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!obj) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::GREEN) + "\n:::| WARNING: Cannot add null object with tag '" + tag + Logger::getColorCode(LogColor::RESET));
+        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + "\n:::| WARNING: Cannot add null object with tag '" + tag + Logger::getColorCode(LogColor::RESET));
     }
     std::cout <<Logger::getColorCode(LogColor::GREEN) + "\nAn item added with tag: " << tag << Logger::getColorCode(LogColor::RESET) << std::endl;
 
@@ -269,9 +269,9 @@ const T& ItemManager::getItemRaw(const std::string& tag) const {
 
 void ItemManager::displayAll() const {
     std::lock_guard<std::mutex> lock(mutex_);
-   
-    std::cout<<"\n\033[1;35m :::::: Types Stored ::::::\033[0m\n";
-    if(!items.empty()){
+
+    std::cout << Logger::getColorCode(LogColor::WHITE) + ":::::: Types Stored ::::::" + Logger::getColorCode(LogColor::RESET);
+    if (!items.empty()) {
         for (const auto& [_, item] : items) item->display();
     }else{
         Logger::log(LogLevel::INFO, "No items found to display.");
@@ -288,14 +288,14 @@ void ItemManager::displayByTag(const std::string& tag) const {
         return;
     }
 
-    throw std::runtime_error("\n\033[1;31m :::| WARNING: Item with tag '" + tag + "' not found.\033[0m\n");
+    Logger::log(LogLevel::WARNING, "Item with tag '" + tag + "' not found.");
 }
 
 void ItemManager::removeByTag(const std::string& tag) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (tag.empty()) {
-        throw std::runtime_error("\n\033[1;31m :::| WARNING: Cannot remove item with empty tag.\033[0m\n");
+        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Cannot remove item with empty tag." + Logger::getColorCode(LogColor::RESET));
     }
     auto it = items.find(tag);
     if (it != items.end()) {

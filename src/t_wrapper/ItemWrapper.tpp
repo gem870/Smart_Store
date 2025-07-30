@@ -22,7 +22,7 @@ struct is_streamable<T, std::void_t<decltype(std::declval<std::ostream&>() << st
 
 template<typename T>
 void ItemWrapper<T>::display() const {
-    std::cout << "Type: " << getTypeName();
+    std::cout << "Type: " << demangleType(getTypeName());
     if (!tag.empty()) {
         std::cout << " | Tag: " << tag;
 

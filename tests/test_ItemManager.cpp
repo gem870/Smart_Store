@@ -40,7 +40,12 @@ TEST(ItemManagerTest, RemoveItem) {
     manager.removeByTag("item1");
     std::cout << "::: Debug: Removed item\n";
 
-    ASSERT_THROW(manager.displayByTag("item1"), std::runtime_error);
+    // Instead of checking for an exception, verify the item is gone
+    EXPECT_FALSE(manager.hasItem("item1"));
+    
+    // Optionally check that display doesn't crash or throw
+    EXPECT_NO_THROW(manager.displayByTag("item1"));
+
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
 
@@ -86,7 +91,12 @@ TEST(ItemManagerTest, Undo) {
     manager.undo();
     std::cout << "::: Debug: Performed undo\n";
 
-    ASSERT_THROW(manager.displayByTag("item2"), std::runtime_error);
+    // Instead of expecting an exception, confirm item2 is gone
+    EXPECT_FALSE(manager.hasItem("item2"));
+    
+    // Also verify displayByTag doesn't throw anymore
+    EXPECT_NO_THROW(manager.displayByTag("item2"));
+
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
 
@@ -303,14 +313,20 @@ TEST(GlobalItemManagerTest, ResetItemManager) {
     GlobalItemManager& globalManager = GlobalItemManager::getInstance();
     ItemManager& itemManager = globalManager.getItemManager();
 
-    // Add an item to the ItemManager
+    // Add an item to the original ItemManager
     itemManager.addItem(std::make_shared<int>(42), "testItem");
 
     // Reset the ItemManager instance
     globalManager.resetItemManager();
 
-    // Verify that the ItemManager instance was reset
-    EXPECT_THROW(itemManager.displayByTag("testItem"), std::runtime_error);
+    // Get the new, reset ItemManager
+    ItemManager& newItemManager = globalManager.getItemManager();
+
+    // Check that the old item is not present in the new instance
+    EXPECT_FALSE(newItemManager.hasItem("testItem"));
+
+    // Confirm displayByTag no longer throws but logs appropriately
+    EXPECT_NO_THROW(newItemManager.displayByTag("testItem"));
 }
 
 

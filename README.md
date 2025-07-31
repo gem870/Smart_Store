@@ -111,12 +111,12 @@ int main() {
 ### Windows:
   . Make sure you have CMake and GCC compiler installed before you run the fellowing commands.</br>
   . If still having issues, set up WSL (Windows Subsystem for Linux) or use a Linux environment </br>
-    and run the following commands on the terminal.
+    and run the following commands.
 
 ### Linux / macOS:
   . Make sure you have CMake and GCC compiler installed before you run the following commands.</br></br>
 
-  <b>>> If still have issues, please reach out via email or GitHub issues.</b>
+  <b>>> If the issue persist, please reach out via email or GitHub issues.</b>
 
 ```bash
 git clone https://github.com/gem870/Smart_Store.git

@@ -81,8 +81,8 @@ int main() {
   return 0;
 }
 ```
-## Output:
-![file structure](https://github.com/gem870/Smart_Store/blob/main/assets/file%20structure.PNG)
+### Output:
+![file structure](assets/getstared2.PNG)
 
 ---
 

@@ -81,7 +81,7 @@ int main() {
   return 0;
 }
 ```
-## Output:
+### Output:
 ![file structure](assets/getstared2.PNG)
 
 ---

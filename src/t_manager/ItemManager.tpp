@@ -288,7 +288,7 @@ void ItemManager::displayByTag(const std::string& tag) const {
         return;
     }
 
-    Logger::log(LogLevel::WARNING, "Item with tag '" + tag + "' not found.");
+    throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Item with tag '" + tag + "' —> not found." + Logger::getColorCode(LogColor::RESET));
 }
 
 void ItemManager::removeByTag(const std::string& tag) {
@@ -415,7 +415,8 @@ void ItemManager::asyncExportToFile_Json(const std::string& filename) const {
         try {
             this->exportToFile_Json(filename);  // Thread-safe at its core
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "asyncExportToFile_Json error: " + std::string(e.what()));
+
+            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Exception in asyncExportToFile_Json: " + std::string(e.what()) + Logger::getColorCode(LogColor::RESET));
         }
     }).detach();  // Fire-and-forget
 }
@@ -425,7 +426,6 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
 
     std::ifstream in(filename);
     if (!in) {
-        Logger::log(LogLevel::ERR, "Cannot open file for JSON import: " + filename);
         throw std::runtime_error(Logger::getColorCode(LogColor::WHITE) + "\n:::| WARNING: Cannot open file for reading: " + filename + Logger::getColorCode(LogColor::RESET) + "\n");
     }
 
@@ -527,7 +527,6 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
 
     std::ifstream in(filename);
     if (!in) {
-        Logger::log(LogLevel::ERR, "Cannot open file '" + filename + "' for reading.");
         throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Cannot open file '" + filename + "' for reading." + Logger::getColorCode(LogColor::RESET));
     }
 
@@ -616,6 +615,10 @@ void ItemManager::asyncImportSingleObject_Json(const std::string& filename, cons
 }
 
 bool ItemManager::exportToFile_Binary(const std::string& filename) const {
+    if (items.empty()) {
+        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: No items found for export to file '" + filename + "'." + Logger::getColorCode(LogColor::RESET));
+    }
+
     std::vector<uint8_t> buffer;
 
     for (const auto& [tag, item] : items) {
@@ -682,13 +685,13 @@ void ItemManager::asyncExportToFile_Binary(const std::string& filename) const {
                 Logger::log(LogLevel::INFO, "asyncExportToFile_Binary completed successfully for file: " + filename);
             }
         } catch (const std::exception& e) {
-            throw std::runtime_error("\n\033[1;31m :::| WARNING: Exception in asyncExportToFile_Binary: " + std::string(e.what()) + "\033[0m\n");
+            throw std::runtime_error( Logger::getColorCode(LogColor::RED) + ":::| WARNING: Exception in asyncExportToFile_Binary: " + std::string(e.what()) + Logger::getColorCode(LogColor::RESET));
         }
     }).detach();
 }
 
 bool ItemManager::importFromFile_Binary(const std::string& filename) {
-    Logger::log(LogLevel::INFO, "Attempting binary import from file: " + filename);
+    Logger::log(LogLevel::INFO, "Importing binary file: " + filename);
 
     std::ifstream in(filename, std::ios::binary);
     if (!in.is_open()) {
@@ -895,8 +898,7 @@ void ItemManager::asyncImportSingleObject_Binary(const std::string& filename, co
 
 bool ItemManager::exportToFile_XML(const std::string& filename) const {
     if (items.empty()) {
-        Logger::log(LogLevel::ERR, "No items to export! XML export aborted.");
-        return false;
+        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Cannot export to file '" + filename + "' — no items found." + Logger::getColorCode(LogColor::RESET));
     }
 
     tinyxml2::XMLDocument doc;
@@ -968,7 +970,7 @@ void ItemManager::asyncExportToFile_XML(const std::string& filename) const {
                 Logger::log(LogLevel::INFO, "asyncExportToFile_XML completed successfully for file: " + filename);
             }
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Exception in asyncExportToFile_XML: " + std::string(e.what()));
+            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Exception in asyncExportToFile_XML: " + std::string(e.what()) + Logger::getColorCode(LogColor::RESET));
         }
     }).detach();
 }
@@ -1159,8 +1161,7 @@ void ItemManager::asyncImportSingleObject_XML(const std::string& filename, const
 
 bool ItemManager::exportToFile_CSV(const std::string& filename) const {
     if (items.empty()) {
-        Logger::log(LogLevel::ERR, "No items to export! CSV export aborted.");
-        return false;
+        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: No items found for export to file for CSV'" + filename + "'." + Logger::getColorCode(LogColor::RESET));
     }
 
     std::ostringstream oss;
@@ -1230,7 +1231,7 @@ void ItemManager::asyncExportToFile_CSV(const std::string& filename) const {
         } catch (const std::exception& ex) {
             Logger::log(LogLevel::ERR, "Exception in asyncExportToFile_CSV: " + std::string(ex.what()));
         } catch (...) {
-            Logger::log(LogLevel::ERR, "Unknown error in asyncExportToFile_CSV");
+            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Unknown error in asyncExportToFile_CSV" + Logger::getColorCode(LogColor::RESET));
         }
     }).detach();
 }
@@ -1238,8 +1239,7 @@ void ItemManager::asyncExportToFile_CSV(const std::string& filename) const {
 bool ItemManager::importFromFile_CSV(const std::string& filename) {
     std::ifstream file(filename);
     if (!file.is_open()) {
-        Logger::log(LogLevel::ERR, "Cannot open CSV file: " + filename);
-        return false;
+        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Cannot open CSV file: " + filename + Logger::getColorCode(LogColor::RESET));
     }
 
     std::string header;
@@ -1360,7 +1360,7 @@ void ItemManager::asyncImportFromFile_CSV(const std::string& filename) {
         } catch (const std::exception& ex) {
             Logger::log(LogLevel::ERR, "Exception in asyncImportFromFile_CSV: " + std::string(ex.what()));
         } catch (...) {
-            Logger::log(LogLevel::ERR, "Unknown error in asyncImportFromFile_CSV");
+            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Unknown error in asyncImportFromFile_CSV" + Logger::getColorCode(LogColor::RESET));
         }
     }).detach();
 }

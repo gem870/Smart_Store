@@ -11,7 +11,10 @@
 
 ## Overview
 
-<b>Smart_Store</b> is a modular, extensible, and high-performance C++ framework for managing, serializing, deserializing, and organizing complex item data across multiple formats. Perfect for inventory systems, asset management, data editors, and any application needing structured, taggable, and type-safe storage of arbitrary objects.
+<b>Smart_Store</b> is a modular, extensible, and high-performance C++ framework for managing, serializing, deserializing, and organizing complex item data across multiple formats. Perfect for inventory systems, asset management, data editors, and any application needing structured, taggable, and type-safe storage of arbitrary objects.</br>
+This isn’t just code it’s a living system. I designed it to be as intuitive and adaptive as the human body forming from cells.
+
+- [More details](https://github.com/gem870/Smart_Store/wiki#project-summary)
 
 ### Key Features
 - **Undo / Redo History** — Safe state rollback with snapshots
@@ -62,23 +65,24 @@
 #include "t_manager/ItemManager.h"
 
 int main() {
-    ItemManager manager;
+  ItemManager manager;
 
-    manager.addItem(std::make_shared<int>(42), "item1");
-    manager.displayByTag("item1");
+  manager.addItem(std::make_shared<int>(42), "item1");
+  manager.displayByTag("item1");
 
-    manager.removeByTag("item1");
-    manager.displayByTag("item1");
+  manager.exportToFile_CSV("backup.csv");
 
-    manager.exportToFile_Json("inventory.json");
-    manager.exportToFile_CSV("backup.csv");
+  manager.undo();
+  manager.redo();
 
-    manager.undo();
-    manager.redo();
+  manager.removeByTag("item1");
+  manager.displayByTag("item1");
 
-    return 0;
+  return 0;
 }
 ```
+## Output:
+![file structure](https://github.com/gem870/Smart_Store/blob/main/assets/file%20structure.PNG)
 
 ---
 
@@ -107,7 +111,7 @@ int main() {
 ### Windows:
   . Make sure you have CMake and GCC compiler installed before you run the fellowing commands.</br>
   . If still having issues, set up WSL (Windows Subsystem for Linux) or use a Linux environment </br>
-    and run the following commands.
+    and run the following commands on the terminal.
 
 ### Linux / macOS:
   . Make sure you have CMake and GCC compiler installed before you run the following commands.</br></br>

@@ -128,6 +128,8 @@ cmake --build .
 ./TestApp
 ```
 
+### Integration
+- [Integration guide](https://github.com/gem870/Smart_Store/wiki/Integration)
 ---
 
 ## License

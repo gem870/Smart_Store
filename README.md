@@ -98,7 +98,7 @@ int main() {
 ## Why Choose Smart_Store?
 
 - **Modern & Maintainable:** Clean, idiomatic C++20 codebase
-- **Zero Boilerplate:** Automatic type registration—just use `addItem`
+- **Zero Boilerplate:** Automatic type registration, just use `addItem`
 - **No Inheritance Required:** Works with any object type
 - **Data Safety:** Undo history ensures you never lose a state
 - **Robust Migration:** Built-in schema upgrades for legacy data

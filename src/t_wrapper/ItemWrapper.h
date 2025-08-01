@@ -92,30 +92,39 @@ public:
     ItemWrapper(std::shared_ptr<T> obj, const std::string& tag = "")
          : data(std::move(obj)), tag(tag),id_(IdProvider::generateId()) {} 
 
-    ItemWrapper(const json& j)
-         : data(std::make_shared<T>()), tag(j.value("tag", ""))
-    {
-        std::string resolvedId =
-            j.contains("id") && !j.at("id").get<std::string>().empty()
-                ? j.at("id").get<std::string>()
-                : IdProvider::generateId();
+    ItemWrapper(const nlohmann::json& j) {
+        data = std::make_shared<T>();
 
-        id_ = resolvedId;
+        // Assign id
+        id_ = j.contains("id") && !j.at("id").get<std::string>().empty()
+            ? j.at("id").get<std::string>()
+            : IdProvider::generateId();
 
+        // Assign tag
+        tag = j.value("tag", "");
+
+        // Assign data
         if (j.contains("data")) {
             if constexpr (has_from_json<T>::value) {
                 from_json(j.at("data"), *data);
+            } else if constexpr (std::is_same_v<T, std::string>) {
+                // Handle both formats
+                if (j.at("data").is_object() && j.at("data").contains("value")) {
+                    *data = j.at("data").at("value").get<std::string>();
+                } else if (j.at("data").is_string()) {
+                    *data = j.at("data").get<std::string>();
+                } else {
+                    *data = ""; // fallback
+                }
             } else {
-                // Only call get_to if T is supported by nlohmann::json
                 try {
                     j.at("data").get_to(*data);
                 } catch (...) {
-                    // fallback: leave data default-constructed
+                    // leave default-constructed
                 }
             }
         }
     }
-
 
     
     std::string getId() const override {

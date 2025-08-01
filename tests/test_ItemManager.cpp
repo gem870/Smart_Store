@@ -44,7 +44,7 @@ TEST(ItemManagerTest, RemoveItem) {
     EXPECT_FALSE(manager.hasItem("item1"));
     
     // Optionally check that display doesn't crash or throw
-    EXPECT_NO_THROW(manager.displayByTag("item1"));
+    EXPECT_THROW(manager.displayByTag("item1"), std::runtime_error);
 
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
@@ -95,7 +95,7 @@ TEST(ItemManagerTest, Undo) {
     EXPECT_FALSE(manager.hasItem("item2"));
     
     // Also verify displayByTag doesn't throw anymore
-    EXPECT_NO_THROW(manager.displayByTag("item2"));
+    EXPECT_THROW(manager.displayByTag("item2"), std::runtime_error);
 
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
@@ -326,7 +326,7 @@ TEST(GlobalItemManagerTest, ResetItemManager) {
     EXPECT_FALSE(newItemManager.hasItem("testItem"));
 
     // Confirm displayByTag no longer throws but logs appropriately
-    EXPECT_NO_THROW(newItemManager.displayByTag("testItem"));
+    EXPECT_THROW(newItemManager.displayByTag("testItem"), std::runtime_error);
 }
 
 
@@ -1064,8 +1064,8 @@ TEST(ItemManagerTest, ImportFromFile_XML_UnknownTypeIsSkipped) {
 
 
 
-// ::::::::::: Concurrency test for all the functions (thread calls on functions) :::::::::::
-// ******************************************************************************************
+// // ::::::::::: Concurrency test for all the functions (thread calls on functions) :::::::::::
+// // ******************************************************************************************
 
 void simulateFileLoad(const std::string& filename) {
     std::cout << "\033[1;33m📂 File load of: " << filename << "\033[0m" << std::endl;

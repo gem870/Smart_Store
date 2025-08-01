@@ -592,7 +592,7 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
                 return item;
             } catch (const std::exception& e) {
                 Logger::log(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what());
-                throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Exception during deserialization of '" + tag + "': " + e.what() + Logger::getColorCode(LogColor::RESET));
+                throw std::runtime_error(":::| ERROR: Exception during deserialization of '" + tag + "': " + e.what());
             }
         }
     }

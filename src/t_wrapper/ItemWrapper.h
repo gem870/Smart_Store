@@ -92,111 +92,30 @@ public:
     ItemWrapper(std::shared_ptr<T> obj, const std::string& tag = "")
          : data(std::move(obj)), tag(tag),id_(IdProvider::generateId()) {} 
 
-    // ItemWrapper(const json& j)
-    //      : data(std::make_shared<T>()), tag(j.value("tag", ""))
-    // {
-    //     std::string resolvedId =
-    //         j.contains("id") && !j.at("id").get<std::string>().empty()
-    //             ? j.at("id").get<std::string>()
-    //             : IdProvider::generateId();
+    ItemWrapper(const json& j)
+         : data(std::make_shared<T>()), tag(j.value("tag", ""))
+    {
+        std::string resolvedId =
+            j.contains("id") && !j.at("id").get<std::string>().empty()
+                ? j.at("id").get<std::string>()
+                : IdProvider::generateId();
 
-    //     id_ = resolvedId;
+        id_ = resolvedId;
 
-    //     if (j.contains("data")) {
-    //         if constexpr (has_from_json<T>::value) {
-    //             from_json(j.at("data"), *data);
-    //         } else {
-    //             // Only call get_to if T is supported by nlohmann::json
-    //             try {
-    //                 j.at("data").get_to(*data);
-    //             } catch (...) {
-    //                 // fallback: leave data default-constructed
-    //             }
-    //         }
-    //     }
-    // }
-
-  
-
-ItemWrapper(const nlohmann::json& j) {
-    data = std::make_shared<T>();
-
-    if (j.contains("data")) {
-        if constexpr (has_from_json<T>::value) {
-            // Use custom deserialization if available
-            from_json(j.at("data"), *data);
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            // Explicitly pull "value" for strings coming from XML
-            *data = j.at("data").value("value", "");
-        } else {
-            try {
-                // Fallback for types with default JSON deserialization
-                j.at("data").get_to(*data);
-            } catch (const std::exception& e) {
-                // Optional: log or handle error
+        if (j.contains("data")) {
+            if constexpr (has_from_json<T>::value) {
+                from_json(j.at("data"), *data);
+            } else {
+                // Only call get_to if T is supported by nlohmann::json
+                try {
+                    j.at("data").get_to(*data);
+                } catch (...) {
+                    // fallback: leave data default-constructed
+                }
             }
         }
     }
 
-    if (j.contains("tag")) {
-        tag = j.at("tag").get<std::string>();
-    }
-}
-
-//     ItemWrapper(const json& j)
-//     : data(std::make_shared<T>()), tag(j.value("tag", ""))
-// {
-//     // Resolve ID
-//     std::string resolvedId =
-//         j.contains("id") && !j.at("id").get<std::string>().empty()
-//             ? j.at("id").get<std::string>()
-//             : IdProvider::generateId();
-
-//     id_ = resolvedId;
-
-//     // Deserialize data
-//     if (j.contains("data")) {
-//         if constexpr (has_from_json<T>::value) {
-//             // If T has custom from_json logic
-//             from_json(j.at("data"), *data);
-//         } else if constexpr (std::is_same_v<T, std::string>) {
-//             // Special case: std::string stored as nested "value"
-//             *data = j.at("data").value("value", "");
-//         } else {
-//             // Generic fallback for types supported by nlohmann::json
-//             try {
-//                 j.at("data").get_to(*data);
-//             } catch (...) {
-//                 // Leave default-constructed if parse fails
-//             }
-//         }
-//     }
-// }
-
-// ItemWrapper(const json& j)
-//     : data(std::make_shared<T>()), tag(j.value("tag", ""))
-// {
-//     std::string resolvedId =
-//         j.contains("id") && !j.at("id").get<std::string>().empty()
-//             ? j.at("id").get<std::string>()
-//             : IdProvider::generateId();
-
-//     id_ = resolvedId;
-
-//     if (j.contains("data")) {
-//         if constexpr (has_from_json<T>::value) {
-//             from_json(j.at("data"), *data);
-//         } else if constexpr (std::is_same_v<T, std::string>) {
-//             *data = j.at("data").value("value", "");
-//         } else {
-//             try {
-//                 j.at("data").get_to(*data);
-//             } catch (...) {
-//                 // fallback
-//             }
-//         }
-//     }
-// }
 
     
     std::string getId() const override {

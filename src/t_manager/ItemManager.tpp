@@ -101,7 +101,7 @@ json ItemManager::getSchemaForType(std::string type) const {
 void ItemManager::displayRegisteredDeserializers() {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered Deserializers in ItemManager :::\n" << Logger::getColorCode(LogColor::RESET);
+    std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered Deserializers in ItemManager |:::\n" << Logger::getColorCode(LogColor::RESET);
     
     if (deserializers.empty()) {
         Logger::log(LogLevel::INFO, "No deserializers registered");
@@ -114,7 +114,7 @@ void ItemManager::displayRegisteredDeserializers() {
 
     std::cout << "\n::::::::::::::::::::::::::::::::::::::::::::::::\n";
 
-    std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered Deserializers in ItemManager :::\n" << Logger::getColorCode(LogColor::RESET);
+    std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered types in ItemManager |:::\n" << Logger::getColorCode(LogColor::RESET);
     if (registeredTypes.empty()) {
         Logger::log(LogLevel::INFO, "No types registered");
         return;
@@ -591,8 +591,7 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
 
                 return item;
             } catch (const std::exception& e) {
-                Logger::log(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what());
-                throw std::runtime_error(":::| ERROR: Exception during deserialization of '" + tag + "': " + e.what());
+                  throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Exception during deserialization of '" + tag + "': " + e.what() + Logger::getColorCode(LogColor::RESET));
             }
         }
     }

@@ -116,7 +116,7 @@ int main() {
 ### Linux / macOS:
   . Make sure you have CMake and GCC compiler installed before you run the following commands.</br></br>
 
-  <b>>> If the issue persist, please reach out via email or GitHub issues.</b>
+  <b>>> If the issue persist or segmentation fault, please reach out via email or GitHub issues.</b>
 
 ```bash
 git clone https://github.com/gem870/Smart_Store.git

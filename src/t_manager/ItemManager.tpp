@@ -104,23 +104,23 @@ void ItemManager::displayRegisteredDeserializers() {
     std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered Deserializers in ItemManager |:::\n" << Logger::getColorCode(LogColor::RESET);
     
     if (deserializers.empty()) {
-        Logger::log(LogLevel::INFO, "No deserializers registered");
+        LOG_CONTEXT(LogLevel::INFO, "No deserializers registered", {});
         return;
     }
 
     for (const auto& entry : deserializers) {
-        Logger::log(LogLevel::DEBUG, "Type: " + demangleType(entry.first) + " -> Deserialization Function Exists");
+        LOG_CONTEXT(LogLevel::DEBUG, "Type: " + demangleType(entry.first) + " -> Deserialization Function Exists", {});
     }
 
     std::cout << "\n::::::::::::::::::::::::::::::::::::::::::::::::\n";
 
     std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered types in ItemManager |:::\n" << Logger::getColorCode(LogColor::RESET);
     if (registeredTypes.empty()) {
-        Logger::log(LogLevel::INFO, "No types registered");
+        LOG_CONTEXT(LogLevel::INFO, "No types registered", {});
         return;
     }
     for (const auto& entry : registeredTypes) {
-        Logger::log(LogLevel::DEBUG, "Type: " + demangleType(entry.first) + " -> Type Index: " + demangleType(entry.second.name()));
+        LOG_CONTEXT(LogLevel::DEBUG, "Type: " + demangleType(entry.first) + " -> Type Index: " + demangleType(entry.second.name()), {});
     }
     std::cout << "\n::::::::::::::::::::::::::::::::::::::::::::::::\n";
 }
@@ -141,7 +141,7 @@ std::string ItemManager::demangleType(const std::string& mangledName) const{
         free(demangled);  // Ensure valid memory cleanup
         demangled = nullptr;  // Prevent accidental reuse
     } else {
-        Logger::log(LogLevel::WARNING, "Demangling failed for: " + mangledName);
+        LOG_CONTEXT(LogLevel::WARNING, mangledName, std::make_exception_ptr(std::runtime_error("Demangling failed")));
         result = mangledName.c_str();
     }
 
@@ -157,7 +157,7 @@ template<typename T>
 void ItemManager::addItem(std::shared_ptr<T> obj, const std::string& tag) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!obj) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + "\n:::| WARNING: Cannot add null object with tag '" + tag + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(std::runtime_error("Cannot add null object " + tag + " with type: " + demangleType(typeid(T).name()))));
     }
     std::cout <<Logger::getColorCode(LogColor::GREEN) + "\nAn item added with tag: " << tag << Logger::getColorCode(LogColor::RESET) << std::endl;
 
@@ -188,10 +188,10 @@ void ItemManager::addItem(std::shared_ptr<T> obj, const std::string& tag) {
     items[tag] = std::make_shared<ItemWrapper<T>>(std::move(obj), tag);
 
     for (const auto& [key, value] : items) {
-        Logger::log(LogLevel::DEBUG, "Item with tag '" + key + "' registered with type: " + demangleType(value->getTypeName()));
+        LOG_CONTEXT(LogLevel::DEBUG, "Item with tag '" + key + "' registered with type: " + demangleType(value->getTypeName()), {});
     }
 
-    Logger::log(LogLevel::INFO, "Item with tag '" + tag + "' added successfully. Type: " + demangleType(getCompilerTypeName<T>()));
+    LOG_CONTEXT(LogLevel::INFO, "Item with tag '" + tag + "' added successfully. Type: " + demangleType(getCompilerTypeName<T>()), {});
 }
 
 template<typename T>
@@ -221,10 +221,10 @@ std::optional<T> ItemManager::getItem(const std::string& tag) const {
         if (wrapper) {
             return wrapper->getData();
         } else {
-            Logger::log(LogLevel::WARNING, "Type mismatch for tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name())+ ", Actual type: " + demangleType(it->second->getTypeName()));
+            LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name())+ ", Actual type: " + demangleType(it->second->getTypeName()), {});
         }
     } else {
-        Logger::log(LogLevel::WARNING, "No item found with tag '" + tag + "'");
+        LOG_CONTEXT(LogLevel::WARNING, "No item found with tag '" + tag + "'", {});
     }
     return std::nullopt;
 }
@@ -239,11 +239,11 @@ T& ItemManager::getItemRaw(const std::string& tag) {
         if (wrapper) {
             return wrapper->getMutableData();
         } else {
-            Logger::log(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()));
+            LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
             throw std::runtime_error("\n:::| Type mismatch for item with tag '" + tag + "'.\n");
         }
     } else {
-        Logger::log(LogLevel::WARNING, "Item with tag '" + tag + "' not found.");
+        LOG_CONTEXT(LogLevel::WARNING, "Item with tag '" + tag + "' not found.", {});
         throw std::runtime_error("\n:::| Item with tag '" + tag + "' not found.\n");
     }
 }
@@ -258,11 +258,11 @@ const T& ItemManager::getItemRaw(const std::string& tag) const {
         if (wrapper) {
             return wrapper->getData();
         } else {
-            Logger::log(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()));
+            LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
             throw std::runtime_error("\n:::| Type mismatch for item with tag '" + tag + "'.\n");
         }
     } else {
-        Logger::log(LogLevel::WARNING, "Item with tag '" + tag + "' not found.");
+        LOG_CONTEXT(LogLevel::WARNING, "Item with tag '" + tag + "' not found.", {});
         throw std::runtime_error("\n:::| Item with tag '" + tag + "' not found.\n");
     }
 }
@@ -274,7 +274,7 @@ void ItemManager::displayAll() const {
     if (!items.empty()) {
         for (const auto& [_, item] : items) item->display();
     }else{
-        Logger::log(LogLevel::INFO, "No items found to display.");
+        LOG_CONTEXT(LogLevel::INFO, "No items found to display.", {});
     }
 }
 
@@ -283,12 +283,12 @@ void ItemManager::displayByTag(const std::string& tag) const {
 
     auto it = items.find(tag);
     if (it != items.end()) {
-        Logger::log(LogLevel::DEBUG, "Displaying item with tag '" + tag + "'");
+        LOG_CONTEXT(LogLevel::DEBUG, "Displaying item with tag '" + tag + "'", {});
         it->second->display();
         return;
     }
 
-    throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Item with tag '" + tag + "' —> not found." + Logger::getColorCode(LogColor::RESET));
+    LOG_CONTEXT(LogLevel::WARNING, "Item with tag '" + tag + "' not found.", ErrorCode::ITEM_NOT_FOUND);
 }
 
 void ItemManager::removeByTag(const std::string& tag) {
@@ -312,15 +312,15 @@ void ItemManager::removeByTag(const std::string& tag) {
             registeredTypes.erase(typeName);
             deserializers.erase(typeName);
             schemaRegistry.erase(typeName);  //  Clean up schema too
-            Logger::log(LogLevel::DEBUG, "Removed type: " + demangleType(typeName) + " from registry");
+            LOG_CONTEXT(LogLevel::DEBUG, "Removed type: " + demangleType(typeName) + " from registry", {});
         }
 
         items.erase(it);
         idMap.erase(id); // Now erase from idMap as well
 
-        Logger::log(LogLevel::DEBUG, "Removed item with tag '" + tag + "' and id '" + id + "'");
+        LOG_CONTEXT(LogLevel::DEBUG, "Removed item with tag '" + tag + "' and id '" + id + "'", {});
     } else {
-        Logger::log(LogLevel::WARNING, "No item found with tag '" + tag + "' to be removed.");
+        LOG_CONTEXT(LogLevel::WARNING, "No item found with tag '" + tag + "' to be removed.", {});
     }
 }
 
@@ -335,9 +335,9 @@ void ItemManager::undo() {
         redoQueue.push(std::move(current));            // Push current into redo
         items = std::move(prev);                       // Restore previous state
 
-        Logger::log(LogLevel::DEBUG, "Undo successful. Restored to previous state.");
+        LOG_CONTEXT(LogLevel::DEBUG, "Undo successful. Restored to previous state.", {});
     } else {
-        Logger::log(LogLevel::INFO, "Nothing to undo.");
+        LOG_CONTEXT(LogLevel::INFO, "Nothing to undo.", {});
     }
 }
 
@@ -349,9 +349,9 @@ void ItemManager::redo() {
         items = std::move(redoQueue.front());         // Restore redo state
         redoQueue.pop();
 
-        Logger::log(LogLevel::DEBUG, "Redo successful. Restored to next state.");
+        LOG_CONTEXT(LogLevel::DEBUG, "Redo successful. Restored to next state.", {});
     } else {
-        Logger::log(LogLevel::INFO, "Nothing to redo.");
+        LOG_CONTEXT(LogLevel::INFO, "Nothing to redo.", {});
     }
 }
 
@@ -366,7 +366,7 @@ void ItemManager::exportToFile_Json(const std::string& filename) const {
 
     for (const auto& [tag, item] : items) {
         if (!item) {
-            Logger::log(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.");
+            LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.", {});
             continue;
         }
 
@@ -379,24 +379,24 @@ void ItemManager::exportToFile_Json(const std::string& filename) const {
         try {
             entry["data"] = item->serialize();
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Serialization failed for item '" + tag + "': " + e.what());
+            LOG_CONTEXT(LogLevel::ERR, "Serialization failed for item '" + tag + "': " + e.what(), {});
             continue;
         }
 
         auto schema = getSchemaForType(item->getTypeName());
         if (!schema.is_null()) {
             entry["schema"] = schema;
-            Logger::log(LogLevel::DEBUG, "Attached schema for type: " + demangleType(item->getTypeName()));
+            LOG_CONTEXT(LogLevel::DEBUG, "Attached schema for type: " + demangleType(item->getTypeName()), {});
         }
 
         jArray.push_back(entry);
-        
-        Logger::log(LogLevel::INFO, "Exporting item with tag: " + tag + " of type: " + demangleType(item->getTypeName()));
+
+        LOG_CONTEXT(LogLevel::INFO, "Exporting item with tag: " + tag + " of type: " + demangleType(item->getTypeName()), {});
         std::cout << Logger::getColorCode(LogColor::CYAN)
                   << entry.dump(4) 
                   << Logger::getColorCode(LogColor::RESET) + "\n";
 
-        Logger::log(LogLevel::INFO, "Added entry for tag: " + tag);
+        LOG_CONTEXT(LogLevel::INFO, "Added entry for tag: " + tag, {});
     }
 
     std::string jsonContent = jArray.dump(4);
@@ -407,7 +407,7 @@ void ItemManager::exportToFile_Json(const std::string& filename) const {
             Logger::getColorCode(LogColor::RESET));
     }
 
-    Logger::log(LogLevel::INFO, "Exported " + std::to_string(jArray.size()) + " items to file (atomically): " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "Exported " + std::to_string(jArray.size()) + " items to file (atomically): " + filename, {});
 }
 
 void ItemManager::asyncExportToFile_Json(const std::string& filename) const {
@@ -422,7 +422,7 @@ void ItemManager::asyncExportToFile_Json(const std::string& filename) const {
 }
 
 void ItemManager::importFromFile_Json(const std::string& filename) {
-    Logger::log(LogLevel::INFO, "Attempting JSON import from file: " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "Attempting JSON import from file: " + filename, {});
 
     std::ifstream in(filename);
     if (!in) {
@@ -431,17 +431,17 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
 
     json parsedJson;
     in >> parsedJson;
-    Logger::log(LogLevel::DEBUG, "JSON file loaded successfully: " + filename);
+    LOG_CONTEXT(LogLevel::DEBUG, "JSON file loaded successfully: " + filename, {});
 
     std::cout << Logger::getColorCode(LogColor::CYAN) + "\n:::| Loaded JSON content from file:\n" << Logger::getColorCode(LogColor::RESET) << parsedJson.dump(2) << "\n";
 
     if (parsedJson.is_array()) {
-        Logger::log(LogLevel::DEBUG, "Processing JSON array format.");
+        LOG_CONTEXT(LogLevel::DEBUG, "Processing JSON array format.", {});
     } else if (parsedJson.contains("items") && parsedJson["items"].is_array()) {
         parsedJson = parsedJson["items"];
-        Logger::log(LogLevel::DEBUG, "Processing JSON with 'items' key.");
+        LOG_CONTEXT(LogLevel::DEBUG, "Processing JSON with 'items' key.", {});
     } else {
-        Logger::log(LogLevel::ERR, "Invalid JSON format in: " + filename);
+        LOG_CONTEXT(LogLevel::ERR, "Invalid JSON format in: " + filename, {});
         throw std::runtime_error(Logger::getColorCode(LogColor::RED) + "\n:::| WARNING: Invalid JSON format: Expected an array or 'items' key." + Logger::getColorCode(LogColor::RESET) + "\n");
     }
 
@@ -453,7 +453,7 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
 
     for (const auto& entry : parsedJson) {
         if (!entry.contains("tag") || !entry.contains("type") || !entry.contains("data")) {
-            Logger::log(LogLevel::WARNING, "Skipping entry due to missing keys: 'tag', 'type', or 'data'.");
+            LOG_CONTEXT(LogLevel::WARNING, "Skipping entry due to missing keys: 'tag', 'type', or 'data'.", {});
             continue;
         }
 
@@ -462,35 +462,35 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
         int version = entry.value("version", 1);
         json rawData = entry["data"];
 
-        Logger::log(LogLevel::INFO, "Importing item: '" + tag + "' of type: '" + demangleType(typeName) + "'");
+        LOG_CONTEXT(LogLevel::INFO, "Importing item: '" + tag + "' of type: '" + demangleType(typeName) + "'", {});
 
         if (!rawData.contains("id") && entry.contains("id")) {
             rawData["id"] = entry["id"];
         }
 
         if (entry.contains("schema")) {
-            Logger::log(LogLevel::DEBUG, "Schema detected for type: " + demangleType(typeName));
+            LOG_CONTEXT(LogLevel::DEBUG, "Schema detected for type: " + demangleType(typeName), {});
             schemaRegistry[typeName] = [schema = entry["schema"]]() {
                 return schema;
             };
         }
 
         json upgraded = migrationRegistry.upgradeToLatest(typeName, version, rawData);
-        Logger::log(LogLevel::DEBUG, "Schema migration applied (if needed) for '" + tag + "' to latest version.");
+        LOG_CONTEXT(LogLevel::DEBUG, "Schema migration applied (if needed) for '" + tag + "' to latest version.", {});
 
         auto typeIt = registeredTypes.find(typeName);
         if (typeIt == registeredTypes.end()) {
-            Logger::log(LogLevel::WARNING, "Unknown type: " + demangleType(typeName) + " — skipping.");
+            LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + demangleType(typeName) + " — skipping.", {});
             continue;
         }
 
         auto desIt = deserializers.find(typeName);
         if (desIt == deserializers.end()) {
-            Logger::log(LogLevel::WARNING, "No deserializer registered for type: " + demangleType(typeName) + " — skipping.");
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + demangleType(typeName) + " — skipping.", {});
             continue;
         }
 
-        Logger::log(LogLevel::INFO, "Attempting to deserialize item with tag '" + tag + "' and type '" + demangleType(typeName) + "'.");
+        LOG_CONTEXT(LogLevel::INFO, "Attempting to deserialize item with tag '" + tag + "' and type '" + demangleType(typeName) + "'.", {});
         std::cout << Logger::getColorCode(LogColor::CYAN)
                   << entry.dump(4) 
                   << Logger::getColorCode(LogColor::RESET) + "\n";
@@ -499,17 +499,17 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
             auto newItem = desIt->second(upgraded, tag);
             if (newItem) {
                 items[tag] = std::move(newItem);
-                Logger::log(LogLevel::INFO, "Item '" + tag + "' imported successfully.");
+                LOG_CONTEXT(LogLevel::INFO, "Item '" + tag + "' imported successfully.", {});
                 ++importCount;
             } else {
-                Logger::log(LogLevel::ERR, "Deserializer returned null for tag: " + tag);
+                LOG_CONTEXT(LogLevel::ERR, "Deserializer returned null for tag: " + tag, {});
             }
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what());
+            LOG_CONTEXT(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what(), {});
         }
     }
 
-    Logger::log(LogLevel::INFO, "Completed import of " + std::to_string(importCount) + " item(s) from JSON file: " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "Completed import of " + std::to_string(importCount) + " item(s) from JSON file: " + filename, {});
 }
 
 void ItemManager::asyncImportFromFile_Json(const std::string& filename) {
@@ -517,13 +517,13 @@ void ItemManager::asyncImportFromFile_Json(const std::string& filename) {
         try {
             this->importFromFile_Json(filename);  // Thread-safe core
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "asyncImportFromFile_Json error: " + std::string(e.what()));
+            LOG_CONTEXT(LogLevel::ERR, "asyncImportFromFile_Json error: " + std::string(e.what()), {});
         }
     }).detach();  // Fire-and-forget style
 }
 
 std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string& filename, const std::string& typeName, const std::string& tag) {
-    Logger::log(LogLevel::INFO, "Attempting to import single JSON object from file: " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "Attempting to import single JSON object from file: " + filename, {});
 
     std::ifstream in(filename);
     if (!in) {
@@ -533,15 +533,15 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
     json array;
     try {
         in >> array;
-        Logger::log(LogLevel::DEBUG, "JSON file parsed successfully.");
+        LOG_CONTEXT(LogLevel::DEBUG, "JSON file parsed successfully.", {});
     } catch (const std::exception& e) {
-        Logger::log(LogLevel::ERR, "Failed to parse JSON from '" + filename + "': " + e.what());
+        LOG_CONTEXT(LogLevel::ERR, "Failed to parse JSON from '" + filename + "': " + e.what(), {});
         throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Failed to parse JSON from file '" + filename + "': " + e.what() + Logger::getColorCode(LogColor::RESET));
     }
 
     for (const auto& entry : array) {
         if (entry.value("tag", "") == tag && entry.value("type", "") == typeName) {
-            Logger::log(LogLevel::INFO, "Found matching object with tag '" + tag + "' and type '" + demangleType(typeName) + "'.");
+            LOG_CONTEXT(LogLevel::INFO, "Found matching object with tag '" + tag + "' and type '" + demangleType(typeName) + "'.", {});
 
             int version = entry.value("version", 1);
             json rawData = entry["data"];
@@ -555,34 +555,34 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
             }
 
             if (entry.contains("schema")) {
-                Logger::log(LogLevel::DEBUG, "Embedded schema detected for tag: " + tag);
+                LOG_CONTEXT(LogLevel::DEBUG, "Embedded schema detected for tag: " + tag, {});
                 schemaRegistry[typeName] = [schema = entry["schema"]]() {
                     return schema;
                 };
             }
 
             json upgraded = migrationRegistry.upgradeToLatest(typeName, version, rawData);
-            Logger::log(LogLevel::DEBUG, "Schema migration applied (if needed) to latest version.");
+            LOG_CONTEXT(LogLevel::DEBUG, "Schema migration applied (if needed) to latest version.", {});
 
             auto typeIt = registeredTypes.find(typeName);
             if (typeIt == registeredTypes.end()) {
-                Logger::log(LogLevel::WARNING, "Unknown type: " + demangleType(typeName) + " — skipping.");
+                LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + demangleType(typeName) + " — skipping.", {});
                 return nullptr;
             }
 
             auto desIt = deserializers.find(typeName);
             if (desIt == deserializers.end()) {
-                Logger::log(LogLevel::WARNING, "No deserializer registered for type: " + demangleType(typeName) + " — skipping.");
+                LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + demangleType(typeName) + " — skipping.", {});
                 return nullptr;
             }
 
             try {
-                Logger::log(LogLevel::INFO, "Attempting to deserialize item with tag '" + tag + "' and type '" + demangleType(typeName) + "'.");
+                LOG_CONTEXT(LogLevel::INFO, "Attempting to deserialize item with tag '" + tag + "' and type '" + demangleType(typeName) + "'.", {});
                 auto item = desIt->second(upgraded, tag);
                 if (item) {
-                    Logger::log(LogLevel::INFO, "Deserialization successful for tag '" + tag + "'.");
+                    LOG_CONTEXT(LogLevel::INFO, "Deserialization successful for tag '" + tag + "'.", {});
                 } else {
-                    Logger::log(LogLevel::ERR, "Deserializer returned null for tag: " + tag);
+                    LOG_CONTEXT(LogLevel::ERR, "Deserializer returned null for tag: " + tag, {});
                 }
 
                 undoHistory.push_back(cloneCurrentState());
@@ -596,7 +596,7 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
         }
     }
 
-    Logger::log(LogLevel::WARNING, "No object found with tag '" + tag + "' and type '" + demangleType(typeName) + "' in file: " + filename);
+    LOG_CONTEXT(LogLevel::WARNING, "No object found with tag '" + tag + "' and type '" + demangleType(typeName) + "' in file: " + filename, {});
     return nullptr;
 }
 
@@ -606,9 +606,9 @@ void ItemManager::asyncImportSingleObject_Json(const std::string& filename, cons
         if (item) {
             std::lock_guard<std::mutex> lock(mutex_);
             items[tag] = std::move(item);  // safely inserts into store
-            Logger::log(LogLevel::INFO, "Async import of single item '" + tag + "' completed successfully.");
+            LOG_CONTEXT(LogLevel::INFO, "Async import of single item '" + tag + "' completed successfully.", {});
         } else {
-            Logger::log(LogLevel::WARNING, "Async import failed for tag '" + tag + "' from file '" + filename + "'.");
+            LOG_CONTEXT(LogLevel::WARNING, "Async import failed for tag '" + tag + "' from file '" + filename + "'.", {});
         }
     }).detach();
 }
@@ -646,7 +646,7 @@ bool ItemManager::exportToFile_Binary(const std::string& filename) const {
         append(&dataSize, sizeof(dataSize));
         append(jsonStr.data(), dataSize);
 
-        Logger::log(LogLevel::INFO, "Exported binary object with tag '" + tag + "' of type '" + demangleType(type) + "' [hex]:");
+        LOG_CONTEXT(LogLevel::INFO, "Exported binary object with tag '" + tag + "' of type '" + demangleType(type) + "' [hex]:", {});
 
         auto dumpHex = [](const void* data, size_t size) {
             const unsigned char* bytes = reinterpret_cast<const unsigned char*>(data);
@@ -666,11 +666,11 @@ bool ItemManager::exportToFile_Binary(const std::string& filename) const {
     }
 
     if (!AtomicFileWriter::writeAtomicallyBinary(filename, buffer)) {
-        Logger::log(LogLevel::ERR, "Failed atomic binary export to '" + filename + "'.");
+        LOG_CONTEXT(LogLevel::ERR, "Failed atomic binary export to '" + filename + "'.", {});
         return false;
     }
 
-    Logger::log(LogLevel::INFO, "Binary export to '" + filename + "' completed successfully.");
+    LOG_CONTEXT(LogLevel::INFO, "Binary export to '" + filename + "' completed successfully.", {});
     return true;
 }
 
@@ -679,9 +679,9 @@ void ItemManager::asyncExportToFile_Binary(const std::string& filename) const {
         try {
             bool success = this->exportToFile_Binary(filename);
             if (!success) {
-                Logger::log(LogLevel::WARNING, "asyncExportToFile_Binary failed for file: " + filename);
+                LOG_CONTEXT(LogLevel::WARNING, "asyncExportToFile_Binary failed for file: " + filename, {});
             } else {
-                Logger::log(LogLevel::INFO, "asyncExportToFile_Binary completed successfully for file: " + filename);
+                LOG_CONTEXT(LogLevel::INFO, "asyncExportToFile_Binary completed successfully for file: " + filename, {});
             }
         } catch (const std::exception& e) {
             throw std::runtime_error( Logger::getColorCode(LogColor::RED) + ":::| WARNING: Exception in asyncExportToFile_Binary: " + std::string(e.what()) + Logger::getColorCode(LogColor::RESET));
@@ -690,11 +690,11 @@ void ItemManager::asyncExportToFile_Binary(const std::string& filename) const {
 }
 
 bool ItemManager::importFromFile_Binary(const std::string& filename) {
-    Logger::log(LogLevel::INFO, "Importing binary file: " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "Importing binary file: " + filename, {});
 
     std::ifstream in(filename, std::ios::binary);
     if (!in.is_open()) {
-        Logger::log(LogLevel::ERR, "Cannot open binary file '" + filename + "' for reading.");
+        LOG_CONTEXT(LogLevel::ERR, "Cannot open binary file '" + filename + "' for reading.", {});
         return false;
     }
 
@@ -726,7 +726,7 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
         in.read(jsonStr.data(), dataSize);
         if (in.gcount() != static_cast<std::streamsize>(dataSize)) break;
 
-        Logger::log(LogLevel::DEBUG, "Processing binary object with tag '" + tag + "' of type '" + demangleType(type) + "' [hex]:");
+        LOG_CONTEXT(LogLevel::DEBUG, "Processing binary object with tag '" + tag + "' of type '" + demangleType(type) + "' [hex]:", {});
         for (size_t i = 0; i < dataSize; ++i) {
             std::printf("%02X ", static_cast<unsigned char>(jsonStr[i]));
             if ((i + 1) % 16 == 0) std::cout << '\n';
@@ -736,9 +736,9 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
         json serialized;
         try {
             serialized = json::parse(jsonStr);
-            Logger::log(LogLevel::DEBUG, "Binary JSON parsed successfully for tag: " + tag);
+            LOG_CONTEXT(LogLevel::DEBUG, "Binary JSON parsed successfully for tag: " + tag, {});
         } catch (const json::parse_error& err) {
-            Logger::log(LogLevel::ERR, "Failed to parse JSON for tag '" + tag + "': " + std::string(err.what()));
+            LOG_CONTEXT(LogLevel::ERR, "Failed to parse JSON for tag '" + tag + "': " + std::string(err.what()), {});
             continue;
         }
 
@@ -752,31 +752,31 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
         }
 
         json upgraded = migrationRegistry.upgradeToLatest(type, version, serialized);
-        Logger::log(LogLevel::DEBUG, "Schema migration applied (if needed) for tag: " + tag + " to latest version.");
+        LOG_CONTEXT(LogLevel::DEBUG, "Schema migration applied (if needed) for tag: " + tag + " to latest version.", {});
 
         auto desIt = deserializers.find(type);
         if (desIt == deserializers.end()) {
-            Logger::log(LogLevel::WARNING, "No deserializer registered for type: " + type + " — skipping.");
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + type + " — skipping.", {});
             continue;
         }
 
         try {
             auto object = desIt->second(upgraded, tag);
             if (!object) {
-                Logger::log(LogLevel::WARNING, "Deserializer returned null for tag: " + tag);
+                LOG_CONTEXT(LogLevel::WARNING, "Deserializer returned null for tag: " + tag, {});
                 continue;
             }
 
             items[tag] = object;
-            Logger::log(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' and type '" + type + "' from binary file: " + filename);
+            LOG_CONTEXT(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' and type '" + type + "' from binary file: " + filename, {});
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + std::string(e.what()));
+            LOG_CONTEXT(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + std::string(e.what()), {});
             continue;
         }
     }
 
     in.close();
-    Logger::log(LogLevel::INFO, "Binary import from '" + filename + "' completed successfully with " + std::to_string(items.size()) + " items.");
+    LOG_CONTEXT(LogLevel::INFO, "Binary import from '" + filename + "' completed successfully with " + std::to_string(items.size()) + " items.", {});
     return true;
 }
 
@@ -784,9 +784,9 @@ void ItemManager::asyncImportFromFile_Binary(const std::string& filename) {
     std::thread([this, filename]() {
         try {
             this->importFromFile_Binary(filename);  // Thread-safe if core is locked
-            Logger::log(LogLevel::INFO, "asyncImportFromFile_Binary completed successfully for file: " + filename);
+            LOG_CONTEXT(LogLevel::INFO, "asyncImportFromFile_Binary completed successfully for file: " + filename, {});
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Exception in asyncImportFromFile_Binary: " + std::string(e.what()));
+            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportFromFile_Binary: " + std::string(e.what()), {});
         }
     }).detach();
 }
@@ -823,7 +823,7 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::stri
         if (in.gcount() != static_cast<std::streamsize>(dataSize)) break;
 
         if (entryType == type && entryTag == tag) {
-            Logger::log(LogLevel::DEBUG, "Matched binary object for tag '" + tag + "' of type '" + demangleType(type) + "'");
+            LOG_CONTEXT(LogLevel::DEBUG, "Matched binary object for tag '" + tag + "' of type '" + demangleType(type) + "'", {});
 
             auto dumpHex = [](const void* data, size_t size) {
                 const unsigned char* bytes = reinterpret_cast<const unsigned char*>(data);
@@ -873,12 +873,12 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::stri
             redoQueue = {};
             items[tag] = object;  // Safely insert into store
 
-            Logger::log(LogLevel::INFO, "Successfully imported object with tag '" + tag + "' from file '" + filename + "'");
+            LOG_CONTEXT(LogLevel::INFO, "Successfully imported object with tag '" + tag + "' from file '" + filename + "'", {});
             return object;
         }
     }
 
-    Logger::log(LogLevel::WARNING, "No matching object found for tag '" + tag + "' and type '" + demangleType(type) + "' in file '" + filename + "'");
+    LOG_CONTEXT(LogLevel::WARNING, "No matching object found for tag '" + tag + "' and type '" + demangleType(type) + "' in file '" + filename + "'", {});
     return nullptr;
 }
 
@@ -888,9 +888,9 @@ void ItemManager::asyncImportSingleObject_Binary(const std::string& filename, co
         if (item) {
             std::lock_guard<std::mutex> lock(mutex_);
             items[tag] = std::move(item);
-            Logger::log(LogLevel::INFO, "Async binary import of '" + tag + "' succeeded.");
+            LOG_CONTEXT(LogLevel::INFO, "Async binary import of '" + tag + "' succeeded.", {});
         } else {
-            Logger::log(LogLevel::WARNING, "Async binary import failed for tag '" + tag + "' from file '" + filename + "'.");
+            LOG_CONTEXT(LogLevel::WARNING, "Async binary import failed for tag '" + tag + "' from file '" + filename + "'.", {});
         }
     }).detach();
 }
@@ -906,11 +906,11 @@ bool ItemManager::exportToFile_XML(const std::string& filename) const {
 
     for (const auto& [tag, item] : items) {
         if (!item) {
-            Logger::log(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.");
+            LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.", {});
             continue;
         }
 
-        Logger::log(LogLevel::INFO, "Exporting item with tag: " + tag + " of type: " + demangleType(item->getTypeName()));
+        LOG_CONTEXT(LogLevel::INFO, "Exporting item with tag: " + tag + " of type: " + demangleType(item->getTypeName()), {});
 
         auto* itemElement = doc.NewElement("Item");
 
@@ -943,7 +943,7 @@ bool ItemManager::exportToFile_XML(const std::string& filename) const {
         root->InsertEndChild(itemElement);
 
         std::cout << Logger::getColorCode(LogColor::YELLOW) << wrapped.dump(4) << "\n" + Logger::getColorCode(LogColor::RESET) + "\n";
-        Logger::log(LogLevel::INFO, "Successfully added item with tag '" + tag + "' to XML structure.");
+        LOG_CONTEXT(LogLevel::INFO, "Successfully added item with tag '" + tag + "' to XML structure.", {});
     }
 
     tinyxml2::XMLPrinter printer;
@@ -951,11 +951,11 @@ bool ItemManager::exportToFile_XML(const std::string& filename) const {
     std::string xmlContent = printer.CStr();
 
     if (!AtomicFileWriter::writeAtomically(filename, xmlContent)) {
-        Logger::log(LogLevel::ERR, "Failed to write XML atomically to file: " + filename);
+        LOG_CONTEXT(LogLevel::ERR, "Failed to write XML atomically to file: " + filename, {});
         return false;
     }
 
-    Logger::log(LogLevel::INFO, "XML export completed successfully to file: " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "XML export completed successfully to file: " + filename, {});
     return true;
 }
 
@@ -964,9 +964,9 @@ void ItemManager::asyncExportToFile_XML(const std::string& filename) const {
         try {
             bool success = this->exportToFile_XML(filename);
             if (!success) {
-                Logger::log(LogLevel::ERR, "asyncExportToFile_XML failed for file: " + filename);
+                LOG_CONTEXT(LogLevel::ERR, "asyncExportToFile_XML failed for file: " + filename, {});
             } else {
-                Logger::log(LogLevel::INFO, "asyncExportToFile_XML completed successfully for file: " + filename);
+                LOG_CONTEXT(LogLevel::INFO, "asyncExportToFile_XML completed successfully for file: " + filename, {});
             }
         } catch (const std::exception& e) {
             throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Exception in asyncExportToFile_XML: " + std::string(e.what()) + Logger::getColorCode(LogColor::RESET));
@@ -978,13 +978,13 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLError result = doc.LoadFile(filename.c_str());
     if (result != tinyxml2::XML_SUCCESS) {
-        Logger::log(LogLevel::ERR, "Failed to read XML file '" + filename + "' — error code: " + std::to_string(result));
+        LOG_CONTEXT(LogLevel::ERR, "Failed to read XML file '" + filename + "' — error code: " + std::to_string(result), {});
         return false;
     }
 
     auto* root = doc.FirstChildElement("SmartStore");
     if (!root) {
-        Logger::log(LogLevel::ERR, "Missing <SmartStore> root in XML file '" + filename + "'");
+        LOG_CONTEXT(LogLevel::ERR, "Missing <SmartStore> root in XML file '" + filename + "'", {});
         return false;
     }
 
@@ -1002,7 +1002,7 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
         const char* versionTextPtr = versionElement ? versionElement->GetText() : nullptr;
 
         if (!tagTextPtr || !typeTextPtr || !dataTextPtr) {
-            Logger::log(LogLevel::WARNING, "Skipping <Item> with missing tag, type, or data.");
+            LOG_CONTEXT(LogLevel::WARNING, "Skipping <Item> with missing tag, type, or data.", {});
             continue;
         }
 
@@ -1012,7 +1012,7 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
         int version = versionTextPtr ? std::atoi(versionTextPtr) : 1;
 
         if (tag.empty() || typeName.empty() || dataText.empty()) {
-            Logger::log(LogLevel::WARNING, "Skipping <Item> with empty fields: tag='" + tag + "', type='" + demangleType(typeName) + "', data='" + dataText + "'");
+            LOG_CONTEXT(LogLevel::WARNING, "Skipping <Item> with empty fields: tag='" + tag + "', type='" + demangleType(typeName) + "', data='" + dataText + "'", {});
             continue;
         }
 
@@ -1023,19 +1023,19 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
             if (!j.contains("tag")) j["tag"] = tag;
             if (!j.contains("type")) j["type"] = typeName;
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "JSON parse error in item '" + tag + "': " + e.what());
+            LOG_CONTEXT(LogLevel::ERR, "JSON parse error in item '" + tag + "': " + e.what(), {});
             continue;
         }
 
-        Logger::log(LogLevel::INFO, "Found item in XML: tag='" + tag + "', type='" + demangleType(typeName) + "'");
+        LOG_CONTEXT(LogLevel::INFO, "Found item in XML: tag='" + tag + "', type='" + demangleType(typeName) + "'", {});
         std::cout << Logger::getColorCode(LogColor::YELLOW) << j.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
-        Logger::log(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(typeName) + "' from version: " + std::to_string(version));
+        LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(typeName) + "' from version: " + std::to_string(version), {});
         json upgraded = migrationRegistry.upgradeToLatest(typeName, version, j);
 
         auto it = deserializers.find(typeName);
         if (it == deserializers.end()) {
-            Logger::log(LogLevel::WARNING, "No deserializer registered for type '" + demangleType(typeName) + "' — skipping item with tag '" + tag + "'");
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + demangleType(typeName) + "' — skipping item with tag '" + tag + "'", {});
             continue;
         }
 
@@ -1043,17 +1043,17 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
             auto item = it->second(upgraded, tag);
             if (item) {
                 items[tag] = item;
-                Logger::log(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' from XML.");
+                LOG_CONTEXT(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' from XML.", {});
                 loadedCount++;
             } else {
-                Logger::log(LogLevel::ERR, "Deserializer returned null for tag '" + tag + "' — skipping.");
+                LOG_CONTEXT(LogLevel::ERR, "Deserializer returned null for tag '" + tag + "' — skipping.", {});
             }
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what());
+            LOG_CONTEXT(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what(), {});
         }
     }
 
-    Logger::log(LogLevel::INFO, "XML import completed with " + std::to_string(loadedCount) + " items loaded from file: " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "XML import completed with " + std::to_string(loadedCount) + " items loaded from file: " + filename, {});
     return true;
 }
 
@@ -1062,14 +1062,14 @@ void ItemManager::asyncImportFromFile_XML(const std::string& filename) {
         try {
             bool success = this->importFromFile_XML(filename);
             if (!success) {
-                Logger::log(LogLevel::ERR, "asyncImportFromFile_XML failed for file: " + filename);
+                LOG_CONTEXT(LogLevel::ERR, "asyncImportFromFile_XML failed for file: " + filename, {});
             } else {
-                Logger::log(LogLevel::INFO, "asyncImportFromFile_XML completed successfully for file: " + filename);
+                LOG_CONTEXT(LogLevel::INFO, "asyncImportFromFile_XML completed successfully for file: " + filename, {});
             }
         } catch (const std::exception& ex) {
-            Logger::log(LogLevel::ERR, "Exception in asyncImportFromFile_XML: " + std::string(ex.what()));
+            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportFromFile_XML: " + std::string(ex.what()), {});
         } catch (...) {
-            Logger::log(LogLevel::ERR, "Unknown exception in asyncImportFromFile_XML");
+            LOG_CONTEXT(LogLevel::ERR, "Unknown exception in asyncImportFromFile_XML", {});
         }
     }).detach();  // Run the thread in background
 }
@@ -1077,13 +1077,13 @@ void ItemManager::asyncImportFromFile_XML(const std::string& filename) {
 std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(const std::string& filename, const std::string& type, const std::string& tag) {
     tinyxml2::XMLDocument doc;
     if (doc.LoadFile(filename.c_str()) != tinyxml2::XML_SUCCESS) {
-        Logger::log(LogLevel::ERR, "Failed to load XML file: " + filename);
+        LOG_CONTEXT(LogLevel::ERR, "Failed to load XML file: " + filename, {});
         return std::nullopt;
     }
 
     auto* root = doc.FirstChildElement("SmartStore");
     if (!root) {
-        Logger::log(LogLevel::ERR, "Missing <SmartStore> root element in XML file: " + filename);
+        LOG_CONTEXT(LogLevel::ERR, "Missing <SmartStore> root element in XML file: " + filename, {});
         return std::nullopt;
     }
 
@@ -1109,19 +1109,19 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
             if (!j.contains("tag")) j["tag"] = tagText;
             if (!j.contains("type")) j["type"] = typeText;
 
-            Logger::log(LogLevel::INFO, "Found matching item in XML: tag='" + std::string(tagText) + "', type='" + demangleType(std::string(typeText)) + "'");
+            LOG_CONTEXT(LogLevel::INFO, "Found matching item in XML: tag='" + std::string(tagText) + "', type='" + demangleType(std::string(typeText)) + "'", {});
             std::cout << Logger::getColorCode(LogColor::YELLOW) << j.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
             json upgraded = migrationRegistry.upgradeToLatest(type, 1, j); // Assumes version 1 if none is specified.
-            Logger::log(LogLevel::DEBUG, "Upgrading item '" + std::string(tagText) + "' of type '" + demangleType(std::string(typeText)) + "' to latest version.");
+            LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + std::string(tagText) + "' of type '" + demangleType(std::string(typeText)) + "' to latest version.", {});
 
             auto it = deserializers.find(type);
             if (it == deserializers.end()) {
-                Logger::log(LogLevel::ERR, "No deserializer registered for type '" + demangleType(type) + "' — cannot import item with tag '" + tag + "'");
+                LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + demangleType(type) + "' — cannot import item with tag '" + tag + "'", {});
                 return std::nullopt;
             }
 
-            Logger::log(LogLevel::INFO, "Attempting to import item with tag '" + tag + "' from XML.");
+            LOG_CONTEXT(LogLevel::INFO, "Attempting to import item with tag '" + tag + "' from XML.", {});
             auto item = it->second(upgraded, tag);
 
             undoHistory.push_back(cloneCurrentState());
@@ -1130,12 +1130,12 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
 
             return item;
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Failed to parse JSON data for tag '" + tag + "': " + e.what());
+            LOG_CONTEXT(LogLevel::ERR, "Failed to parse JSON data for tag '" + tag + "': " + e.what(), {});
             return std::nullopt;
         }
     }
 
-    Logger::log(LogLevel::INFO, "No matching item found for tag '" + tag + "' and type '" + demangleType(type) + "' in XML file: " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "No matching item found for tag '" + tag + "' and type '" + demangleType(type) + "' in XML file: " + filename, {});
     return std::nullopt;
 }
 
@@ -1146,14 +1146,14 @@ void ItemManager::asyncImportSingleObject_XML(const std::string& filename, const
             if (result.has_value() && result.value()) {
                 std::lock_guard lock(mutex_);  // Ensure thread-safe map update
                 items[tag] = result.value();
-                Logger::log(LogLevel::INFO, "Async import of single item '" + tag + "' completed successfully from XML file: " + filename);
+                LOG_CONTEXT(LogLevel::INFO, "Async import of single item '" + tag + "' completed successfully from XML file: " + filename, {});
             } else {
-                Logger::log(LogLevel::WARNING, "Async import failed or returned null for tag '" + tag + "' from XML file: " + filename);
+                LOG_CONTEXT(LogLevel::WARNING, "Async import failed or returned null for tag '" + tag + "' from XML file: " + filename, {});
             }
         } catch (const std::exception& ex) {
-            Logger::log(LogLevel::ERR, "Exception in asyncImportSingleObject_XML: " + std::string(ex.what()));
+            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportSingleObject_XML: " + std::string(ex.what()), {});
         } catch (...) {
-            Logger::log(LogLevel::ERR, "Unknown exception in asyncImportSingleObject_XML");
+            LOG_CONTEXT(LogLevel::ERR, "Unknown exception in asyncImportSingleObject_XML", {});
         }
     }).detach();
 }
@@ -1168,7 +1168,7 @@ bool ItemManager::exportToFile_CSV(const std::string& filename) const {
 
     for (const auto& [tag, item] : items) {
         if (!item) {
-            Logger::log(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.");
+            LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.", {});
             continue;
         }
 
@@ -1180,12 +1180,12 @@ bool ItemManager::exportToFile_CSV(const std::string& filename) const {
             json j = item->toJson();
             dataStr = j.is_string() ? j.get<std::string>() : j.dump();
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::WARNING, "Failed to serialize item '" + tag + "': " + e.what());
+            LOG_CONTEXT(LogLevel::WARNING, "Failed to serialize item '" + tag + "': " + e.what(), {});
             dataStr = "{}";
         }
 
         // Debug preview in terminal
-        Logger::log(LogLevel::INFO, "Exporting item: id='" + id + "', tag='" + tag + "', type='" + demangleType(type) + "'");
+        LOG_CONTEXT(LogLevel::INFO, "Exporting item: id='" + id + "', tag='" + tag + "', type='" + demangleType(type) + "'", {});
         std::cout << Logger::getColorCode(LogColor::YELLOW) + "{\n"
                   << "  \"id\": \"" << id << "\",\n"
                   << "  \"tag\": \"" << tag << "\",\n"
@@ -1211,11 +1211,11 @@ bool ItemManager::exportToFile_CSV(const std::string& filename) const {
     }
 
     if (!AtomicFileWriter::writeAtomically(filename, oss.str())) {
-        Logger::log(LogLevel::ERR, "Failed to write CSV atomically to file: " + filename);
+        LOG_CONTEXT(LogLevel::ERR, "Failed to write CSV atomically to file: " + filename, {});
         return false;
     }
 
-    Logger::log(LogLevel::INFO, "CSV export completed successfully to file: " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "CSV export completed successfully to file: " + filename, {});
     return true;
 }
 
@@ -1223,12 +1223,12 @@ void ItemManager::asyncExportToFile_CSV(const std::string& filename) const {
     std::thread([this, filename]() {
         try {
             if (this->exportToFile_CSV(filename)) {
-                Logger::log(LogLevel::INFO, "asyncExportToFile_CSV completed successfully for file: " + filename);
+                LOG_CONTEXT(LogLevel::INFO, "asyncExportToFile_CSV completed successfully for file: " + filename, {});
             } else {
-                Logger::log(LogLevel::ERR, "asyncExportToFile_CSV failed for file: " + filename);
+                LOG_CONTEXT(LogLevel::ERR, "asyncExportToFile_CSV failed for file: " + filename, {});
             }
         } catch (const std::exception& ex) {
-            Logger::log(LogLevel::ERR, "Exception in asyncExportToFile_CSV: " + std::string(ex.what()));
+            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncExportToFile_CSV: " + std::string(ex.what()), {});
         } catch (...) {
             throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Unknown error in asyncExportToFile_CSV" + Logger::getColorCode(LogColor::RESET));
         }
@@ -1244,7 +1244,7 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
     std::string header;
     std::getline(file, header); // Skip header row
     if (header != "id,tag,type,data") {
-        Logger::log(LogLevel::ERR, "Unexpected CSV header format in file: " + filename);
+        LOG_CONTEXT(LogLevel::ERR, "Unexpected CSV header format in file: " + filename, {});
         return false;
     }
 
@@ -1279,7 +1279,7 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
         fields.push_back(field); // Final field
 
         if (fields.size() != 4) {
-            Logger::log(LogLevel::WARNING, "Malformed CSV row: '" + line + "' — skipping.");
+            LOG_CONTEXT(LogLevel::WARNING, "Malformed CSV row: '" + line + "' — skipping.", {});
             continue;
         }
 
@@ -1310,23 +1310,23 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
             }
 
             json upgradedData = migrationRegistry.upgradeToLatest(type, version, parsedData);
-            Logger::log(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(type) + "' from version: " + std::to_string(version));
+            LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(type) + "' from version: " + std::to_string(version), {});
 
             j["data"] = upgradedData;
             j["id"]   = id;
             j["tag"]  = tag;
             j["type"] = type;
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Failed to construct JSON for tag '" + tag + "': " + e.what());
+            LOG_CONTEXT(LogLevel::ERR, "Failed to construct JSON for tag '" + tag + "': " + e.what(), {});
             continue;
         }
 
-        Logger::log(LogLevel::INFO, "Processing CSV row: id='" + id + "', tag='" + tag + "', type='" + type + "'");
+        LOG_CONTEXT(LogLevel::INFO, "Processing CSV row: id='" + id + "', tag='" + tag + "', type='" + type + "'", {});
         std::cout << "\n" + Logger::getColorCode(LogColor::YELLOW) << j.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
         auto it = deserializers.find(type);
         if (it == deserializers.end()) {
-            Logger::log(LogLevel::WARNING, "No deserializer registered for type '" + demangleType(type) + "' — skipping item with tag '" + tag + "'");
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + demangleType(type) + "' — skipping item with tag '" + tag + "'", {});
             continue;
         }
 
@@ -1335,16 +1335,16 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
             if (item) {
                 items[tag] = item;
                 loadedCount++;
-                Logger::log(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' from CSV.");
+                LOG_CONTEXT(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' from CSV.", {});
             } else {
-                Logger::log(LogLevel::WARNING, "Deserializer returned null for tag '" + tag + "' — skipping.");
+                LOG_CONTEXT(LogLevel::WARNING, "Deserializer returned null for tag '" + tag + "' — skipping.", {});
             }
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what());
+            LOG_CONTEXT(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what(), {});
         }
     }
 
-    Logger::log(LogLevel::INFO, "CSV import completed with " + std::to_string(loadedCount) + " items loaded from file: " + filename);
+    LOG_CONTEXT(LogLevel::INFO, "CSV import completed with " + std::to_string(loadedCount) + " items loaded from file: " + filename, {});
     return true;
 }
 
@@ -1352,12 +1352,12 @@ void ItemManager::asyncImportFromFile_CSV(const std::string& filename) {
     std::thread([this, filename]() {
         try {
             if (this->importFromFile_CSV(filename)) {
-                Logger::log(LogLevel::INFO, "asyncImportFromFile_CSV completed successfully for file: " + filename);
+                LOG_CONTEXT(LogLevel::INFO, "asyncImportFromFile_CSV completed successfully for file: " + filename, {});
             } else {
-                Logger::log(LogLevel::ERR, "asyncImportFromFile_CSV failed for file: " + filename);
+                LOG_CONTEXT(LogLevel::ERR, "asyncImportFromFile_CSV failed for file: " + filename, {});
             }
         } catch (const std::exception& ex) {
-            Logger::log(LogLevel::ERR, "Exception in asyncImportFromFile_CSV: " + std::string(ex.what()));
+            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportFromFile_CSV: " + std::string(ex.what()), {});
         } catch (...) {
             throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Unknown error in asyncImportFromFile_CSV" + Logger::getColorCode(LogColor::RESET));
         }
@@ -1431,13 +1431,13 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string&
 
         auto it = deserializers.find(typeIn);
         if (it == deserializers.end()) {
-            Logger::log(LogLevel::ERR, "No deserializer registered for type '" + demangleType(typeIn) + "' — cannot import item with tag '" + demangleType(tagIn) + "'");
+            LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + demangleType(typeIn) + "' — cannot import item with tag '" + demangleType(tagIn) + "'", {});
             return nullptr;
         }
 
         try {
             auto item = it->second(wrapper, tagIn);
-            Logger::log(LogLevel::INFO, "Attempting to import item with tag '" + demangleType(tagIn) + "' from CSV.");
+            LOG_CONTEXT(LogLevel::INFO, "Attempting to import item with tag '" + demangleType(tagIn) + "' from CSV.", {});
 
             // Undo/Redo support (only if it is actually imported)
             undoHistory.push_back(cloneCurrentState());
@@ -1460,14 +1460,14 @@ void ItemManager::asyncImportSingleObject_CSV(const std::string& filename, const
             if (item) {
                 std::lock_guard<std::mutex> lock(mutex_); // protect shared state
                 items[tag] = item;
-                Logger::log(LogLevel::INFO, "Async import of single item '" + tag + "' completed successfully from CSV file: " + filename);
+                LOG_CONTEXT(LogLevel::INFO, "Async import of single item '" + tag + "' completed successfully from CSV file: " + filename, {});
             } else {
-                Logger::log(LogLevel::WARNING, "Async import failed or returned null for tag '" + tag + "' from CSV file: " + filename);
+                LOG_CONTEXT(LogLevel::WARNING, "Async import failed or returned null for tag '" + tag + "' from CSV file: " + filename, {});
             }
         } catch (const std::exception& e) {
-            Logger::log(LogLevel::ERR, "Exception in asyncImportSingleObject_CSV: " + std::string(e.what()));
+            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportSingleObject_CSV: " + std::string(e.what()), {});
         } catch (...) {
-            Logger::log(LogLevel::ERR, "Unknown error in asyncImportSingleObject_CSV");
+            LOG_CONTEXT(LogLevel::ERR, "Unknown error in asyncImportSingleObject_CSV", {});
         }
     }).detach();
 }
@@ -1495,7 +1495,7 @@ void ItemManager::filterByTag(const std::string& tag) const {
     }
     
     if (!found) {
-        Logger::log(LogLevel::INFO, "No items found with tag: " + tag);
+        LOG_CONTEXT(LogLevel::INFO, "No items found with tag: " + tag, {});
     }
 }
 
@@ -1503,7 +1503,7 @@ void ItemManager::sortItemsByTag() const {
     std::lock_guard<std::mutex> lock(mutex_);
    
     if (items.empty()) {
-        Logger::log(LogLevel::INFO, "No items to sort by tag.");
+        LOG_CONTEXT(LogLevel::INFO, "No items to sort by tag.", {});
         return;
     }
 
@@ -1528,7 +1528,7 @@ void ItemManager::displayAllClasses() const {
     std::unordered_map<std::string, int> classCounts;
 
     if(items.empty()) {
-        Logger::log(LogLevel::INFO, "No items available to display classes.");
+        LOG_CONTEXT(LogLevel::INFO, "No items available to display classes.", {});
         return;
     }
 

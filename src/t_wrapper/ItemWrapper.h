@@ -72,7 +72,7 @@ private:
             free(demangled);  // Ensure valid memory cleanup
             demangled = nullptr;  // Prevent accidental reuse
         } else {
-            Logger::log(LogLevel::WARNING, "Demangling failed for: " + mangledName);
+            LOG_CONTEXT(LogLevel::WARNING, "Demangling failed for: " + mangledName, {});
             result = mangledName.c_str();
         }
 

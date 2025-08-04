@@ -100,7 +100,7 @@ json ItemManager::getSchemaForType(std::string type) const {
 
 void ItemManager::displayRegisteredDeserializers() {
     std::lock_guard<std::mutex> lock(mutex_);
-
+    
     std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered Deserializers in ItemManager |:::\n" << Logger::getColorCode(LogColor::RESET);
     
     if (deserializers.empty()) {
@@ -141,7 +141,6 @@ std::string ItemManager::demangleType(const std::string& mangledName) const{
         free(demangled);  // Ensure valid memory cleanup
         demangled = nullptr;  // Prevent accidental reuse
     } else {
-        LOG_CONTEXT(LogLevel::WARNING, mangledName, std::make_exception_ptr(std::runtime_error("Demangling failed")));
         result = mangledName.c_str();
     }
 
@@ -157,7 +156,8 @@ template<typename T>
 void ItemManager::addItem(std::shared_ptr<T> obj, const std::string& tag) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!obj) {
-        LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(std::runtime_error("Cannot add null object " + tag + " with type: " + demangleType(typeid(T).name()))));
+        LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(std::runtime_error("Cannot add null object " + 
+                                                                tag + " with type: " + demangleType(typeid(T).name()))));
     }
     std::cout <<Logger::getColorCode(LogColor::GREEN) + "\nAn item added with tag: " << tag << Logger::getColorCode(LogColor::RESET) << std::endl;
 
@@ -205,10 +205,13 @@ bool ItemManager::modifyItem(const std::string& tag, const std::function<void(T&
             undoHistory.push_back(cloneCurrentState());
             redoQueue = {};
             modifier(wrapper->getMutableData());
+            LOG_CONTEXT(LogLevel::DEBUG, "Modified item with tag '" + tag + "' of type: " + demangleType(typeid(T).name()), true);
             return true;
         }
     }
-    return false;
+    LOG_CONTEXT(LogLevel::WARNING, "Item with tag '" + tag + 
+                            "' not found or type mismatch. Requested type: " + demangleType(typeid(T).name()), false);
+                            return false;
 }
 
 template<typename T>
@@ -221,10 +224,12 @@ std::optional<T> ItemManager::getItem(const std::string& tag) const {
         if (wrapper) {
             return wrapper->getData();
         } else {
-            LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name())+ ", Actual type: " + demangleType(it->second->getTypeName()), {});
+            LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(std::runtime_error(
+                    "Type mismatch for item with tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name()) +
+                                                              ", Actual type: " + demangleType(it->second->getTypeName()))));
         }
     } else {
-        LOG_CONTEXT(LogLevel::WARNING, "No item found with tag '" + tag + "'", {});
+        LOG_CONTEXT(LogLevel::WARNING, "No item found with tag '" + tag + "'", ErrorCode::ITEM_NOT_FOUND);
     }
     return std::nullopt;
 }
@@ -239,7 +244,8 @@ T& ItemManager::getItemRaw(const std::string& tag) {
         if (wrapper) {
             return wrapper->getMutableData();
         } else {
-            LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
+            LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: "
+                      + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
             throw std::runtime_error("\n:::| Type mismatch for item with tag '" + tag + "'.\n");
         }
     } else {
@@ -258,23 +264,24 @@ const T& ItemManager::getItemRaw(const std::string& tag) const {
         if (wrapper) {
             return wrapper->getData();
         } else {
-            LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
-            throw std::runtime_error("\n:::| Type mismatch for item with tag '" + tag + "'.\n");
+            LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: " 
+                        + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
+            throw std::runtime_error("\n:::| Please check your item type.\n");
         }
     } else {
         LOG_CONTEXT(LogLevel::WARNING, "Item with tag '" + tag + "' not found.", {});
-        throw std::runtime_error("\n:::| Item with tag '" + tag + "' not found.\n");
+        throw std::runtime_error("\n:::| Please check your tag name.\n");
     }
 }
 
 void ItemManager::displayAll() const {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    std::cout << Logger::getColorCode(LogColor::WHITE) + ":::::: Types Stored ::::::" + Logger::getColorCode(LogColor::RESET);
+    LOG_CONTEXT(LogLevel::DISPLAY, ":::::: Types Stored ::::::", {});
     if (!items.empty()) {
         for (const auto& [_, item] : items) item->display();
     }else{
-        LOG_CONTEXT(LogLevel::INFO, "No items found to display.", {});
+        LOG_CONTEXT(LogLevel::INFO, "No items found to display. ", ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
@@ -283,7 +290,7 @@ void ItemManager::displayByTag(const std::string& tag) const {
 
     auto it = items.find(tag);
     if (it != items.end()) {
-        LOG_CONTEXT(LogLevel::DEBUG, "Displaying item with tag '" + tag + "'", {});
+        LOG_CONTEXT(LogLevel::DISPLAY, "Displaying item with tag '" + tag + "'", {});
         it->second->display();
         return;
     }
@@ -295,8 +302,9 @@ void ItemManager::removeByTag(const std::string& tag) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (tag.empty()) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Cannot remove item with empty tag." + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::WARNING, "Cannot remove item with empty tag.", ErrorCode::ITEM_NOT_FOUND);
     }
+
     auto it = items.find(tag);
     if (it != items.end()) {
         undoHistory.push_back(cloneCurrentState());
@@ -320,7 +328,8 @@ void ItemManager::removeByTag(const std::string& tag) {
 
         LOG_CONTEXT(LogLevel::DEBUG, "Removed item with tag '" + tag + "' and id '" + id + "'", {});
     } else {
-        LOG_CONTEXT(LogLevel::WARNING, "No item found with tag '" + tag + "' to be removed.", {});
+        LOG_CONTEXT(LogLevel::WARNING, "No item found with tag '" + tag + "' to be removed. -Code: "
+                                                         + std::to_string(ErrorCode::ITEM_NOT_FOUND), {});
     }
 }
 
@@ -356,10 +365,15 @@ void ItemManager::redo() {
 }
 
 void ItemManager::exportToFile_Json(const std::string& filename) const {
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::WARNING, "Cannot export to empty filename.", ErrorCode::ITEM_NOT_FOUND);
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting JSON export to file: " + filename, {});
+    
     if (items.empty()) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + 
-            ":::| WARNING: Cannot export to file '" + filename + "' — no items found." + 
-            Logger::getColorCode(LogColor::RESET));
+            LOG_CONTEXT(LogLevel::WARNING, "No items found to export.", ErrorCode::ITEM_NOT_FOUND);
     }
 
     nlohmann::json jArray = nlohmann::json::array();
@@ -402,9 +416,7 @@ void ItemManager::exportToFile_Json(const std::string& filename) const {
     std::string jsonContent = jArray.dump(4);
 
     if (!AtomicFileWriter::writeAtomically(filename, jsonContent)) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + 
-            ":::| ERROR: Failed atomic write to file: " + filename + 
-            Logger::getColorCode(LogColor::RESET));
+            LOG_CONTEXT(LogLevel::ERR, "Failed atomic write to file: " + filename, ErrorCode::FILE_LOAD_FAILED);
     }
 
     LOG_CONTEXT(LogLevel::INFO, "Exported " + std::to_string(jArray.size()) + " items to file (atomically): " + filename, {});
@@ -415,25 +427,31 @@ void ItemManager::asyncExportToFile_Json(const std::string& filename) const {
         try {
             this->exportToFile_Json(filename);  // Thread-safe at its core
         } catch (const std::exception& e) {
-
-            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Exception in asyncExportToFile_Json: " + std::string(e.what()) + Logger::getColorCode(LogColor::RESET));
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "asyncExportToFile_Json error: " + std::string(e.what()))));
         }
     }).detach();  // Fire-and-forget
 }
 
 void ItemManager::importFromFile_Json(const std::string& filename) {
-    LOG_CONTEXT(LogLevel::INFO, "Attempting JSON import from file: " + filename, {});
 
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Cannot import from empty filename.", ErrorCode::ITEM_NOT_FOUND);
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting JSON import from file: " + filename, {});
+    
     std::ifstream in(filename);
     if (!in) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::WHITE) + "\n:::| WARNING: Cannot open file for reading: " + filename + Logger::getColorCode(LogColor::RESET) + "\n");
+        LOG_CONTEXT(LogLevel::ERR, "Cannot open file for reading: " + filename, ErrorCode::FILE_LOAD_FAILED);
     }
 
     json parsedJson;
     in >> parsedJson;
-    LOG_CONTEXT(LogLevel::DEBUG, "JSON file loaded successfully: " + filename, {});
 
-    std::cout << Logger::getColorCode(LogColor::CYAN) + "\n:::| Loaded JSON content from file:\n" << Logger::getColorCode(LogColor::RESET) << parsedJson.dump(2) << "\n";
+    std::cout << Logger::getColorCode(LogColor::CYAN) + "\n:::| Loaded JSON content from file:\n" 
+                                        << Logger::getColorCode(LogColor::RESET) << parsedJson.dump(2) << "\n";
+    LOG_CONTEXT(LogLevel::DEBUG, "JSON file loaded successfully: " + filename, {});
 
     if (parsedJson.is_array()) {
         LOG_CONTEXT(LogLevel::DEBUG, "Processing JSON array format.", {});
@@ -441,8 +459,8 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
         parsedJson = parsedJson["items"];
         LOG_CONTEXT(LogLevel::DEBUG, "Processing JSON with 'items' key.", {});
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Invalid JSON format in: " + filename, {});
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + "\n:::| WARNING: Invalid JSON format: Expected an array or 'items' key." + Logger::getColorCode(LogColor::RESET) + "\n");
+        LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Invalid JSON format: " + filename + " Expected an array or 'items' key.")));
     }
 
     undoHistory.push_back(cloneCurrentState());
@@ -505,7 +523,8 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
                 LOG_CONTEXT(LogLevel::ERR, "Deserializer returned null for tag: " + tag, {});
             }
         } catch (const std::exception& e) {
-            LOG_CONTEXT(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what(), {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Error during deserialization of '" + tag + "': " + e.what())));
         }
     }
 
@@ -517,17 +536,25 @@ void ItemManager::asyncImportFromFile_Json(const std::string& filename) {
         try {
             this->importFromFile_Json(filename);  // Thread-safe core
         } catch (const std::exception& e) {
-            LOG_CONTEXT(LogLevel::ERR, "asyncImportFromFile_Json error: " + std::string(e.what()), {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Error during async import from file '" + filename + "': " + e.what())));
         }
     }).detach();  // Fire-and-forget style
 }
 
-std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string& filename, const std::string& typeName, const std::string& tag) {
-    LOG_CONTEXT(LogLevel::INFO, "Attempting to import single JSON object from file: " + filename, {});
+std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string& filename, 
+                                                               const std::string& typeName, 
+                                                               const std::string& tag) {
+    
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Cannot import from empty filename.", ErrorCode::ITEM_NOT_FOUND);
+    }
 
+    LOG_CONTEXT(LogLevel::INFO, "Attempting to import single JSON object from file: " + filename, {});
+   
     std::ifstream in(filename);
     if (!in) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Cannot open file '" + filename + "' for reading." + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::ERR, "Cannot open file for reading: " + filename, ErrorCode::FILE_LOAD_FAILED);
     }
 
     json array;
@@ -535,12 +562,14 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
         in >> array;
         LOG_CONTEXT(LogLevel::DEBUG, "JSON file parsed successfully.", {});
     } catch (const std::exception& e) {
-        LOG_CONTEXT(LogLevel::ERR, "Failed to parse JSON from '" + filename + "': " + e.what(), {});
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Failed to parse JSON from file '" + filename + "': " + e.what() + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Failed to parse JSON from file '" + filename + "': " + e.what())));
+        
     }
 
     for (const auto& entry : array) {
         if (entry.value("tag", "") == tag && entry.value("type", "") == typeName) {
+
             LOG_CONTEXT(LogLevel::INFO, "Found matching object with tag '" + tag + "' and type '" + demangleType(typeName) + "'.", {});
 
             int version = entry.value("version", 1);
@@ -591,7 +620,8 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
 
                 return item;
             } catch (const std::exception& e) {
-                  throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Exception during deserialization of '" + tag + "': " + e.what() + Logger::getColorCode(LogColor::RESET));
+                LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Exception during deserialization of '" + tag + "': " + e.what())));
             }
         }
     }
@@ -600,7 +630,9 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
     return nullptr;
 }
 
-void ItemManager::asyncImportSingleObject_Json(const std::string& filename, const std::string& typeName, const std::string& tag) {
+void ItemManager::asyncImportSingleObject_Json(const std::string& filename, 
+                                               const std::string& typeName, 
+                                               const std::string& tag) {
     std::thread([this, filename, typeName, tag]() {
         auto item = this->importSingleObject_Json(filename, typeName, tag);
         if (item) {
@@ -614,8 +646,17 @@ void ItemManager::asyncImportSingleObject_Json(const std::string& filename, cons
 }
 
 bool ItemManager::exportToFile_Binary(const std::string& filename) const {
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Cannot export to empty filename.", false);
+        return false;
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting binary export to file: " + filename, {});
+
     if (items.empty()) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: No items found for export to file '" + filename + "'." + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(
+                                          std::runtime_error("No items found for export to file '" + filename + "'.")));
     }
 
     std::vector<uint8_t> buffer;
@@ -666,11 +707,11 @@ bool ItemManager::exportToFile_Binary(const std::string& filename) const {
     }
 
     if (!AtomicFileWriter::writeAtomicallyBinary(filename, buffer)) {
-        LOG_CONTEXT(LogLevel::ERR, "Failed atomic binary export to '" + filename + "'.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Failed atomic binary export to '" + filename + "'.",  true);
         return false;
     }
 
-    LOG_CONTEXT(LogLevel::INFO, "Binary export to '" + filename + "' completed successfully.", {});
+    LOG_CONTEXT(LogLevel::INFO, "Binary export to '" + filename + "' completed successfully.", true);
     return true;
 }
 
@@ -684,17 +725,24 @@ void ItemManager::asyncExportToFile_Binary(const std::string& filename) const {
                 LOG_CONTEXT(LogLevel::INFO, "asyncExportToFile_Binary completed successfully for file: " + filename, {});
             }
         } catch (const std::exception& e) {
-            throw std::runtime_error( Logger::getColorCode(LogColor::RED) + ":::| WARNING: Exception in asyncExportToFile_Binary: " + std::string(e.what()) + Logger::getColorCode(LogColor::RESET));
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Exception in asyncExportToFile_Binary: " + std::string(e.what()))));
         }
     }).detach();
 }
 
 bool ItemManager::importFromFile_Binary(const std::string& filename) {
-    LOG_CONTEXT(LogLevel::INFO, "Importing binary file: " + filename, {});
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Cannot import from empty filename.", false);
+        return false;
+    }
+
+   LOG_CONTEXT(LogLevel::INFO, "Attempting binary import from file: " + filename, {});
 
     std::ifstream in(filename, std::ios::binary);
     if (!in.is_open()) {
-        LOG_CONTEXT(LogLevel::ERR, "Cannot open binary file '" + filename + "' for reading.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Cannot open binary file '" + filename + "' for reading.", false);
         return false;
     }
 
@@ -776,7 +824,7 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
     }
 
     in.close();
-    LOG_CONTEXT(LogLevel::INFO, "Binary import from '" + filename + "' completed successfully with " + std::to_string(items.size()) + " items.", {});
+    LOG_CONTEXT(LogLevel::INFO, "Binary import from '" + filename + "' completed successfully with " + std::to_string(items.size()) + " items.", true);
     return true;
 }
 
@@ -786,15 +834,26 @@ void ItemManager::asyncImportFromFile_Binary(const std::string& filename) {
             this->importFromFile_Binary(filename);  // Thread-safe if core is locked
             LOG_CONTEXT(LogLevel::INFO, "asyncImportFromFile_Binary completed successfully for file: " + filename, {});
         } catch (const std::exception& e) {
-            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportFromFile_Binary: " + std::string(e.what()), {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Exception in asyncImportFromFile_Binary: " + std::string(e.what()))));
         }
     }).detach();
 }
 
-std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::string& filename, const std::string& type, const std::string& tag) {
+std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::string& filename, 
+                                                                 const std::string& type, 
+                                                                 const std::string& tag) {
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error("Cannot import from empty filename.")));
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting to import single binary object from file: " 
+                                + filename + " with type '" + demangleType(type) + "' and tag '" + tag + "'", {});
+    
     std::ifstream in(filename, std::ios::binary);
     if (!in) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Cannot open binary file '" + filename + "' for reading." + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::ERR, "Cannot open binary file '" + filename + "' for reading.", ErrorCode::FILE_LOAD_FAILED);
     }
 
 
@@ -861,12 +920,14 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::stri
 
             auto it = deserializers.find(entryType);
             if (it == deserializers.end()) {
-                throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: No deserializer registered for type '" + demangleType(entryType) + "'" + Logger::getColorCode(LogColor::RESET));
+                LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("No deserializer registered for type '" + demangleType(entryType) + "'.")));
             }
-
+            
             auto object = it->second(upgraded, tag);
             if (!object) {
-                throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Deserializer returned null for tag '" + tag + "'" + Logger::getColorCode(LogColor::RESET));
+                LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Deserializer returned null for tag '" + tag + "'.")));
             }
 
             undoHistory.push_back(cloneCurrentState());
@@ -882,7 +943,9 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::stri
     return nullptr;
 }
 
-void ItemManager::asyncImportSingleObject_Binary(const std::string& filename, const std::string& typeName, const std::string& tag) {
+void ItemManager::asyncImportSingleObject_Binary(const std::string& filename, 
+                                                 const std::string& typeName, 
+                                                 const std::string& tag) {
     std::thread([this, filename, typeName, tag]() {
         auto item = this->importSingleObject_Binary(filename, typeName, tag);
         if (item) {
@@ -896,8 +959,16 @@ void ItemManager::asyncImportSingleObject_Binary(const std::string& filename, co
 }
 
 bool ItemManager::exportToFile_XML(const std::string& filename) const {
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Cannot export to empty filename.", ErrorCode::INVALID_INPUT );
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting XML export to file: " + filename, {});
+
     if (items.empty()) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Cannot export to file '" + filename + "' — no items found." + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(
+                                          std::runtime_error("No items found for XML export to file '" + filename + "'.")));
     }
 
     tinyxml2::XMLDocument doc;
@@ -951,11 +1022,11 @@ bool ItemManager::exportToFile_XML(const std::string& filename) const {
     std::string xmlContent = printer.CStr();
 
     if (!AtomicFileWriter::writeAtomically(filename, xmlContent)) {
-        LOG_CONTEXT(LogLevel::ERR, "Failed to write XML atomically to file: " + filename, {});
+        LOG_CONTEXT(LogLevel::ERR, "Failed to write XML atomically to file: " + filename, false);
         return false;
     }
 
-    LOG_CONTEXT(LogLevel::INFO, "XML export completed successfully to file: " + filename, {});
+    LOG_CONTEXT(LogLevel::INFO, "XML export completed successfully to file: " + filename, true);
     return true;
 }
 
@@ -969,22 +1040,31 @@ void ItemManager::asyncExportToFile_XML(const std::string& filename) const {
                 LOG_CONTEXT(LogLevel::INFO, "asyncExportToFile_XML completed successfully for file: " + filename, {});
             }
         } catch (const std::exception& e) {
-            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Exception in asyncExportToFile_XML: " + std::string(e.what()) + Logger::getColorCode(LogColor::RESET));
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Exception in asyncExportToFile_XML: " + std::string(e.what()))));
         }
     }).detach();
 }
 
 bool ItemManager::importFromFile_XML(const std::string& filename) {
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot proceed with XML import.", false);
+        return false;
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting XML import from file: " + filename, {});
+
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLError result = doc.LoadFile(filename.c_str());
     if (result != tinyxml2::XML_SUCCESS) {
-        LOG_CONTEXT(LogLevel::ERR, "Failed to read XML file '" + filename + "' — error code: " + std::to_string(result), {});
+        LOG_CONTEXT(LogLevel::ERR, "Failed to read XML file '" + filename + "' — error code: " + std::to_string(result), false);
         return false;
     }
 
     auto* root = doc.FirstChildElement("SmartStore");
     if (!root) {
-        LOG_CONTEXT(LogLevel::ERR, "Missing <SmartStore> root in XML file '" + filename + "'", {});
+        LOG_CONTEXT(LogLevel::ERR, "Missing <SmartStore> root in XML file '" + filename + "'", false);
         return false;
     }
 
@@ -1012,7 +1092,8 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
         int version = versionTextPtr ? std::atoi(versionTextPtr) : 1;
 
         if (tag.empty() || typeName.empty() || dataText.empty()) {
-            LOG_CONTEXT(LogLevel::WARNING, "Skipping <Item> with empty fields: tag='" + tag + "', type='" + demangleType(typeName) + "', data='" + dataText + "'", {});
+            LOG_CONTEXT(LogLevel::WARNING, "Skipping <Item> with empty fields: tag='" + tag + "', type='" 
+                                                    + demangleType(typeName) + "', data='" + dataText + "'", {});
             continue;
         }
 
@@ -1030,7 +1111,9 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
         LOG_CONTEXT(LogLevel::INFO, "Found item in XML: tag='" + tag + "', type='" + demangleType(typeName) + "'", {});
         std::cout << Logger::getColorCode(LogColor::YELLOW) << j.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
-        LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(typeName) + "' from version: " + std::to_string(version), {});
+        LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(typeName) 
+                                                                    + "' from version: " + std::to_string(version), {});
+
         json upgraded = migrationRegistry.upgradeToLatest(typeName, version, j);
 
         auto it = deserializers.find(typeName);
@@ -1049,11 +1132,12 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
                 LOG_CONTEXT(LogLevel::ERR, "Deserializer returned null for tag '" + tag + "' — skipping.", {});
             }
         } catch (const std::exception& e) {
-            LOG_CONTEXT(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what(), {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Error during deserialization of '" + tag + "': " + e.what())));
         }
     }
 
-    LOG_CONTEXT(LogLevel::INFO, "XML import completed with " + std::to_string(loadedCount) + " items loaded from file: " + filename, {});
+    LOG_CONTEXT(LogLevel::INFO, "XML import completed with " + std::to_string(loadedCount) + " items loaded from file: " + filename, true);
     return true;
 }
 
@@ -1067,14 +1151,32 @@ void ItemManager::asyncImportFromFile_XML(const std::string& filename) {
                 LOG_CONTEXT(LogLevel::INFO, "asyncImportFromFile_XML completed successfully for file: " + filename, {});
             }
         } catch (const std::exception& ex) {
-            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportFromFile_XML: " + std::string(ex.what()), {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Error in asyncImportFromFile_XML: " + std::string(ex.what()))));
         } catch (...) {
-            LOG_CONTEXT(LogLevel::ERR, "Unknown exception in asyncImportFromFile_XML", {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Unknown error in asyncImportFromFile_XML")));
         }
     }).detach();  // Run the thread in background
 }
 
-std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(const std::string& filename, const std::string& type, const std::string& tag) {
+std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(const std::string& filename, 
+                                                                             const std::string& type, 
+                                                                             const std::string& tag) {
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot import from XML.", {});
+        return std::nullopt;
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting to import single XML object from file: " + filename + 
+                                        " with type '" + demangleType(type) + "' and tag '" + tag + "'", {});
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot import from XML.", {});
+        return std::nullopt;
+    }
+
     tinyxml2::XMLDocument doc;
     if (doc.LoadFile(filename.c_str()) != tinyxml2::XML_SUCCESS) {
         LOG_CONTEXT(LogLevel::ERR, "Failed to load XML file: " + filename, {});
@@ -1109,15 +1211,19 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
             if (!j.contains("tag")) j["tag"] = tagText;
             if (!j.contains("type")) j["type"] = typeText;
 
-            LOG_CONTEXT(LogLevel::INFO, "Found matching item in XML: tag='" + std::string(tagText) + "', type='" + demangleType(std::string(typeText)) + "'", {});
+            LOG_CONTEXT(LogLevel::INFO, "Found matching item in XML: tag='" + std::string(tagText) + 
+                                                    "', type='" + demangleType(std::string(typeText)) + "'", {});
+
             std::cout << Logger::getColorCode(LogColor::YELLOW) << j.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
             json upgraded = migrationRegistry.upgradeToLatest(type, 1, j); // Assumes version 1 if none is specified.
-            LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + std::string(tagText) + "' of type '" + demangleType(std::string(typeText)) + "' to latest version.", {});
+            LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + std::string(tagText) + "' of type '" 
+                                                        + demangleType(std::string(typeText)) + "' to latest version.", {});
 
             auto it = deserializers.find(type);
             if (it == deserializers.end()) {
-                LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + demangleType(type) + "' — cannot import item with tag '" + tag + "'", {});
+                LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + demangleType(type) 
+                                                            + "' — cannot import item with tag '" + tag + "'", {});
                 return std::nullopt;
             }
 
@@ -1135,7 +1241,8 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
         }
     }
 
-    LOG_CONTEXT(LogLevel::INFO, "No matching item found for tag '" + tag + "' and type '" + demangleType(type) + "' in XML file: " + filename, {});
+    LOG_CONTEXT(LogLevel::INFO, "No matching item found for tag '" + tag + "' and type '" + demangleType(type)
+                                                                                 + "' in XML file: " + filename, {});
     return std::nullopt;
 }
 
@@ -1151,16 +1258,27 @@ void ItemManager::asyncImportSingleObject_XML(const std::string& filename, const
                 LOG_CONTEXT(LogLevel::WARNING, "Async import failed or returned null for tag '" + tag + "' from XML file: " + filename, {});
             }
         } catch (const std::exception& ex) {
-            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportSingleObject_XML: " + std::string(ex.what()), {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Exception in asyncImportSingleObject_XML: " + std::string(ex.what()))));
         } catch (...) {
-            LOG_CONTEXT(LogLevel::ERR, "Unknown exception in asyncImportSingleObject_XML", {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Unknown error in asyncImportSingleObject_XML for tag '" + tag + "' from file: " + filename)));
         }
     }).detach();
 }
 
 bool ItemManager::exportToFile_CSV(const std::string& filename) const {
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "CSV export failed: empty filename.", true);
+        return true;
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting CSV export to file: " + filename, {});
+
     if (items.empty()) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: No items found for export to file for CSV'" + filename + "'." + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(
+                                          std::runtime_error("CSV export failed: No items found for export to file '" + filename + "'.")));
     }
 
     std::ostringstream oss;
@@ -1211,11 +1329,11 @@ bool ItemManager::exportToFile_CSV(const std::string& filename) const {
     }
 
     if (!AtomicFileWriter::writeAtomically(filename, oss.str())) {
-        LOG_CONTEXT(LogLevel::ERR, "Failed to write CSV atomically to file: " + filename, {});
+        LOG_CONTEXT(LogLevel::ERR, "Failed to write CSV atomically to file: " + filename, false);
         return false;
     }
 
-    LOG_CONTEXT(LogLevel::INFO, "CSV export completed successfully to file: " + filename, {});
+    LOG_CONTEXT(LogLevel::INFO, "CSV export completed successfully to file: " + filename, true);
     return true;
 }
 
@@ -1228,23 +1346,34 @@ void ItemManager::asyncExportToFile_CSV(const std::string& filename) const {
                 LOG_CONTEXT(LogLevel::ERR, "asyncExportToFile_CSV failed for file: " + filename, {});
             }
         } catch (const std::exception& ex) {
-            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncExportToFile_CSV: " + std::string(ex.what()), {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Exception in asyncExportToFile_CSV: " + std::string(ex.what()))));
         } catch (...) {
-            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Unknown error in asyncExportToFile_CSV" + Logger::getColorCode(LogColor::RESET));
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Unknown error in asyncExportToFile_CSV for file: " + filename)));
         }
     }).detach();
 }
 
 bool ItemManager::importFromFile_CSV(const std::string& filename) {
+
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Cannot import from empty filename.", false);
+        return false;
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting CSV import from file: " + filename, {});
+
     std::ifstream file(filename);
     if (!file.is_open()) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Cannot open CSV file: " + filename + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Cannot open CSV file '" + filename + "' for reading.")));
     }
 
     std::string header;
     std::getline(file, header); // Skip header row
     if (header != "id,tag,type,data") {
-        LOG_CONTEXT(LogLevel::ERR, "Unexpected CSV header format in file: " + filename, {});
+        LOG_CONTEXT(LogLevel::ERR, "Unexpected CSV header format in file: " + filename, false);
         return false;
     }
 
@@ -1310,7 +1439,8 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
             }
 
             json upgradedData = migrationRegistry.upgradeToLatest(type, version, parsedData);
-            LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(type) + "' from version: " + std::to_string(version), {});
+            LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(type) + 
+                                                                        "' from version: " + std::to_string(version), {});
 
             j["data"] = upgradedData;
             j["id"]   = id;
@@ -1322,6 +1452,7 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
         }
 
         LOG_CONTEXT(LogLevel::INFO, "Processing CSV row: id='" + id + "', tag='" + tag + "', type='" + type + "'", {});
+
         std::cout << "\n" + Logger::getColorCode(LogColor::YELLOW) << j.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
         auto it = deserializers.find(type);
@@ -1344,7 +1475,7 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
         }
     }
 
-    LOG_CONTEXT(LogLevel::INFO, "CSV import completed with " + std::to_string(loadedCount) + " items loaded from file: " + filename, {});
+    LOG_CONTEXT(LogLevel::INFO, "CSV import completed with " + std::to_string(loadedCount) + " items loaded from file: " + filename, true);
     return true;
 }
 
@@ -1357,23 +1488,38 @@ void ItemManager::asyncImportFromFile_CSV(const std::string& filename) {
                 LOG_CONTEXT(LogLevel::ERR, "asyncImportFromFile_CSV failed for file: " + filename, {});
             }
         } catch (const std::exception& ex) {
-            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportFromFile_CSV: " + std::string(ex.what()), {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
+                                          "Exception in asyncImportFromFile_CSV: " + std::string(ex.what())))   );
         } catch (...) {
-            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| WARNING: Unknown error in asyncImportFromFile_CSV" + Logger::getColorCode(LogColor::RESET));
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Unknown error in asyncImportFromFile_CSV for file: " + filename)));
         }
     }).detach();
 }
 
-std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string& filename, const std::string& type, const std::string& tag) {
+std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string& filename, 
+                                                              const std::string& type, 
+                                                              const std::string& tag) {
+   
+    if (filename.empty()) {
+        LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot proceed with CSV import.", {});
+        return nullptr;
+    }
+
+    LOG_CONTEXT(LogLevel::INFO, "Attempting to import single CSV object from file: " + filename + " with type '" 
+                                                                    + demangleType(type) + "' and tag '" + tag + "'", {});
+    
     std::ifstream file(filename);
     if (!file.is_open()) {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + "\n:::| ERROR: Cannot open CSV file: " + filename + "\n" + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Cannot open CSV file '" + filename + "' for reading.")));
     }
 
     std::string header;
     std::getline(file, header);  // Skip header
     if (header != "id,tag,type,data") {
-        throw std::runtime_error(Logger::getColorCode(LogColor::RED) + ":::| ERROR: Unexpected CSV header format in file: " + filename + Logger::getColorCode(LogColor::RESET));
+        LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Unexpected CSV header format in file: " + filename)));
     }
 
     auto unquote = [](std::string s) -> std::string {
@@ -1410,7 +1556,8 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string&
         try {
             rawData = json::parse(dataStr);
         } catch (const std::exception& e) {
-            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + "\n:::| ERROR: Failed to parse JSON data for tag '" + tagIn + "': " + e.what() + "\n" + Logger::getColorCode(LogColor::RESET));
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Failed to parse JSON data for tag '" + tagIn + "': " + e.what())));
         }
 
         int version = 1;
@@ -1426,12 +1573,15 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string&
         wrapper["type"] = typeIn;
         wrapper["data"] = upgradedData;
 
-        std::cout << Logger::getColorCode(LogColor::CYAN) + "\n>>> Matched CSV row: tag='" << tag << "', type='" << demangleType(type) << "'\n" + Logger::getColorCode(LogColor::YELLOW);
+        std::cout << Logger::getColorCode(LogColor::CYAN) + "\n>>> Matched CSV row: tag='"
+                             << tag << "', type='" << demangleType(type) << "'\n" + Logger::getColorCode(LogColor::YELLOW);
+
         std::cout << Logger::getColorCode(LogColor::YELLOW) << wrapper.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
         auto it = deserializers.find(typeIn);
         if (it == deserializers.end()) {
-            LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + demangleType(typeIn) + "' — cannot import item with tag '" + demangleType(tagIn) + "'", {});
+            LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + demangleType(typeIn) + 
+                                                    "' — cannot import item with tag '" + demangleType(tagIn) + "'", {});
             return nullptr;
         }
 
@@ -1446,11 +1596,14 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string&
 
             return item;
         } catch (const std::exception& e) {
-            throw std::runtime_error(Logger::getColorCode(LogColor::RED) + "\n:::| ERROR: Failed to deserialize item with tag '" + tagIn + "': " + e.what() + "\n" + Logger::getColorCode(LogColor::RESET));
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Failed to deserialize item with tag '" + tagIn + "': " + e.what())));
         }
     }
 
-    throw std::runtime_error(Logger::getColorCode(LogColor::MAGENTA) + "\n:::| INFO: No matching item found for tag '" + tag + "' and type '" + demangleType(type) + "' in CSV file: " + filename + "\n" + Logger::getColorCode(LogColor::RESET));
+    LOG_CONTEXT(LogLevel::INFO, "No matching item found for tag '" + tag + "' and type '" + 
+                                        demangleType(type) + "' in CSV file: " + filename, {});
+                                        return nullptr;
 }
 
 void ItemManager::asyncImportSingleObject_CSV(const std::string& filename, const std::string& type,const std::string& tag){
@@ -1465,9 +1618,11 @@ void ItemManager::asyncImportSingleObject_CSV(const std::string& filename, const
                 LOG_CONTEXT(LogLevel::WARNING, "Async import failed or returned null for tag '" + tag + "' from CSV file: " + filename, {});
             }
         } catch (const std::exception& e) {
-            LOG_CONTEXT(LogLevel::ERR, "Exception in asyncImportSingleObject_CSV: " + std::string(e.what()), {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Exception in asyncImportSingleObject_CSV: " + std::string(e.what()))));
         } catch (...) {
-            LOG_CONTEXT(LogLevel::ERR, "Unknown error in asyncImportSingleObject_CSV", {});
+            LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
+                                          std::runtime_error("Unknown error in asyncImportSingleObject_CSV for tag '" + tag + "' from file: " + filename)));
         }
     }).detach();
 }
@@ -1495,7 +1650,8 @@ void ItemManager::filterByTag(const std::string& tag) const {
     }
     
     if (!found) {
-        LOG_CONTEXT(LogLevel::INFO, "No items found with tag: " + tag, {});
+        LOG_CONTEXT(LogLevel::INFO, "", std::make_exception_ptr(
+                                          std::runtime_error("No items found with tag '" + tag + "'.")));
     }
 }
 

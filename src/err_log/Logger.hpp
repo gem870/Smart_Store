@@ -3,6 +3,8 @@
 #include <string>
 #include <ctime>
 #include <variant>
+#include <source_location>
+
 #define LOG_CONTEXT(level, message, hint) \
     Logger::log_with_context(level, message, hint, __FILE__, __LINE__, __func__)
 
@@ -45,7 +47,26 @@ enum ErrorCode {
   // System / Internal errors
   OUT_OF_MEMORY        = 5001, // Memory allocation failed
   THREAD_DEADLOCK      = 5002, // Multiple threads locked and cannot proceed
-  UNKNOWN_ERROR        = 5999  // A catch-all for unexpected internal issues
+  UNKNOWN_ERROR        = 5999, // A catch-all for unexpected internal issues
+
+  // Basic placeholders
+  EMPTY                = 1000, // No hint provided (std::monostate)
+  NULL_REFERENCE       = 1001, // Null detected (std::nullptr_t)
+
+  // Exception handling
+  RUNTIME_EXCEPTION    = 2001, // An exception occurred (std::exception_ptr)
+
+  // Integer codes
+  GENERIC_CODE         = 3001, // Code-based hint like error ID (int)
+
+  // Textual hints
+  SIMPLE_TEXT_HINT     = 4001, // Custom text message (std::string)
+  OPTIONAL_TEXT_HINT   = 4002, // Might contain a message (std::optional<std::string>)
+
+  // Boolean flags
+  FLAG_TRUE            = 5001, // A boolean hint set to true
+  FLAG_FALSE           = 5002  // A boolean hint set to false
+
 };
 
 
@@ -53,7 +74,8 @@ enum class LogLevel {
     INFO,
     WARNING, 
     ERR, 
-    DEBUG 
+    DEBUG,
+    DISPLAY
 };
 
 enum class LogColor {
@@ -69,23 +91,24 @@ enum class LogColor {
 
 class Logger {
 public:
-using ErrorHint = std::variant<std::monostate, std::nullptr_t, std::exception_ptr, int ,std::string, std::optional<std::string>>;
+using ErrorHint = std::variant<std::monostate, std::nullptr_t, std::exception_ptr, int, std::string, std::optional<std::string>, bool>;
 
     static void log_base(LogLevel level, const std::string& message) {
         std::string prefix = getPrefix(level);
         std::string timestamp = getTimestamp();
-        std::cout << getColorCode(LogColor::CYAN) + "[" + getColorCode(LogColor::RESET) << timestamp << getColorCode(LogColor::CYAN) + "]" + getColorCode(LogColor::RESET) << prefix << " " + getColorCode(LogColor::CYAN) << message << getColorCode(LogColor::RESET) << std::endl;
+        std::cout << getColorCode(LogColor::CYAN) + "[" + getColorCode(LogColor::RESET) << timestamp << 
+                     getColorCode(LogColor::CYAN) + "]" + getColorCode(LogColor::RESET) << prefix << " " + 
+                     getColorCode(LogColor::CYAN) << message << getColorCode(LogColor::RESET) << std::endl;
     }
 
    static void log_with_context(LogLevel level,
                              const std::string& message,
                              const ErrorHint& hint,
-                             const char* file,
-                             int line,
+                             const char* /* file */,
+                             int /* line */,
                              const char* function) {
-    std::string context = std::string(file) +
-                          " | Function: " + function +
-                          " | Line: " + std::to_string(line);
+    std::string context =  " >> Function: " + getColorCode(LogColor::RESET) + getColorCode(LogColor::RED)
+                                             + std::string(function) + getColorCode(LogColor::RESET);
 
     std::visit(overloaded{
         [&](std::monostate) {
@@ -98,13 +121,13 @@ using ErrorHint = std::variant<std::monostate, std::nullptr_t, std::exception_pt
             try {
                 if (eptr) std::rethrow_exception(eptr);
             } catch (const std::exception& e) {
-                throw std::runtime_error(getStamp() + " " + getPrefix(level) + " " + getColorCode(LogColor::CYAN) + 
-                                    message + " " + std::string(e.what()) + "\n" + context + getColorCode(LogColor::RESET));
+                throw std::runtime_error(getStamp() + getPrefix(level) + " " + getColorCode(LogColor::CYAN) + 
+                                    message + " " + std::string(e.what()) + "\n" + context);
             }
         },
         [&](int code) {
-            throw std::runtime_error(getStamp() + " " + getPrefix(level) + " " + getColorCode(LogColor::CYAN) + 
-                                    message + " — Code: " + std::to_string(code) + "\n" + context + getColorCode(LogColor::RESET));
+            throw std::runtime_error(getStamp() + getPrefix(level) + " " + getColorCode(LogColor::CYAN) + 
+                                    message + " — Code: " + std::to_string(code) + "\n" + context);
         },
         [&](const std::string& extra) {
             log_base(level, message + " — " + extra);
@@ -113,15 +136,20 @@ using ErrorHint = std::variant<std::monostate, std::nullptr_t, std::exception_pt
             if (opt.has_value()) {
                 log_base(level, message + " — " + opt.value());
             } else {
-                log_base(level, message + " — Optional value missing. ");
+                log_base(level, message + " — Optional value missing. " + context);
             }
-        }
+        },
+        [&](bool value) {
+            std::string state = value ? "true" : "false";
+            log_base(level, message + " — Boolean value: " + state + " — " + context);
+        },
     }, hint);
     }
 
 
     static std::string getStamp() {
-         return getColorCode(LogColor::RED) + "\n["  + getColorCode(LogColor::RESET) + getTimestamp() + getColorCode(LogColor::RED) + "]" + getColorCode(LogColor::RESET);
+         return getColorCode(LogColor::RED) + "\n["  + getColorCode(LogColor::RESET) + getTimestamp() + 
+                                                     getColorCode(LogColor::RED) + "]" + getColorCode(LogColor::RESET);
     }
     
     // Returns a color code for terminal output
@@ -154,11 +182,11 @@ private:
             case LogLevel::WARNING: return getColorCode(LogColor::RED) +" :::| WARNING:"  + getColorCode(LogColor::RESET);
             case LogLevel::ERR: return getColorCode(LogColor::RED) + " :::| ERROR:"  + getColorCode(LogColor::RESET);
             case LogLevel::DEBUG: return getColorCode(LogColor::MAGENTA) + " :::| DEBUG:" + getColorCode(LogColor::RESET);
+            case LogLevel::DISPLAY: return getColorCode(LogColor::YELLOW) + " :::| DISPLAY_INFO:" + getColorCode(LogColor::RESET);
         }
         return "LOG";
     }
 
     
-
 
 };

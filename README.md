@@ -24,9 +24,12 @@ This isn’t just code it’s a living system. I designed it to be as intuitive 
 - **Tag-Based Lookup** — Fast, flexible item access
 - **Safe Deserialization** — Registered handlers for type safety
 - **Extensive Logging** — Color-coded, timestamped debug output
-- **Thread-Safe API** — Concurrent access and modification
-
+- **Thread-Safe API** — Concurrent access and modification  
 ---
+
+### GitHub Action
+For fast look up, use GitHub Action and run the 66 Google Test suite with results printed on the console  
+by click: [Run Smart_Store Output App](https://github.com/gem870/Smart_Store/actions/runs/16735506400/job/47373371062)   
 
 ## Feature Matrix
 
@@ -125,11 +128,7 @@ cd build
 cmake ..
 cmake --build .
 ./TestApp
-```
-### GitHub Action
-For fast look up, use GitHub Action and run the 66 Google Test suite with results printed on the console  
-by click: [Run Smart_Store Output App](https://github.com/gem870/Smart_Store/actions/runs/16735506400/job/47373371062)  
-
+``` 
   <b>>> If the issue persist or throw a segmentation fault, please reach out via email or GitHub issues.</b>
 
 ### Integration

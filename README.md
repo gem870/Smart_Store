@@ -84,10 +84,14 @@ int main() {
   return 0;
 }
 ```
-### Output:
+### Output:  
+Below is the expected output illustrating Smart_Store’s tagging and state snapshot behavior in action.
 ![file structure](assets/getstared2.PNG)
 
 ---
+### Smart_Store Core Architecture:   
+Flow from Item Registration to Export   
+![Smart_Store Architecture Flowchart: ItemManager to Serializer](assets/file_structure.PNG)
 
 | Format | Import | Export |
 |--------|--------|--------|

@@ -91,10 +91,10 @@ Below is the expected output illustrating Smart_Store’s tagging and state snap
 ---
 ### Smart_Store Core Architecture:   
 Flow from Item Registration to Export   
-![Smart_Store Architecture Flowchart: ItemManager to Serializer](assets/file_structure.PNG)
+![Smart_Store Architecture Flowchart: ItemManager to Serializer](assets/Workflow.PNG)
 
-| Format | Import | Export |
-|--------|--------|--------|
+| Format | Import | Export  |
+|--------|--------|---------|
 | JSON   | ✅     | ✅     |
 | CSV    | ✅     | ✅     |
 | XML    | ✅     | ✅     |

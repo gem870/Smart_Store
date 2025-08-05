@@ -126,6 +126,10 @@ cmake ..
 cmake --build .
 ./TestApp
 ```
+### GitGub Action
+For fast look up, use GitHub Action run the 66 Google Test suite with results on the console,  
+by click: [Run Smart_Store App](https://github.com/gem870/Smart_Store/actions/runs/16735506400/job/47373371062)  
+
   <b>>> If the issue persist or throw a segmentation fault, please reach out via email or GitHub issues.</b>
 
 ### Integration

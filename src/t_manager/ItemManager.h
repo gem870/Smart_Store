@@ -252,7 +252,7 @@ public:
      void listRegisteredTypes() const;
 
        //Filter items by tags.
-    void filterByTag(const std::string& typeName) const;
+    void filterByTag(const std::vector<std::string>& tags) const;
 
       // Sort items by tag
     void sortItemsByTag() const;

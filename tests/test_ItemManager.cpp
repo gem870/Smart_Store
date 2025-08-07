@@ -148,12 +148,22 @@ TEST(ItemManagerTest, FilterByTag) {
     std::cout << "::: Debug: Starting FilterByTag test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
-    manager.addItem(std::make_shared<std::string>("Hello"), "item2");
-    std::cout << "::: Debug: Added items\n";
+    manager.addItem(std::make_shared<int>(42), "apple");
+    manager.addItem(std::make_shared<std::string>("banana"), "banana");
+    auto boy = std::make_shared<int>(12);
+    auto girl = std::make_shared<std::string>("Alice");
+    manager.addItem(boy, "Boy1");
+    manager.addItem(girl, "Girl1");
 
-    manager.filterByTag("item1");  // Directly display the filtered item
-    std::cout << "::: Debug: Test Completed Successfully\n";
+    std::vector<std::string> tags;
+    tags.push_back("apple");
+    tags.push_back("banana");
+    tags.push_back("Boy1");
+    tags.push_back("Girl1");
+    tags.push_back("nonexistent");  // This tag doesn't exist
+    manager.filterByTag(tags);
+
+    std::cout << "::: Debug: FilterByTag test completed successfully\n";
 }
 
 TEST(ItemManagerTest, SortItemsByTag) {
@@ -315,21 +325,15 @@ TEST(GlobalItemManagerTest, AccessItemManager) {
 
 TEST(GlobalItemManagerTest, ResetItemManager) {
     GlobalItemManager& globalManager = GlobalItemManager::getInstance();
-    ItemManager& itemManager = globalManager.getItemManager();
+    globalManager.resetItemManager();  // ✅ Ensure clean state
 
-    // Add an item to the original ItemManager
+    ItemManager& itemManager = globalManager.getItemManager();
     itemManager.addItem(std::make_shared<int>(42), "testItem");
 
-    // Reset the ItemManager instance
-    globalManager.resetItemManager();
+    globalManager.resetItemManager();  // Reset again
 
-    // Get the new, reset ItemManager
     ItemManager& newItemManager = globalManager.getItemManager();
-
-    // Check that the old item is not present in the new instance
     EXPECT_FALSE(newItemManager.hasItem("testItem"));
-
-    // Confirm displayByTag no longer throws but logs appropriately
     EXPECT_THROW(newItemManager.displayByTag("testItem"), std::runtime_error);
 }
 
@@ -1355,26 +1359,43 @@ TEST(ThreadSafetyTest, ListRegisteredTypesIsSafeUnderLoad) {
     SUCCEED();  // Passes if there's no crash or race condition
 }
 
+class IntItem{
+    public:
+    int value;
+    IntItem(int v) : value(v) {}
+    IntItem(){}
+};
+
 TEST(ThreadSafetyTest, FilterByTagDisplaysMatchingItemsSafely) {
     ItemManager manager;
 
-    manager.addItem(std::make_shared<int>(10), "apple");
-    manager.addItem(std::make_shared<int>(20), "banana");
-    manager.addItem(std::make_shared<int>(30), "apple");  // Duplicate tag
+    
+    auto item1 = std::make_shared<IntItem>(10);
+    auto item2 = std::make_shared<IntItem>(20);
+    auto item3 = std::make_shared<IntItem>(30);
+    auto item4 = std::make_shared<IntItem>(40);
+    auto item5 = std::make_shared<IntItem>(50);
+
+    manager.addItem<IntItem>(item2, "banana");
+    manager.addItem<IntItem>(item3, "apple");   // Duplicate tag
+    manager.addItem<IntItem>(item4, "orange");
+    manager.addItem<IntItem>(item5, "grape");
+
+    std::vector<std::string> fruitTags = {"apple", "banana", "orange", "grape", "mango"};
 
     std::vector<std::thread> threads;
 
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                manager.filterByTag("apple");  // Should display two items
+                manager.filterByTag(fruitTags);  // ✅ Use vector of fruit tags
             }
         });
     }
 
     for (auto& th : threads) th.join();
 
-    SUCCEED();  // We're only verifying safe parallel execution
+    SUCCEED();  // ✅ Verifies safe parallel execution
 }
 
 TEST(ThreadSafetyTest, SortItemsByTagRunsConcurrentlyWithoutRace) {

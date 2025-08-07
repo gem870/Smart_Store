@@ -104,11 +104,13 @@ using ErrorHint = std::variant<std::monostate, std::nullptr_t, std::exception_pt
    static void log_with_context(LogLevel level,
                              const std::string& message,
                              const ErrorHint& hint,
-                             const char* /* file */,
-                             int /* line */,
+                             const char* /*file*/,
+                             int  /*line*/,
                              const char* function) {
-    std::string context =  " >> Function: " + getColorCode(LogColor::RESET) + getColorCode(LogColor::RED)
-                                             + std::string(function) + getColorCode(LogColor::RESET);
+    std::string context = " >> Function: " + getColorCode(LogColor::RESET) +
+                          getColorCode(LogColor::RED) +
+                          std::string(function) +
+                          getColorCode(LogColor::RESET);
 
     std::visit(overloaded{
         [&](std::monostate) {

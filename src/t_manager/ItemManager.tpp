@@ -155,6 +155,25 @@ std::string ItemManager::demangleType(const std::string& mangledName) const{
 template<typename T>
 void ItemManager::addItem(std::shared_ptr<T> obj, const std::string& tag) {
     std::lock_guard<std::mutex> lock(mutex_);
+
+    if (tag.empty()) {
+    std::string errorMsg = "Tag cannot be empty for item of type: " + demangleType(typeid(T).name());
+    LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(errorMsg)));
+    }
+
+    if (obj == nullptr) {
+        std::string errorMsg = "Cannot add null object with tag: " + tag + " and type: " + demangleType(typeid(T).name());
+        LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(errorMsg)));
+        return;
+    }
+
+    // Check if an item with the same tag already exists
+    if (items.find(tag) != items.end()) {
+        std::string errorMsg = "Item with tag '" + tag + "' already exists. Cannot add another item of type: " + demangleType(typeid(T).name());
+        LOG_CONTEXT(LogLevel::ERR, errorMsg, std::make_exception_ptr(std::runtime_error(errorMsg)));
+        return;
+    }
+
     if (!obj) {
         LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(std::runtime_error("Cannot add null object " + 
                                                                 tag + " with type: " + demangleType(typeid(T).name()))));
@@ -205,7 +224,7 @@ bool ItemManager::modifyItem(const std::string& tag, const std::function<void(T&
             undoHistory.push_back(cloneCurrentState());
             redoQueue = {};
             modifier(wrapper->getMutableData());
-            LOG_CONTEXT(LogLevel::DEBUG, "Modified item with tag '" + tag + "' of type: " + demangleType(typeid(T).name()), true);
+            LOG_CONTEXT(LogLevel::DEBUG, "Modified item with tag '" + tag + "' of type: " + demangleType(typeid(T).name()), {});
             return true;
         }
     }
@@ -213,6 +232,7 @@ bool ItemManager::modifyItem(const std::string& tag, const std::function<void(T&
                             "' not found or type mismatch. Requested type: " + demangleType(typeid(T).name()), false);
                             return false;
 }
+
 
 template<typename T>
 std::optional<T> ItemManager::getItem(const std::string& tag) const {
@@ -1636,22 +1656,21 @@ void ItemManager::listRegisteredTypes() const {
     }
 }
 
-void ItemManager::filterByTag(const std::string& tag) const {
+void ItemManager::filterByTag(const std::vector<std::string>& tags) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    std::cout <<Logger::getColorCode(LogColor::CYAN) + "\n :::::: Items filtered by tag: " << tag << " ::::::\n" + Logger::getColorCode(LogColor::RESET);
-    
-    bool found = false;
-    for (const auto& [key, item] : items) {
-        if (key == tag) {
-            item->display();  // Assuming 'display' is a method of BaseItem or its derived classes
-            found = true;
-        }
+    std::cout <<Logger::getColorCode(LogColor::CYAN) + "\n ::::::| Items filtered by tags |::::::\n" + Logger::getColorCode(LogColor::RESET);
+    if (tags.empty()) {
+        LOG_CONTEXT(LogLevel::INFO, "No tags provided for filtering.", {});
+        return;
     }
-    
-    if (!found) {
-        LOG_CONTEXT(LogLevel::INFO, "", std::make_exception_ptr(
-                                          std::runtime_error("No items found with tag '" + tag + "'.")));
+    for (const auto& [key, item] : items) {
+        if (std::find(tags.begin(), tags.end(), key) != tags.end()) {
+            item->display();  // Assuming 'display' is a method of BaseItem or its derived classes
+        }
+        else {
+            LOG_CONTEXT(LogLevel::ERR, "Item with tag '" + key + "' does not match any provided tags.", {});
+        }
     }
 }
 

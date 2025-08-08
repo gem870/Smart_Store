@@ -1659,17 +1659,21 @@ void ItemManager::listRegisteredTypes() const {
 void ItemManager::filterByTag(const std::vector<std::string>& tags) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
-    std::cout <<Logger::getColorCode(LogColor::CYAN) + "\n ::::::| Items filtered by tags |::::::\n" + Logger::getColorCode(LogColor::RESET);
+    std::cout << Logger::getColorCode(LogColor::CYAN)
+              << "\n ::::::| Items filtered by tags |::::::\n"
+              << Logger::getColorCode(LogColor::RESET);
+
     if (tags.empty()) {
         LOG_CONTEXT(LogLevel::INFO, "No tags provided for filtering.", {});
         return;
     }
-    for (const auto& [key, item] : items) {
-        if (std::find(tags.begin(), tags.end(), key) != tags.end()) {
-            item->display();  // Assuming 'display' is a method of BaseItem or its derived classes
-        }
-        else {
-            LOG_CONTEXT(LogLevel::ERR, "Item with tag '" + key + "' does not match any provided tags.", {});
+
+    for (const auto& tag : tags) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            it->second->display();  // Found: display the item
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "'.", {});  //  Not found: log it
         }
     }
 }

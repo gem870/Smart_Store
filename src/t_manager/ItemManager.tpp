@@ -127,7 +127,17 @@ void ItemManager::displayRegisteredDeserializers() {
 
 bool ItemManager::hasItem(const std::string& tag) const {
     std::lock_guard<std::mutex> lock(mutex_);
-    return items.find(tag) != items.end();
+    if (tag.empty()) {
+        LOG_CONTEXT(LogLevel::WARNING, "Empty tag provided for hasItem check", false);
+        return false;
+    }
+    if(items.find(tag) != items.end()){
+        LOG_CONTEXT(LogLevel::DEBUG, "Item with tag '" + tag + "' exists in ItemManager", true);
+        return true;
+    } else {
+        LOG_CONTEXT(LogLevel::DEBUG, "Item with tag '" + tag + "' does not exist in ItemManager", false);
+        return false;
+    }
 }
 
 std::string ItemManager::demangleType(const std::string& mangledName) const{

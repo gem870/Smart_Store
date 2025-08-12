@@ -325,7 +325,7 @@ TEST(GlobalItemManagerTest, AccessItemManager) {
 
 TEST(GlobalItemManagerTest, ResetItemManager) {
     GlobalItemManager& globalManager = GlobalItemManager::getInstance();
-    globalManager.resetItemManager();  // ✅ Ensure clean state
+    globalManager.resetItemManager();  // Ensure clean state
 
     ItemManager& itemManager = globalManager.getItemManager();
     itemManager.addItem(std::make_shared<int>(42), "testItem");

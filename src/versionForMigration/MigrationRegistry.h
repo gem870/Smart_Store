@@ -37,7 +37,7 @@ class MigrationRegistry {
         void clearMigrationLog();
     
     private:
-        std::unordered_map<std::string, int> latestVersions;
+        std::map<std::string, int> latestVersions;
         std::unordered_map<std::string, std::map<int, MigrationFn>> migrations;
         mutable std::vector<std::string> logs;
     };

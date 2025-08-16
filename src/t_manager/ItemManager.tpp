@@ -167,27 +167,21 @@ void ItemManager::addItem(std::shared_ptr<T> obj, const std::string& tag) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (tag.empty()) {
-    std::string errorMsg = "Tag cannot be empty for item of type: " + demangleType(typeid(T).name());
-    LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(errorMsg)));
+        std::string errorMsg = "Tag cannot be empty for item of type: " + demangleType(typeid(T).name());
+        LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(errorMsg)));
     }
 
-    if (obj == nullptr) {
+    if (obj == nullptr || !obj) {
         std::string errorMsg = "Cannot add null object with tag: " + tag + " and type: " + demangleType(typeid(T).name());
         LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(errorMsg)));
-        return;
     }
 
     // Check if an item with the same tag already exists
     if (items.find(tag) != items.end()) {
         std::string errorMsg = "Item with tag '" + tag + "' already exists. Cannot add another item of type: " + demangleType(typeid(T).name());
         LOG_CONTEXT(LogLevel::ERR, errorMsg, std::make_exception_ptr(std::runtime_error(errorMsg)));
-        return;
     }
 
-    if (!obj) {
-        LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(std::runtime_error("Cannot add null object " + 
-                                                                tag + " with type: " + demangleType(typeid(T).name()))));
-    }
     std::cout <<Logger::getColorCode(LogColor::GREEN) + "\nAn item added with tag: " << tag << Logger::getColorCode(LogColor::RESET) << std::endl;
 
     saveState();

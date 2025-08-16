@@ -24,7 +24,9 @@ This isn’t just code it’s a living system. I designed it to be as intuitive 
 - **Tag-Based Lookup** — Fast, flexible item access
 - **Safe Deserialization** — Registered handlers for type safety
 - **Extensive Logging** — Color-coded, timestamped debug output
-- **Thread-Safe API** — Concurrent access and modification  
+- **Thread-Safe API** — Concurrent access and modification
+- **cross-platform** C++ data persistence
+
 ---
 
 ### GitHub Action

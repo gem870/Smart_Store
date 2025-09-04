@@ -1856,6 +1856,13 @@ TEST(ThreadSafetyTest, AsyncImportSingleObject_CSVWorksSafely) {
 }
 
 
+TEST(ItemManagerAuthorship, DisplaysAuthorSignature) {
+    ItemManager manager;
+    manager.showSignature();
+}
+
+
+
 
 
 

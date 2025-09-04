@@ -74,6 +74,7 @@
         "typeindex": "cpp",
         "bitset": "cpp",
         "regex": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "source_location": "cpp"
     }
 }

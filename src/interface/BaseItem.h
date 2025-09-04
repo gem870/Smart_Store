@@ -1,3 +1,11 @@
+
+//     ::::::::::::::::::::::::::::::::::::::::::::
+//     :: *  © 2025 Victor. All rights reserved. ::
+//     :: *  Smart_Store Framework               ::
+//     :: *  Licensed under the MIT License      ::
+//     ::::::::::::::::::::::::::::::::::::::::::::
+
+
 #pragma once
 #ifndef ITEM_WRAPPER_H
 #define ITEM_WRAPPER_H

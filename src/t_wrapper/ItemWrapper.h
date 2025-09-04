@@ -1,3 +1,10 @@
+
+//     ::::::::::::::::::::::::::::::::::::::::::::
+//     :: *  © 2025 Victor. All rights reserved. ::
+//     :: *  Smart_Store Framework               ::
+//     :: *  Licensed under the MIT License      ::
+//     ::::::::::::::::::::::::::::::::::::::::::::
+
 #pragma once
 #ifndef ITEM_MANAGER_H
 #define ITEM_MANAGER_H

@@ -16,6 +16,18 @@ This isn’t just code it’s a living system. I designed it to be as intuitive 
 
 - [More details](https://github.com/gem870/Smart_Store/wiki#project-summary)
 
+---
+
+## Project Identity
+**Smart_Store Framework**
+**Author:** Emmanuel Chibuike Victor
+**Created:** 2025
+**License:** MIT License  
+
+> Smart_Store was built by Victor to solve serialization challenges in C++. It introduces a metadata-driven instantiation model, multi-format serialization (JSON, XML, binary, and more to come), and undo/redo logic—designed for extensibility, performance, and architectural clarity.
+
+---
+
 ### Key Features
 - **Undo / Redo History** — Safe state rollback with snapshots
 - **Versioned Schema Migration** — Upgrade legacy data automatically
@@ -169,10 +181,9 @@ We welcome contributions from the community! Whether it's fixing bugs, suggestin
 
 ---
 
-## Contact
 
-**Author:** Emmanuel Chibuike Victor  
-**Email:** ve48381@gmail.com  
+## Contact
+[Email] (ve48381@gmail.com)  
 [LinkedIn](https://linkedin.com/in/chibuike-emmanuel-b8b29b269/)  
 [Portfolio](https://emmanuelvictor-portfolio.vercel.app)
 

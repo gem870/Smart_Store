@@ -1,3 +1,5 @@
+
+
 #pragma once
 
 #include "t_wrapper/ItemWrapper.h"
@@ -19,10 +21,15 @@
 #include <typeinfo>
 #include "versionForMigration/MigrationRegistry.h"
 #include <mutex>
-
 #if defined(__GNUC__) || defined(__clang__)
 #include <cxxabi.h>
 #endif
+
+//     ::::::::::::::::::::::::::::::::::::::::::::
+//     :: *  © 2025 Victor. All rights reserved. ::
+//     :: *  Smart_Store Framework               ::
+//     :: *  Licensed under the MIT License      ::
+//     ::::::::::::::::::::::::::::::::::::::::::::
 
 
 
@@ -131,6 +138,8 @@ public:
           std::cout << "\033[1;31m::: Debug: ID: " << id << " | Item Tag: " << item->getTag() << "\033[0m\n";
       }
     }
+
+    void showSignature();
 
     // Get the compiler type name of a given type T
     // This function uses typeid and demangling to get a human-readable type name.

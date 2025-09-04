@@ -1,3 +1,5 @@
+
+#include "author/author.hpp"
 #include "ItemManager.h"
 #include "nlohmann/json.hpp"
 #include "err_log/Logger.hpp"
@@ -97,6 +99,10 @@ json ItemManager::getSchemaForType(std::string type) const {
 
 // ::::: MAIN API USER CALLS OR PUBLIC FUNCTIONS ::::::
 // ****************************************************
+
+void ItemManager::showSignature() {
+    Author::getSignature();
+}
 
 void ItemManager::displayRegisteredDeserializers() {
     std::lock_guard<std::mutex> lock(mutex_);

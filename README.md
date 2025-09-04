@@ -19,10 +19,10 @@ This isn’t just code it’s a living system. I designed it to be as intuitive 
 ---
 
 ## Project Identity
-**Smart_Store Framework**
-**Author:** Emmanuel Chibuike Victor
-**Created:** 2025
-**License:** MIT License  
+**Smart_Store Framework**   
+**Author:** Emmanuel Chibuike Victor   
+**Created:** 2025   
+**License:** MIT License     
 
 > Smart_Store was built by Victor to solve serialization challenges in C++. It introduces a metadata-driven instantiation model, multi-format serialization (JSON, XML, binary, and more to come), and undo/redo logic—designed for extensibility, performance, and architectural clarity.
 

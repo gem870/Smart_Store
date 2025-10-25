@@ -145,8 +145,17 @@ mkdir build
 cd build
 cmake ..
 cmake --build .
-./TestApp
-``` 
+```
+# To output on the console.
+### For PowerShell use:
+```bash
+.\TestApp.exe
+```
+### On the Command Prompt terminal, use:
+```bash
+TestApp.exe
+```
+
   <b>>> If the issue persists or throws a segmentation fault, please reach out via email or GitHub issues.</b>
 
 ### Integration

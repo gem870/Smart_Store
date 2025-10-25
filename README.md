@@ -12,7 +12,7 @@
 ## Overview
 
 <b>Smart_Store</b> is a modular, extensible, and high-performance C++ framework for managing, serializing, deserializing, and organizing complex item data across multiple formats. Perfect for inventory systems, asset management, data editors, and any application needing structured, taggable, and type-safe storage of arbitrary objects.</br>
-This isn’t just code it’s a living system. I designed it to be as intuitive and adaptive as the human body forming from cells.
+This isn’t just code, it’s a living system. I designed it to be as intuitive and adaptive as the human body forming from cells.
 
 - [More details](https://github.com/gem870/Smart_Store/wiki#project-summary)
 
@@ -42,7 +42,7 @@ This isn’t just code it’s a living system. I designed it to be as intuitive 
 ---
 
 ### GitHub Action
-For fast look up, use GitHub Action and run the 66 Google Test suite with results printed on the console  
+For fast lookup, use GitHub Action and run the 66 Google Test suite with results printed on the console  
 by click: [Run Smart_Store Output App](https://github.com/gem870/Smart_Store/actions/runs/16735506400/job/47373371062)   
 
 ## Feature Matrix
@@ -119,7 +119,7 @@ Flow from Item Registration to Export
 ## Why Choose Smart_Store?
 
 - **Modern & Maintainable:** Clean, idiomatic C++20 codebase
-- **Zero Boilerplate:** Automatic type registration, just use `addItem`
+- **Zero Boilerplate:** Automatic type registration, use `addItem`
 - **No Inheritance Required:** Works with any object type
 - **Data Safety:** Undo history ensures you never lose a state
 - **Robust Migration:** Built-in schema upgrades for legacy data
@@ -130,12 +130,12 @@ Flow from Item Registration to Export
 ## Installation
 
 ### Windows:
-  . Make sure you have CMake and GCC compiler installed before you run the fellowing commands.</br>
+  . Make sure you have CMake and the GCC compiler installed before you run the following commands.</br>
   . If still having issues, set up WSL (Windows Subsystem for Linux) or use a Linux environment </br>
     and run the following commands.
 
 ### Linux / macOS:
-  . Make sure you have CMake and GCC compiler installed before you run the following commands.</br></br>
+  . Make sure you have CMake and the GCC compiler installed before you run the following commands.</br></br>
 
 
 ```bash
@@ -147,7 +147,7 @@ cmake ..
 cmake --build .
 ./TestApp
 ``` 
-  <b>>> If the issue persist or throw a segmentation fault, please reach out via email or GitHub issues.</b>
+  <b>>> If the issue persists or throws a segmentation fault, please reach out via email or GitHub issues.</b>
 
 ### Integration
 - [Integration guide](https://github.com/gem870/Smart_Store/wiki/Integration)
@@ -161,7 +161,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 
 ## Contributing
 
-We welcome contributions from the community! Whether it's fixing bugs, suggesting new features, improving documentation, or refactoring code, your help is appreciated.
+We welcome contributions from the community! I would appreciate your help, whether it's fixing bugs, suggesting new features, improving documentation, or refactoring code.
 
 ### How to Contribute
 

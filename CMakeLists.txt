@@ -1,5 +1,3 @@
-
-
 cmake_minimum_required(VERSION 3.16)
 project(ItemManagerProject LANGUAGES CXX)
 
@@ -23,39 +21,22 @@ if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
         )
 
         if(COMPILER_SUPPORTS_STD)
-            message(STATUS "Using C++${standard}")
+            message(STATUS " Using C++${standard}")
             break()
         endif()
     endforeach()
 
     if(NOT COMPILER_SUPPORTS_STD)
-        message(FATAL_ERROR "No supported C++ standard found. Please use GCC 11+, Clang 13+, or MSVC 2019+.")
+        message(FATAL_ERROR "❌ No supported C++ standard found! Please use GCC 11 or higher.")
     endif()
 endif()
 
 # -----------------------------------
-# Compiler Detection and Flags
+# Build Settings
 # -----------------------------------
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    message(STATUS "Detected Clang compiler")
-    set(CMAKE_CXX_FLAGS "-g -O1 -Wall -Wextra -Wpedantic -Wno-unused-parameter")
-    set(CMAKE_EXE_LINKER_FLAGS "-static-libstdc++ -static-libgcc")
-
-elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    message(STATUS "Detected GCC compiler")
-    set(CMAKE_CXX_FLAGS "-g -O1 -Wall -Wextra -pedantic")
-    set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
-
-elseif(MSVC)
-    message(STATUS "Detected MSVC compiler")
-    add_compile_options(/W4 /EHsc)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus /std:c++20")
-
-else()
-    message(WARNING "Unknown compiler: ${CMAKE_CXX_COMPILER_ID}")
-endif()
-
 set(CMAKE_BUILD_TYPE Debug)
+set(CMAKE_CXX_FLAGS "-g -O1 -Wall -Wextra -pedantic")
+set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
 
 # -----------------------------------
 # External Dependencies
@@ -132,4 +113,4 @@ gtest_discover_tests(TestApp
 # -----------------------------------
 # Output Summary
 # -----------------------------------
-message(STATUS "Project configured successfully.")
+message(STATUS "✅ Project Configured Successfully.")

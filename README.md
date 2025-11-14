@@ -130,9 +130,18 @@ Flow from Item Registration to Export
 ## Installation
 
 ### Windows:
+  Option 1:
+  . Make sure you have CMake and the Visual Studio 2022(C++) installed before you run the following commands.</br>
+  ```bash
+  cd Smart_Store
+  cmake -B build-msvc -G "Visual Studio 17 2022" && cmake --build
+  build-msvc --config Debug
+  ```
+  Option 2:
   . Make sure you have CMake and the GCC compiler installed before you run the following commands.</br>
   . If still having issues, set up WSL (Windows Subsystem for Linux) or use a Linux environment </br>
     and run the following commands.
+  
 
 ### Linux / macOS:
   . Make sure you have CMake and the GCC compiler installed before you run the following commands.</br></br>

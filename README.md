@@ -144,16 +144,18 @@ Flow from Item Registration to Export
   
 
 ### Linux / macOS:
-  . Make sure you have CMake and the GCC compiler installed before you run the following commands.</br></br>
+  . Make sure you have CMake and the GCC and Clang compilers installed before you run the following commands.</br></br>
 
 
-```bash
+```bash "GCC"
 git clone https://github.com/gem870/Smart_Store.git
 cd Smart_Store
-mkdir build
-cd build
-cmake ..
-cmake --build .
+cmake -B build-gcc -DCMAKE_CXX_COMPILER=g++ && cmake --build build-gcc
+```
+```bash "Clang"
+git clone https://github.com/gem870/Smart_Store.git
+cd Smart_Store
+cmake -B build-clang -DCMAKE_CXX_COMPILER=clang++ && cmake --build build-clang
 ```
 # To output on the console.
 ### For PowerShell use:

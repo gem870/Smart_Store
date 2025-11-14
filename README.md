@@ -147,12 +147,14 @@ Flow from Item Registration to Export
   . Make sure you have CMake and the GCC and Clang compilers installed before you run the following commands.</br></br>
 
 
-```bash "GCC"
+```bash
+"GCC"
 git clone https://github.com/gem870/Smart_Store.git
 cd Smart_Store
 cmake -B build-gcc -DCMAKE_CXX_COMPILER=g++ && cmake --build build-gcc
 ```
-```bash "Clang"
+```bash
+"Clang"
 git clone https://github.com/gem870/Smart_Store.git
 cd Smart_Store
 cmake -B build-clang -DCMAKE_CXX_COMPILER=clang++ && cmake --build build-clang

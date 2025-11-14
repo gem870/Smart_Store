@@ -136,6 +136,9 @@ Flow from Item Registration to Export
   cd Smart_Store
   cmake -B build-msvc -G "Visual Studio 17 2022" && cmake --build
   build-msvc --config Debug
+  cd build-msvc
+  cd Debug
+  ./TestApp
   ```
   Option 2:
   . Make sure you have CMake and the GCC compiler installed before you run the following commands.</br>

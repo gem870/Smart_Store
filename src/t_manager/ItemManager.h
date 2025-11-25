@@ -23,6 +23,7 @@
 #include <mutex>
 #if defined(__GNUC__) || defined(__clang__)
 #include <cxxabi.h>
+#include "err_log/Logger.hpp"
 #endif
 
 //     ::::::::::::::::::::::::::::::::::::::::::::
@@ -272,6 +273,22 @@ public:
       // Get the current state of items
     const std::unordered_map<std::string, std::shared_ptr<BaseItem>>& getItemMapStore() const;
 
+
+
+    /***************************************************************
+     *                   Networking section 
+     ***************************************************************/
+   
+
+     template<typename T>
+      bool networkMessage_Send(std::string& msg, std::string& tag);
+
+
+
+
+
+    
+
 };
 #include "ItemManager.tpp"
 
@@ -306,4 +323,9 @@ class GlobalItemManager {
             itemManager = std::make_unique<ItemManager>();
             std::cout << "::: Debug: ItemManager instance reset.\n";
         }
+        
+      //   void networkMessage_Send(std::string){
+
+      //   }
+
     };

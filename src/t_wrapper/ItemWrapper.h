@@ -24,6 +24,8 @@
 #include "err_log/Logger.hpp"
 #include "utils/Json_traits.hpp"
 #include <cstdlib>    // for free()
+#include "microservice_interface/MicroserviceManager.hpp"
+#include "interface/BaseMicroservice.hpp"
 
 
 using json = nlohmann::json;
@@ -33,6 +35,15 @@ using json = nlohmann::json;
 //   |-- that are stored in the ItemManagert class.             |
 //    ==========================================================
 
+// ***********************************************************
+     // To access features that are not in the base class.
+    // auto net = NetworkManager::createNetworkManager("Network Agent");
+
+    // if (auto* agent = dynamic_cast<NetworkAgent*>(net.get())) {
+    //     agent->specialAgentMethod();   // now you can call it
+    // }
+
+// ***********************************************************
 
 
 
@@ -67,6 +78,9 @@ class ItemWrapper : public BaseItem {
 private:
     std::shared_ptr<T> data;
     std::string tag;
+    std::unique_ptr<BaseMicroservice> _networkManager = 
+                  MicroserviceManager::createMicroObjects<BaseMicroservice>("Network Agent");
+    
 
     std::string demangleType(const std::string& mangledName) const{
         #if defined(__GNUC__) || defined(__clang__)
@@ -94,7 +108,7 @@ private:
 protected:
 mutable std::string id_; // Unique ID for each item, mutable to allow modification in const methods
 
-public:
+
 public:
     ItemWrapper(std::shared_ptr<T> obj, const std::string& tag = "")
          : data(std::move(obj)), tag(tag),id_(IdProvider::generateId()) {} 
@@ -159,6 +173,20 @@ public:
     T& getMutableData();
 
     nlohmann::json toJson() const override;
+
+    void sendMessage(const std::string& payload, const std::string& recipientID) {
+        std::string actualRecipient = recipientID.empty() ? getId() : recipientID;
+        if (_networkManager) {
+            _networkManager->sendMessage(payload, actualRecipient);
+        }
+    }
+
+    void receiveMessage(const Message& msg)  {
+        if(_networkManager){
+            _networkManager->receiveMessage(msg);
+        }
+    }
+
     
     static std::string friendlyName;
 };

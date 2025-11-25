@@ -1856,6 +1856,9 @@ TEST(ThreadSafetyTest, AsyncImportSingleObject_CSVWorksSafely) {
 }
 
 
+
+
+
 TEST(ItemManagerAuthorship, DisplaysAuthorSignature) {
     ItemManager manager;
     manager.showSignature();
@@ -1863,6 +1866,20 @@ TEST(ItemManagerAuthorship, DisplaysAuthorSignature) {
 
 
 
+
+
+TEST(ItemManagerTest, SendMessage_Success) {
+    auto wrapper = std::make_shared<int>(20);
+    ItemManager manager;
+    std::string tag = "msg_tag";
+    manager.addItem(wrapper, tag);
+
+    std::string msg = "sender123 Hello, Network!";
+
+    bool result = manager.networkMessage_Send<int>(msg, tag);
+
+    EXPECT_TRUE(result);
+}
 
 
 

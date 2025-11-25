@@ -12,6 +12,7 @@
 #include <ctime>
 #include <variant>
 #include <source_location>
+#include <optional>
 
 #define LOG_CONTEXT(level, message, hint) \
     Logger::log_with_context(level, message, hint, __FILE__, __LINE__, __func__)

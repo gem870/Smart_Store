@@ -276,7 +276,7 @@ public:
 
 
     /***************************************************************
-     *                   Networking section 
+     *                   NETWORK AGENT VISION 
      ***************************************************************/
    
 
@@ -284,8 +284,19 @@ public:
       bool networkMessage_Send(std::string& msg, std::string& tag);
 
 
+      template<typename T>
+      bool networkMessage_Receive(Message msg, std::string& tag);
 
 
+
+
+      
+    /***************************************************************
+     *                  COMPUTER VISION SECTION 
+     ***************************************************************/
+
+    template<typename T>
+    void cv_runRestrictedAreaMonitor(const std::string& cascadePath, std::string& tag);
 
     
 
@@ -323,9 +334,14 @@ class GlobalItemManager {
             itemManager = std::make_unique<ItemManager>();
             std::cout << "::: Debug: ItemManager instance reset.\n";
         }
-        
-      //   void networkMessage_Send(std::string){
 
-      //   }
+
+
+
+         /****************************************************************
+          *                    Networking section 
+          ****************************************************************/
+        
+        void networkMessage_Send(std::string& msg, std::string& tag);
 
     };

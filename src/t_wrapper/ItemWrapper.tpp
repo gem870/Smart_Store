@@ -160,3 +160,78 @@ nlohmann::json ItemWrapper<T>::toJson() const {
     }
 }
 
+
+
+
+
+   /*
+              MICROSERVEICE SECTION
+          *****************************
+
+          =============================
+          | Networking Agent Funtions |
+          =============================
+    */
+
+    template<typename T>
+    void ItemWrapper<T>::sendMessage(const std::string& payload, const std::string& recipientID) {
+        std::string actualRecipient = recipientID.empty() ? getId() : recipientID;
+
+        if (_networkManager) {
+            if (auto* networkAgent = dynamic_cast<NetworkAgent*>(_networkManager.get())) {
+                networkAgent->sendMessage(payload, actualRecipient);
+            } else {
+                LOG_CONTEXT(LogLevel::ERR,
+                            "sendMessage not supported by this Network Agent.",
+                            {});
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "NetworkManager not initialized.", {});
+        }
+    }
+
+    template<typename T>
+    void ItemWrapper<T>::receiveMessage(const Message& msg)  {
+        if(_networkManager){
+          if(auto* networkAgent = dynamic_cast<NetworkAgent*>(_networkManager.get())){
+            networkAgent->receiveMessage(msg);
+          } else {
+            LOG_CONTEXT(LogLevel::ERR, "ReceivingMessage not supported by Network Agent.", {});
+          }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "NetworkManager not initialized.", {});
+        }
+    }
+
+
+
+
+
+     /*
+              MICROSERVEICE SECTION
+          *****************************
+
+          =============================
+          | Face Recognition Funtions |
+          =============================
+    */
+
+template<typename T>
+void ItemWrapper<T>::runRestrictedAreaMonitor(const std::string& cascadePath) {
+    if (_computerVisionManager) {
+        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_computerVisionManager.get())) {
+            cvVision->runRestrictedAreaMonitor(cascadePath);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Run restricted area monitor failed.", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Run restricted area monitor not initialized.", {});
+    }
+}
+
+  
+
+
+
+
+

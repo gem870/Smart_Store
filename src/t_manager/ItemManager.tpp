@@ -1742,7 +1742,7 @@ const std::unordered_map<std::string, std::shared_ptr<BaseItem>>& ItemManager::g
 
 
     /***************************************************************
-     *                   Networking section 
+     *                   NETWORK AGENT SECTION 
      ***************************************************************/
    
     template<typename T>
@@ -1763,10 +1763,53 @@ const std::unordered_map<std::string, std::shared_ptr<BaseItem>>& ItemManager::g
             LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to send network message.", ErrorCode::FLAG_FALSE);
             return false;
         }
-        
+    }
+
+    template<typename T>
+    bool ItemManager::networkMessage_Receive(Message msg, std::string& tag){
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                wrapper->receiveMessage(msg);
+                return true;
+           } else {
+                LOG_CONTEXT(LogLevel::WARNING, "Network message failed with tag '" + tag + "'. Requested type: " 
+                            + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
+                throw std::runtime_error("\n:::| Please check your item type.\n");
+            }
+            
+        }else{
+            LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to send network message.", ErrorCode::FLAG_FALSE);
+            return false;
+        }
     }
 
 
 
 
+    /***************************************************************
+     *                  COMPUTER VISION SECTION 
+     ***************************************************************/
+     template<typename T>
+    void ItemManager::cv_runRestrictedAreaMonitor(const std::string& cascadePath, std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->runRestrictedAreaMonitor(cascadePath);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Run restricted area failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            {});
+                throw std::runtime_error("\n:::| Please check your item type.\n");
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to Run restricted area.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
 

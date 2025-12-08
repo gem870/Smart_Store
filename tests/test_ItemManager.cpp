@@ -1388,14 +1388,14 @@ TEST(ThreadSafetyTest, FilterByTagDisplaysMatchingItemsSafely) {
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                manager.filterByTag(fruitTags);  // ✅ Use vector of fruit tags
+                manager.filterByTag(fruitTags);  // Use vector of fruit tags
             }
         });
     }
 
     for (auto& th : threads) th.join();
 
-    SUCCEED();  // ✅ Verifies safe parallel execution
+    SUCCEED();  // Verifies safe parallel execution
 }
 
 TEST(ThreadSafetyTest, SortItemsByTagRunsConcurrentlyWithoutRace) {
@@ -1855,19 +1855,6 @@ TEST(ThreadSafetyTest, AsyncImportSingleObject_CSVWorksSafely) {
     EXPECT_EQ(result.value(), 1234);
 }
 
-
-
-
-
-TEST(ItemManagerAuthorship, DisplaysAuthorSignature) {
-    ItemManager manager;
-    manager.showSignature();
-}
-
-
-
-
-
 TEST(ItemManagerTest, SendMessage_Success) {
     auto wrapper = std::make_shared<int>(20);
     ItemManager manager;
@@ -1877,11 +1864,24 @@ TEST(ItemManagerTest, SendMessage_Success) {
     std::string msg = "sender123 Hello, Network!";
 
     bool result = manager.networkMessage_Send<int>(msg, tag);
+    manager.cv_runRestrictedAreaMonitor<int>("", tag);
 
     EXPECT_TRUE(result);
 }
 
 
+
+
+
+
+
+
+
+
+TEST(ItemManagerAuthorship, DisplaysAuthorSignature) {
+    ItemManager manager;
+    manager.showSignature();
+}
 
 
 // Main function to run all tests

@@ -25,7 +25,7 @@
 #include "utils/Json_traits.hpp"
 #include <cstdlib>    // for free()
 #include "microservice_interface/MicroserviceManager.hpp"
-#include "interface/BaseMicroservice.hpp"
+
 
 
 using json = nlohmann::json;
@@ -79,7 +79,11 @@ private:
     std::shared_ptr<T> data;
     std::string tag;
     std::unique_ptr<BaseMicroservice> _networkManager = 
-                  MicroserviceManager::createMicroObjects<BaseMicroservice>("Network Agent");
+                  MicroserviceManager::createMicroObjects("Network Agent");
+    std::unique_ptr<BaseMicroservice> _computerVisionManager = 
+                  MicroserviceManager::createMicroObjects("Face Recognition");              
+   
+
     
 
     std::string demangleType(const std::string& mangledName) const{
@@ -174,21 +178,37 @@ public:
 
     nlohmann::json toJson() const override;
 
-    void sendMessage(const std::string& payload, const std::string& recipientID) {
-        std::string actualRecipient = recipientID.empty() ? getId() : recipientID;
-        if (_networkManager) {
-            _networkManager->sendMessage(payload, actualRecipient);
-        }
-    }
-
-    void receiveMessage(const Message& msg)  {
-        if(_networkManager){
-            _networkManager->receiveMessage(msg);
-        }
-    }
-
-    
     static std::string friendlyName;
+
+
+
+
+    /*
+              MICROSERVEICE SECTION
+          *****************************
+
+          =============================
+          | Networking Agent Funtions |
+          =============================
+    */
+
+    void sendMessage(const std::string& payload, const std::string& recipientID);
+
+    void receiveMessage(const Message& msg);
+
+
+
+    /*
+              MICROSERVEICE SECTION
+          *****************************
+
+          =============================
+          | Face Recognition Funtions |
+          =============================
+    */
+
+    void runRestrictedAreaMonitor(const std::string& cascadePath = "");
+    
 };
 
 #include "ItemWrapper.tpp"  // Template definitions should be included at the end of the header

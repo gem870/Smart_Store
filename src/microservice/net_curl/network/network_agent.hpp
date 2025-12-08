@@ -54,13 +54,13 @@ public:
     void initialize(const std::string& id, const std::string& type, const std::string& path);
 
     // Messaging
-    void sendMessage(const std::string& payload, const std::string& recipientID) override;
-    void receiveMessage(const Message& msg) override;
+    void sendMessage(const std::string& payload, const std::string& recipientID);
+    void receiveMessage(const Message& msg);
     void processoutbox();
 
     // File I/O
-    bool writeToFile(const std::string& filename, const std::string& content) override;
-    std::string readFromFile(const std::string& filename) override;
+    bool writeToFile(const std::string& filename, const std::string& content);
+    std::string readFromFile(const std::string& filename);
     bool fileExists(const std::string& filename);
 
     // Networking (stubbed for now)

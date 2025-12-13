@@ -17,7 +17,12 @@
 class AtomicFileWriter {
 public:
 
-    // Writes a string atomically to a file
+    /**
+     * @brief Writes a string atomically to a file.
+     * @param targetFilename The name of the target file.
+     * @param content The content to write.
+     * @return True if successful, false otherwise.
+     */
     static bool writeAtomically(const std::string& targetFilename, const std::string& content) {
         std::string tempFilename = targetFilename + ".tmp";
 
@@ -32,7 +37,12 @@ public:
         return !ec;
     }
 
-    // Writes binary data atomically to a file
+    /**
+     * @brief Writes binary data atomically to a file.
+     * @param targetFilename The name of the target file.
+     * @param binaryData The binary data to write.
+     * @return True if successful, false otherwise.
+     */
    static bool writeAtomicallyBinary(const std::string& targetFilename, const std::vector<uint8_t>& binaryData) {
         std::string tempFilename = targetFilename + ".tmp";
 

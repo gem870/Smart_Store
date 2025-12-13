@@ -1860,11 +1860,12 @@ TEST(ItemManagerTest, SendMessage_Success) {
     ItemManager manager;
     std::string tag = "msg_tag";
     manager.addItem(wrapper, tag);
+    
 
     std::string msg = "sender123 Hello, Network!";
 
     bool result = manager.networkMessage_Send<int>(msg, tag);
-    manager.cv_runRestrictedAreaMonitor<int>("", tag);
+    manager.cvMdn_runMonitorDetectionMonitorCamera<int>(0, tag);
 
     EXPECT_TRUE(result);
 }

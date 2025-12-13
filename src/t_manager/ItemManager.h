@@ -87,20 +87,43 @@ private:
 
     MigrationRegistry migrationRegistry;
     
-    // Helper function to clone the current state of items
+   /**
+   * @brief Clone the current state of items.
+   * @return A deep copy of the current state.
+   */
     State cloneCurrentState() const;
 
-    //Automatic save for the redo and undo history.
+    /**
+     * @brief Save the current state of items for undo functionality.
+     */
     void saveState();
     
+   /**
+   * @brief Register a new type T with the ItemManager.
+   * @tparam T The type to register.
+   */
     template<typename T>
     void registerType();
 
+    /**
+     * @brief Get the compiler type name for a given type T.
+     * @tparam T The type to get the name for.
+     */
     template<typename T>
     static std::string getCompilerTypeName();
 
+    /**
+     * @brief Get the schema for a specific type.
+     * @param type The type name.
+     * @return The schema as JSON.
+     */
     json getSchemaForType(std::string type) const;
 
+    /**
+     * @brief Deserialize an item from JSON based on its type ID.
+     * @param j The JSON object containing the item data.
+     * @return A shared pointer to the deserialized BaseItem.
+     */
     template<typename T>
     std::shared_ptr<BaseItem> deserializeItemById(const json& j);
         
@@ -113,7 +136,17 @@ private:
 
 public:
 
+    /**
+    * @brief Default constructor for ItemManager.
+    */
     ItemManager() = default;
+
+    /**
+     * @brief Destructor for ItemManager.
+     *
+     * Cleans up all stored items and associated data structures.
+     * Catches and logs any exceptions that occur during cleanup.
+     */
     ~ItemManager() {
         try {
             {
@@ -132,173 +165,784 @@ public:
         }
     }
 
-    void printId()
-    {
-      std::cout << "\033[1;31m::: Debug: ID:  id  | Item Tag \033[0m\n" << std::endl;
-      for (const auto& [id, item] : idMap) {
-          std::cout << "\033[1;31m::: Debug: ID: " << id << " | Item Tag: " << item->getTag() << "\033[0m\n";
-      }
-    }
+    /**
+     * @brief Print all registered item IDs.
+    */
+    void printIds();
 
+    /**
+    * @brief Show the author/architect of "Smart_Store" and "License".
+    */
     void showSignature();
 
-    // Get the compiler type name of a given type T
-    // This function uses typeid and demangling to get a human-readable type name.
+    /**
+    * @brief Get the compiler type name of a given type.
+    *
+    * This function uses `typeid` and demangling to produce a human-readable type name.
+    *
+    * @param mangledName The mangled type name returned by the compiler.
+    * @return A demangled, human-readable type name.
+    */
     std::string demangleType(const std::string& mangledName) const;
 
-     // Display registered deserializers
-     // This function displays all registered deserializers in the ItemManager.
-     // It iterates through the deserializers map and prints each type name and its corresponding function.
+   /**
+    * @brief Display all registered deserializers.
+    *
+    * Iterates through the deserializers map and prints each type name
+    * along with its corresponding deserialization function.
+    */
     void displayRegisteredDeserializers();
 
-     // Check if an item with a specific tag exists
+   /**
+    * @brief Check if an item with a specific tag exists.
+    *
+    * @param tag The tag to search for.
+    * @return True if the item exists, false otherwise.
+    */
     bool hasItem(const std::string& tag) const;
 
-       // Add item with a specific tag
+    /**
+    * @brief Add an item with a specific tag.
+    *
+    * @tparam T The type of the item.
+    * @param obj Shared pointer to the item object.
+    * @param tag The tag associated with the item.
+    */
     template<typename T>
     void addItem(std::shared_ptr<T> obj, const std::string& tag);
 
-       // Modify item using a given modifier function
+     /**
+     * @brief Modify an item using a given modifier function.
+     *
+     * @tparam T The type of the item.
+     * @param tag The tag of the item to modify.
+     * @param modifier A function that modifies the item in place.
+     * @return True if modification succeeded, false otherwise.
+     */
      template<typename T>
      bool modifyItem(const std::string& tag, const std::function<void(T&)>& modifier);
 
-       // Retrieve item by tag
+     /**
+     * @brief Retrieve an item by tag.
+     *
+     * @tparam T The type of the item.
+     * @param tag The tag of the item to retrieve.
+     * @return An optional containing the item if found, otherwise empty.
+     */
      template<typename T>
      std::optional<T> getItem(const std::string& tag) const;
 
-      // Retrieve raw BaseItem by tag
+    /**
+    * @brief Retrieve a raw reference to a BaseItem by tag.
+    *
+    * @tparam T The type of the item.
+    * @param tag The tag of the item to retrieve.
+    * @return Reference to the item.
+    */
     template<typename T>
     T& getItemRaw(const std::string& tag);
     
     template<typename T>
     const T& getItemRaw(const std::string& tag) const;
 
-       // Display all items
+     /**
+     * @brief Display all items currently stored.
+     */
      void displayAll() const;
     
+     /**
+     * @brief Display items filtered by a specific tag.
+     *
+     * @param tag The tag to filter items by.
+     */
      void displayByTag(const std::string& tag) const;
 
-       // Remove item by tag
+    /**
+    * @brief Remove an item by its tag.
+    *
+    * @param tag The tag of the item to remove.
+    */
     void removeByTag(const std::string& tag);
 
-       // Undo and redo state changes
+     /**
+     * @brief Undo the last state change.
+     */
      void undo();
 
+     /**
+     * @brief Redo the last undone state change.
+     */
      void redo();
 
-       // void importFromFile(const std::string& filename);
+     /**
+     * @brief Import items from a JSON file.
+     *
+     * @param filename Path to the JSON file.
+     */
      void importFromFile_Json(const std::string& filename);
 
-        // Asynchronously import items from a JSON file
+     /***
+     * @brief Asynchronously import items from a JSON file.
+     * 
+     * @param filename Path to the JSON file.
+     */
      void asyncImportFromFile_Json(const std::string& filename);
 
-        // Import a single object from a JSON file
+     /**
+     * @brief Export all items to a JSON file.
+     * 
+     * @param filename Path to the JSON file.
+     */
      void exportToFile_Json(const std::string& filename) const;
 
-        // Asynchronously export items to a JSON file
+    /**
+     * @brief Asynchronously export items to a JSON file.
+     *
+     * @param filename Path to the JSON file.
+     */
      void asyncExportToFile_Json(const std::string& filename) const;
 
-        // Import items from a JSON file
-     std::shared_ptr<BaseItem> importSingleObject_Json(const std::string& filename, const std::string& type, const std::string& tag);
+     /**
+     * @brief Import a single object from a JSON file.
+     *
+     * @param filename Path to the JSON file.
+     * @param typeName The type of the object.
+     * @param tag The tag to assign to the object.
+     */
+     std::shared_ptr<BaseItem> importSingleObject_Json(const std::string& filename, 
+                                                       const std::string& type, 
+                                                       const std::string& tag);
 
-        // Asynchronously import a single object from a JSON file
-     void asyncImportSingleObject_Json(const std::string& filename, const std::string& typeName, const std::string& tag);
+     /**
+     * @brief Asynchronously import a single object from a JSON file.
+     *
+     * @param filename Path to the JSON file.
+     * @param typeName The type name of the object to import.
+     * @param tag The tag to assign to the imported object.
+     */
+     void asyncImportSingleObject_Json(const std::string& filename, 
+                                       const std::string& typeName, 
+                                       const std::string& tag);
 
-        // Export items to a binary file
+     /**
+     * @brief Export all items to a binary file.
+     *
+     * @param filename Path to the binary file.
+     * @return True if export succeeded, false otherwise.
+     */
      bool exportToFile_Binary(const std::string& filename) const;
 
-        // Asynchronously export items to a binary file
+     /**
+     * @brief Asynchronously export all items to a binary file.
+     *
+     * @param filename Path to the binary file.
+     */
      void asyncExportToFile_Binary(const std::string& filename) const;
 
-        // Import items from a binary file
+    /**
+     * @brief Import items from a binary file.
+     *
+     * @param filename Path to the binary file.
+     * @return True if import succeeded, false otherwise.
+     */
      bool importFromFile_Binary(const std::string& filename);
 
-        // Asynchronously import items from a binary file
+     /**
+     * @brief Asynchronously import items from a binary file.
+     *
+     * @param filename Path to the binary file.
+     */
      void asyncImportFromFile_Binary(const std::string& filename);
 
-        // Import a single object from a binary file
-     std::shared_ptr<BaseItem> importSingleObject_Binary(const std::string& filename, const std::string& type, const std::string& tag);
+     /**
+     * @brief Import a single object from a binary file.
+     *
+     * @param filename Path to the binary file.
+     * @param type The type of the object to import.
+     * @param tag The tag to assign to the imported object.
+     * @return Shared pointer to the imported object.
+     */
+     std::shared_ptr<BaseItem> importSingleObject_Binary(const std::string& filename, 
+                                                         const std::string& type, 
+                                                         const std::string& tag);
 
-        // Asynchronously import a single object from a binary file
-     void asyncImportSingleObject_Binary(const std::string& filename, const std::string& typeName, const std::string& tag);
+     /**
+     * @brief Asynchronously import a single object from a binary file.
+     *
+     * @param filename Path to the binary file.
+     * @param typeName The type name of the object to import.
+     * @param tag The tag to assign to the imported object.
+     */
+     void asyncImportSingleObject_Binary(const std::string& filename, 
+                                         const std::string& typeName, 
+                                         const std::string& tag);
 
-        // Export items to an XML file
+     /**
+     * @brief Export all items to an XML file.
+     *
+     * @param filename Path to the XML file.
+     * @return True if export succeeded, false otherwise.
+     */
      bool exportToFile_XML(const std::string& filename) const;
 
-        // Asynchronously export items to an XML file
+     /**
+     * @brief Import items from an XML file.
+     *
+     * @param filename Path to the XML file.
+     * @return True if import succeeded, false otherwise.
+     */
      void asyncExportToFile_XML(const std::string& filename) const;
 
-        // Import items from an XML file
+     /**
+     * @brief Import items from an XML file.
+     *
+     * @param filename Path to the XML file.
+     * @return True if import succeeded, false otherwise.
+     */
      bool importFromFile_XML(const std::string& filename);
 
-        // Asynchronously import items from an XML file
+     /**
+     * @brief Asynchronously import a single object from an XML file.
+     *
+     * @param filename Path to the XML file.
+     * @param type The type of the object to import.
+     * @param tag The tag to assign to the imported object.
+     */
      void asyncImportFromFile_XML(const std::string& filename);
 
-        // Import a single object from an XML file
-     std::optional<std::shared_ptr<BaseItem>> importSingleObject_XML(const std::string& filename, const std::string& type, const std::string& tag);
+     /**
+     * @brief Import a single object from an XML file.
+     *
+     * @param filename Path to the XML file.
+     * @param type The type of the object to import.
+     * @param tag The tag to assign to the imported object.
+     * @return Optional containing a shared pointer to the imported object if successful.
+     */
+     std::optional<std::shared_ptr<BaseItem>> importSingleObject_XML(const std::string& filename, 
+                                                                     const std::string& type, 
+                                                                     const std::string& tag);
 
-        // Asynchronously import a single object from an XML file
-     void asyncImportSingleObject_XML(const std::string& filename, const std::string& type, const std::string& tag);
+     /**
+     * @brief Asynchronously import a single object from an XML file.
+     *
+     * @param filename Path to the XML file.
+     * @param type The type of the object to import.
+     * @param tag The tag to assign to the imported object.
+     */
+     void asyncImportSingleObject_XML(const std::string& filename, 
+                                      const std::string& type, 
+                                      const std::string& tag);
 
-        // Export items to a CSV file
+     /**
+     * @brief Export all items to a CSV file.
+     *
+     * @param filename Path to the CSV file.
+     * @return True if export succeeded, false otherwise.
+     */
      bool exportToFile_CSV(const std::string& filename) const;
 
-        // Asynchronously export items to a CSV file
+     /**
+     * @brief Asynchronously export all items to a CSV file.
+     *
+     * @param filename Path to the CSV file.
+     */
      void asyncExportToFile_CSV(const std::string& filename) const;
 
-        // Import items from a CSV file
+     /**
+     * @brief Import items from a CSV file.
+     *
+     * @param filename Path to the CSV file.
+     * @return True if import succeeded, false otherwise.
+     */
      bool importFromFile_CSV(const std::string& filename);
 
-        // Asynchronously import items from a CSV file
+     /**
+     * @brief Asynchronously import items from a CSV file.
+     *
+     * @param filename Path to the CSV file.
+     */
      void asyncImportFromFile_CSV(const std::string& filename);
 
-        // Import a single object from a CSV file
-     std::shared_ptr<BaseItem> importSingleObject_CSV(const std::string& filename, const std::string& type, const std::string& tag);
+     /**
+     * @brief Import a single object from a CSV file.
+     *
+     * @param filename Path to the CSV file.
+     * @param type The type of the object to import.
+     * @param tag The tag to assign to the imported object.
+     * @return Shared pointer to the imported object.
+     */
+     std::shared_ptr<BaseItem> importSingleObject_CSV(const std::string& filename, 
+                                                      const std::string& type, 
+                                                      const std::string& tag);
 
-        // Asynchronously import a single object from a CSV file
-     void asyncImportSingleObject_CSV(const std::string& filename, const std::string& type, const std::string& tag);
+    /**
+     * @brief Asynchronously import a single object from a CSV file.
+     * 
+     * @param filename Path to the CSV file.
+     * @param type The type of the object to import.
+     * @param tag The tag to assign to the imported object.
+     */ 
+     void asyncImportSingleObject_CSV(const std::string& filename, 
+                                      const std::string& type, 
+                                      const std::string& tag);
 
-       // Register a type for serialization and deserialization
+     // --- Similar documentation continues for Binary, XML, CSV import/export functions ---
+     // (to avoid repetition, each follows the same pattern: sync + async, file path, type, tag)
+
+     /**
+     * @brief List all registered types for serialization and deserialization.
+     */
      void listRegisteredTypes() const;
 
-       //Filter items by tags.
+    /**
+    * @brief Filter items by a set of tags.
+    *
+    * @param tags Vector of tags to filter by.
+    */
     void filterByTag(const std::vector<std::string>& tags) const;
 
-      // Sort items by tag
+    /**
+    * @brief Sort items by their tag.
+    */
     void sortItemsByTag() const;
 
-      // Display all class names of items
+    /**
+    * @brief Display all class names of stored items.
+    */
     void displayAllClasses() const;
 
-      // Get the current state of items
+    /**
+    * @brief Get the current state of items.
+    *
+    * @return A reference to the internal item map store.
+    */
     const std::unordered_map<std::string, std::shared_ptr<BaseItem>>& getItemMapStore() const;
+
+
 
 
 
     /***************************************************************
      *                   NETWORK AGENT VISION 
      ***************************************************************/
-   
 
-     template<typename T>
-      bool networkMessage_Send(std::string& msg, std::string& tag);
+    /**
+    * @brief Send a network message.
+    *
+    * @param msg The message to send.
+    * @param tag The tag associated with the message.
+    * @return True if the message was sent successfully, false otherwise.
+    */
+    template<typename T>
+    bool networkMessage_Send(std::string& msg, std::string& tag);
+
+   /**
+    * @brief Receive a network message.
+    * 
+    * @param msg The received message.
+    * @param tag The tag associated with the message.
+    * @return True if the message was received successfully, false otherwise.
+    */ 
+    template<typename T>
+    bool networkMessage_Receive(Message msg, std::string& tag);
 
 
-      template<typename T>
-      bool networkMessage_Receive(Message msg, std::string& tag);
 
 
 
 
       
     /***************************************************************
-     *                  COMPUTER VISION SECTION 
+     *                  COMPUTER VISION SECTION                    *
      ***************************************************************/
 
-    template<typename T>
-    void cv_runRestrictedAreaMonitor(const std::string& cascadePath, std::string& tag);
+   /**************************************************
+        FACE RECOGNITION - RESTRICTED AREA MONITOR
+    **************************************************/  
 
+   /**
+    * @brief Run restricted area monitor on a camera feed.
+    * 
+    * @param cameraIndex The index of the camera to monitor.
+    * @param cascadePath Path to the Haar cascade XML file.
+    */ 
+    template<typename T>
+    void cvFgn_runRestrictedAreaMonitor(int cameraIndex, const std::string& cascadePath, std::string& tag);
+
+   /**
+    * @brief Get the tracks from the restricted area monitor.
+    *
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return A reference to the map of tracks.
+    */
+    template<typename T>
+    const std::unordered_map<int, FaceTrack>& cvFgn_getRunRestrictedTracks(std::string& tag) const;
+
+   /**
+    * @brief Add a track to the restricted area monitor.
+    * @param id The ID of the track.
+    * @param track The track to add.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvFgn_addRunRestrictedTrack(int id, const FaceTrack& track, std::string& tag);
+
+   /**
+    * @brief Remove a track from the restricted area monitor.
+    * @param id The ID of the track to remove.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvFgn_removeRunRestrictedTrack(int id, std::string& tag);
+
+   /**
+    * @brief Reset the configuration of the restricted area monitor.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */ 
+    template<typename T>
+    void cvFgn_resetRunRestrictedConfig(std::string& tag);
+
+   /**
+    * @brief Set the scale factor for the restricted area monitor.
+    * 
+    * @param scaleFactor The new scale factor.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvFgn_setRunRestrictedScaleFactor(double scaleFactor, std::string& tag);
+
+   /**
+    * @brief Set the minimum neighbors for the restricted area monitor.
+    * 
+    * @param minNeighbors The new minimum neighbors.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvFgn_setRunRestrictedMinNeighbors(int minNeighbors, std::string& tag);
+
+   /**
+    * @brief Set the minimum face size for the restricted area monitor.
+    * 
+    * @param size The new minimum face size.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvFgn_setRunRestrictedMinFaceSize(const cv::Size& size, std::string& tag);
+
+   /**
+    * @brief Set the IOU match threshold for the restricted area monitor.
+    * 
+    * @param threshold The new IOU match threshold.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvFgn_setIouMatchThreshold(double threshold, std::string& tag);
+
+   /**
+    * @brief Get the scale factor for the restricted area monitor.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return The scale factor.
+    */
+    template<typename T>
+    double cvFgn_getRunRestrictedScaleFactor(std::string& tag) const;
+
+   /**
+    * @brief Get the minimum neighbors for the restricted area monitor.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    int cvFgn_getRunRestrictedMinNeighbors(std::string& tag) const;
+
+    /**
+     * @brief Get the minimum face size for the restricted area monitor.
+     * 
+     * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+     * @return The minimum face size.
+     */
+    template<typename T>
+    cv::Size cvFgn_getRunRestrictedMinFaceSize(std::string& tag) const;
+
+   /**
+    * @brief Get the IOU match threshold for the restricted area monitor.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return The IOU match threshold.
+    */
+    template<typename T>
+    double cvFgn_getIouMatchThreshold(std::string& tag) const;
+
+   /**
+    * @brief Add a detection zone to the motion detection monitor.
+    * 
+    * @param zone The zone to add.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvMdn_addMonitorDetectionZone(const Zone& zone, std::string& tag);
+
+
+
+
+
+                  
+      /*******************************************
+       *   COMPUTER VISION - FACE WATCH LISTENER *
+       *******************************************/
+
+    /**
+     * @brief Monitor a camera for faces.
+     * 
+     * @param cascadePath Path to the Haar cascade XML file.
+     * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+     */
+    template<typename T>
+    void cvFwl_monitorCamera(const std::string& cascadePath, std::string& tag);
     
+    /**
+     * @brief Get the threshold for face recognition in the monitored camera.
+     * 
+     * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+     * @return The recognition threshold.
+     */
+    template<typename T>
+    double cvFwl_getMonitorCameraThreshold(std::string& tag) const;
+
+    /**
+    * @brief Set the threshold for face recognition in the monitored camera.
+    * 
+    * @param newThreshold The new recognition threshold.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvFwl_setMonitorCameraThreshold(double newThreshold, std::string& tag);
+
+    /**
+    * @brief Reset the threshold for face recognition in the monitored camera to default.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvFwl_resetMonitorCameraThreshold(std::string& tag);
+
+   /**
+    * @brief Get the path to the Haar cascade used for face detection in the monitored camera.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return The path to the Haar cascade XML file.
+    */
+    template<typename T>
+    std::string cvFwl_getMonitorCameraCascadePath(std::string& tag) const;
+
+    /**
+    * @brief Set the path to the Haar cascade used for face detection in the monitored camera
+    * 
+    * @param path The new path to the Haar cascade XML file.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */ 
+    template<typename T>
+    void cvFwl_setMonitorCameracascadePath(const std::string& path, std::string& tag);
+
+   /**
+    * @brief Set the path to the Haar cascade used for face detection in the monitored camera. 
+    * 
+    * @param path The new path to the Haar cascade XML file.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvFwl_setMonitorCameraCascadePath(const std::string& path, std::string& tag);
+
+    /**
+     * @brief Add a known face to the watch listener.
+     * 
+     * @param filePath Path to the image file of the known face.
+     * @param tag The tag associated with the listener.
+     */ 
+    template<typename T>
+    void cvFwl_loadKnownFaces(const std::vector<std::string>& filePaths, std::string& tag);
+
+    /**
+     * @brief Get the count of known faces in the watch listener.
+     * 
+     * @param tag The tag associated with the listener.
+     * @return The count of known faces.
+     */ 
+    template<typename T>
+    size_t cvFwl_getKnownFaceCount(std::string& tag) const;
+   
+    /**
+     * @brief Reset the known faces in the watch listener.
+     * 
+     * @param tag The tag associated with the listener.
+     */
+    template<typename T>
+    void cvFwl_resetKnownFaces(std::string& tag);
+
+
+
+
+
+
+      /**************************************************
+       *@brief COMPUTER VISION - MOTION DETECTION MONITOR
+       **************************************************/
+
+    /**
+     * @brief Set the difference threshold for motion detection. 
+     *  
+     * @param threshold The new difference threshold.
+     * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+     */  
+    template<typename T>
+    void cvMdn_setMonitorDetectionDiffThreshold(double threshold, std::string& tag);
+
+    /**
+    * @brief Set the minimum area for motion detection.
+    * 
+    * @param minArea The new minimum area.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvMdn_setMonitorDetectionLoiterSeconds(int loiterSeconds, std::string& tag);
+
+   /**
+    * @brief Set the crowd threshold for motion detection.
+    *
+    * @param enableTracking Whether to enable tracking.
+    * @param minArea The new minimum area.
+    * @param crowdThreshold The new crowd threshold.
+    * @param loiterSeconds The new loiter seconds.
+    * @param leftBehindSeconds The new left behind seconds.
+    * @param diffThreshold The new difference threshold.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvMdn_setMonitorDetectionConfig(double diffThreshold,
+                                         int minArea,
+                                         std::size_t crowdThreshold,
+                                         int loiterSeconds,
+                                         int leftBehindSeconds,
+                                         bool enableTracking,
+                                         std::string& tag);
+     
+    /**
+     * @brief Set the minimum area for motion detection.                                     
+     * 
+     * @param minArea The new minimum area.
+     * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+     */
+    template<typename T>
+    void cvMdn_setMonitorDetectionMinArea(int minArea, std::string& tag);
+
+    /**
+     * @brief Set the alert callback for motion detection.
+     * 
+     * @param cb The callback function to be called when an alert is triggered.
+     * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+     */
+    template<typename T>
+    void cvMdn_setMonitorDetectionAlertCallback(std::function<void(const std::string&)> cb, std::string& tag);
+
+    /**
+     * @brief Enable or disable tracking for motion detection.
+     * 
+     * @param enableTracking Whether to enable tracking.
+     * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+     */
+    template<typename T>
+    void cvMdn_resetMonitorDetectionConfig(std::string& tag);  
+
+   /**
+    * @brief Reset the motion detection monitor.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvMdn_resetMonitorDetection(std::string& tag);   
+
+    /**
+    * @brief Clear all detection zones for motion detection.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvMdn_clearMonitorDetectionZones(std::string& tag); 
+
+   /**
+    * @brief Check if tracking is enabled for motion detection.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return True if tracking is enabled, false otherwise.
+    */
+    template<typename T>
+    bool cvMdn_isMonitorDetectionTrackingEnabled(std::string& tag) const;
+
+   /**
+    * @brief Check if a monitor detection callback is set.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return True if a callback is set, false otherwise.
+    */
+    template<typename T>
+    bool cvMdn_hasMonitorDetectionCallback(std::string& tag) const;
+
+   /**
+    * @brief Get the difference threshold for motion detection.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return The difference threshold.
+    */
+    template<typename T>
+    double cvMdn_getMonitorDetectionDiffThreshold(std::string& tag) const;
+
+   /**
+    * @brief Get the minimum area for motion detection.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return The minimum area.
+    */
+    template<typename T>
+    int cvMdn_getMonitorDetectionMinArea(std::string& tag) const;
+
+   /**
+    * @brief Get the crowd threshold for motion detection.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return The crowd threshold.
+    */
+    template<typename T>
+    std::size_t cvMdn_getMonitorDetectionCrowdThreshold(std::string& tag) const;
+
+   /**
+    * @brief Get the loiter seconds for motion detection.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return The loiter seconds.
+    */
+    template<typename T>
+    int cvMdn_getMonitorDetectionLoiterSeconds(std::string& tag) const;
+
+   /**
+    * @brief Get the left behind seconds for motion detection.
+    * 
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    * @return The left behind seconds.
+    */
+    template<typename T>
+    int cvMdn_getMonitorDetectionLeftBehindSeconds(std::string& tag) const;
+
+   /**
+    * @brief Run motion detection on a camera feed.
+    * 
+    * @param cameraIndex The index of the camera to monitor.
+    * @param tag The tag associated with it's value "Item" for monitor and access to Item specific features to use.
+    */
+    template<typename T>
+    void cvMdn_runMonitorDetectionMonitorCamera(int cameraIndex, std::string& tag);
+
+
+      
 
 };
 #include "ItemManager.tpp"

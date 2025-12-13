@@ -100,6 +100,13 @@ json ItemManager::getSchemaForType(std::string type) const {
 // ::::: MAIN API USER CALLS OR PUBLIC FUNCTIONS ::::::
 // ****************************************************
 
+void ItemManager::printIds() {
+    std::cout << "\033[1;31m::: Debug: ID:  id  | Item Tag \033[0m\n" << std::endl;
+    for (const auto& [id, item] : idMap) {
+        std::cout << "\033[1;31m::: Debug: ID: " << id << " | Item Tag: " << item->getTag() << "\033[0m\n";
+    }
+}
+
 void ItemManager::showSignature() {
     Author::getSignature();
 }
@@ -242,7 +249,6 @@ bool ItemManager::modifyItem(const std::string& tag, const std::function<void(T&
                             "' not found or type mismatch. Requested type: " + demangleType(typeid(T).name()), false);
                             return false;
 }
-
 
 template<typename T>
 std::optional<T> ItemManager::getItem(const std::string& tag) const {
@@ -1792,12 +1798,12 @@ const std::unordered_map<std::string, std::shared_ptr<BaseItem>>& ItemManager::g
      *                  COMPUTER VISION SECTION 
      ***************************************************************/
      template<typename T>
-    void ItemManager::cv_runRestrictedAreaMonitor(const std::string& cascadePath, std::string& tag) {
+    void ItemManager::cvFgn_runRestrictedAreaMonitor(int cameraIndex, const std::string& cascadePath, std::string& tag) {
         auto it = items.find(tag);
         if (it != items.end()) {
             auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
             if (wrapper) {
-                wrapper->runRestrictedAreaMonitor(cascadePath);
+                wrapper->runRestrictedAreaMonitor(cameraIndex, cascadePath);
             } else {
                 LOG_CONTEXT(LogLevel::WARNING,
                             "Run restricted area failed with tag '" + tag +
@@ -1813,3 +1819,785 @@ const std::unordered_map<std::string, std::shared_ptr<BaseItem>>& ItemManager::g
         }
     }
 
+    template<typename T>
+    const std::unordered_map<int, FaceTrack>& ItemManager::cvFgn_getRunRestrictedTracks(std::string& tag) const {
+        static std::unordered_map<int, FaceTrack> emptyMap; // Return an empty map if no items found
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                return wrapper->getRunRestrictedTracks();
+            }
+        }
+        LOG_CONTEXT(LogLevel::WARNING, "No FaceRecognitionItem found to get restricted tracks.", {});
+        return emptyMap;
+    }
+
+    template<typename T>
+    void ItemManager::cvFgn_addRunRestrictedTrack(int id, const FaceTrack& track, std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->addRunRestictedTrack(id, track);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Add restricted track failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to add restricted track.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvFgn_removeRunRestrictedTrack(int id, std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->removeRunRestrictedTrack(id);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Remove restricted track failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to remove restricted track.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager:: cvFgn_resetRunRestrictedConfig(std::string& tag) {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                wrapper->restRunstrictedConfig();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Reset restricted configuration failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to reset restricted configuration.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager:: cvFgn_setRunRestrictedScaleFactor(double scaleFactor, std::string& tag) {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                wrapper->setRunRestrictedScaleFactor(scaleFactor);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set restricted scale factor failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set restricted scale factor.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager:: cvFgn_setRunRestrictedMinNeighbors(int minNeighbors, std::string& tag) {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                wrapper->setRunRestrictedMinNeighbors(minNeighbors);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set restricted min neighbors failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set restricted min neighbors.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager:: cvFgn_setRunRestrictedMinFaceSize(const cv::Size& size, std::string& tag) {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                wrapper->setRunRestrictedMinFaceSize(size);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set restricted min face size failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set restricted min face size.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager:: cvFgn_setIouMatchThreshold(double threshold, std::string& tag) {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                wrapper->setIouMatchThreshold(threshold);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set IOU match threshold failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set IOU match threshold.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    double ItemManager:: cvFgn_getRunRestrictedScaleFactor( std::string& tag) const {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                return wrapper->getRunRestrictedScaleFactor();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Get restricted scale factor failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to get restricted scale factor.",
+                        ErrorCode::ITEM_NOT_FOUND);
+            return 0.0;
+        }
+    }
+
+    template<typename T>
+    int ItemManager:: cvFgn_getRunRestrictedMinNeighbors( std::string& tag) const {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                return wrapper->getRunRestrictedMinNeighbors();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Get restricted min neighbors failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to get restricted min neighbors.",
+                        ErrorCode::ITEM_NOT_FOUND);
+            return 0;
+        }
+    }
+
+    template<typename T>
+    cv::Size ItemManager:: cvFgn_getRunRestrictedMinFaceSize( std::string& tag) const {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                return wrapper->getRunRestrictedMinFaceSize();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Get restricted min face size failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to get restricted min face size.",
+                        ErrorCode::ITEM_NOT_FOUND);
+            return cv::Size();
+        }
+    }
+
+    template<typename T>
+    double ItemManager:: cvFgn_getIouMatchThreshold( std::string& tag) const {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                return wrapper->getIouMatchThreshold();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Get IOU match threshold failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to get IOU match threshold.",
+                        ErrorCode::ITEM_NOT_FOUND);
+            return 0.0;
+        }
+    }
+    
+
+
+
+
+
+
+    template<typename T>
+    double ItemManager::cvFwl_getMonitorCameraThreshold(std::string& tag) const {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                return wrapper->getMonitorCameraThreshold();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Get monitor camera threshold failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to get monitor camera threshold.",
+                        ErrorCode::ITEM_NOT_FOUND);
+            return -1;
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvFwl_setMonitorCameraThreshold(double newThreshold, std::string& tag) {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                wrapper->setMonitorCameraThreshold(newThreshold);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set monitor camera threshold failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set monitor camera threshold.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+     template<typename T>
+    void ItemManager::cvFwl_resetMonitorCameraThreshold(std::string& tag) {
+        auto it = items.find(tag);
+        if(it != items.end()){
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if(wrapper){
+                wrapper->resetMonitorCameraThreshold();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Reset monitor camera threshold failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to reset monitor camera threshold.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    std::string ItemManager::cvFwl_getMonitorCameraCascadePath(std::string& tag) const {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                return wrapper->getMonitorCameraCascadePath();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Get monitor camera cascade path failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to get monitor camera cascade path.",
+                        ErrorCode::ITEM_NOT_FOUND);
+            return "";
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvFwl_setMonitorCameracascadePath(const std::string& path, std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->setMonitorCameraCascadePath(path);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set monitor camera cascade path failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set monitor camera cascade path.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvFwl_setMonitorCameraCascadePath(const std::string& path, std::string& tag) {    
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->setMonitorCameraCascadePath(path);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set monitor camera cascade path failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set monitor camera cascade path.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvFwl_loadKnownFaces(const std::vector<std::string>& filePaths, std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->loadKnownFaces(filePaths);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Load known faces failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to load known faces.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    size_t ItemManager::cvFwl_getKnownFaceCount(std::string& tag) const {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                return wrapper->getKnownFaceCount();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Get known face count failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to get known face count.",
+                        ErrorCode::ITEM_NOT_FOUND);
+            return 0;
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvFwl_resetKnownFaces(std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->resetKnownFaces();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Reset known faces failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                          "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to reset known faces.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+
+
+
+
+
+
+
+
+    template<typename T>
+    void ItemManager::cvMdn_setMonitorDetectionDiffThreshold(double threshold, std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->setMonitorDetectionDiffThreshold(threshold);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set monitor detection diff threshold failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set diff threshold.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvMdn_setMonitorDetectionLoiterSeconds(int loiterSeconds, std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->setMonitorDetectionLoiterSeconds(loiterSeconds);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set monitor detection loiter seconds failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set loiter seconds.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvMdn_setMonitorDetectionConfig(double diffThreshold,
+                                                    int minArea,
+                                                    std::size_t crowdThreshold,
+                                                    int loiterSeconds,
+                                                    int leftBehindSeconds,
+                                                    bool enableTracking,
+                                                    std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->setMonitorDetectionConfig(diffThreshold,
+                                                minArea,
+                                                crowdThreshold,
+                                                loiterSeconds,
+                                                leftBehindSeconds,
+                                                enableTracking);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set monitor detection config failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set monitor detection config.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvMdn_setMonitorDetectionAlertCallback(std::function<void(const std::string&)> cb,
+                                                            std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->setMonitorDetectionAlertCallback(cb);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Set monitor detection alert callback failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to set alert callback.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvMdn_resetMonitorDetectionConfig(std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->resetMonitorDetectionConfig();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Reset monitor detection config failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to reset monitor detection config.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvMdn_resetMonitorDetection(std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->resetMonitorDetection();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Reset monitor detection failed with tag '" + tag + "'.",
+                            std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to reset monitor detection.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    void ItemManager::cvMdn_clearMonitorDetectionZones(std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->clearMonitorDetectionZones();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Clear monitor detection zones failed with tag '" + tag + "'.",
+                            std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to clear detection zones.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    template<typename T>
+    bool ItemManager::cvMdn_isMonitorDetectionTrackingEnabled(std::string& tag) const {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                return wrapper->isMonitorDetectionTrackingEnabled();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Check tracking enabled failed with tag '" + tag + "'.",
+                            {});
+                return false;
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to check tracking enabled.",
+                        ErrorCode::ITEM_NOT_FOUND);
+            return false;
+        }
+    }
+
+    template<typename T>
+    bool ItemManager::cvMdn_hasMonitorDetectionCallback(std::string& tag) const {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                return wrapper->hasMonitorDetectionCallback();
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Check monitor detection callback failed with tag '" + tag + "'.",
+                            {});
+                return false;
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to check callback.",
+                        ErrorCode::ITEM_NOT_FOUND);
+            return false;
+        }
+    }
+
+    template<typename T>
+    double ItemManager::cvMdn_getMonitorDetectionDiffThreshold(std::string& tag) const {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) return wrapper->getMonitorDetectionDiffThreshold();
+        }
+        LOG_CONTEXT(LogLevel::ERR, "Failed to get diff threshold for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+        return 0.0;
+    }
+
+    template<typename T>
+    int ItemManager::cvMdn_getMonitorDetectionMinArea(std::string& tag) const {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) return wrapper->getMonitorDetectionMinArea();
+        }
+        LOG_CONTEXT(LogLevel::ERR, "Failed to get min area for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+        return 0;
+    }
+
+    template<typename T>
+    std::size_t ItemManager::cvMdn_getMonitorDetectionCrowdThreshold(std::string& tag) const {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) return wrapper->getMonitorDetectionCrowdThreshold();
+        }
+        LOG_CONTEXT(LogLevel::ERR, "Failed to get crowd threshold for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+        return 0;
+    }
+
+    template<typename T>
+    int ItemManager::cvMdn_getMonitorDetectionLoiterSeconds(std::string& tag) const {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) return wrapper->getMonitorDetectionLoiterSeconds();
+        }
+        LOG_CONTEXT(LogLevel::ERR, "Failed to get loiter seconds for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+        return 0;
+    }
+
+    template<typename T>
+    int ItemManager::cvMdn_getMonitorDetectionLeftBehindSeconds(std::string& tag) const {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) return wrapper->getMonitorDetectionLeftBehindSeconds();
+        }
+        LOG_CONTEXT(LogLevel::ERR, "Failed to get left-behind seconds for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+        return 0;
+    }
+
+    // ItemManager.tpp
+    template<typename T>
+    void ItemManager::cvMdn_addMonitorDetectionZone(const Zone& zone, std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->addMonitorDetectionZone(zone);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Add monitor detection zone failed with tag '" + tag +
+                            "'. Requested type: " + demangleType(typeid(T).name()) +
+                            ", Actual type: " + demangleType(it->second->getTypeName()),
+                            std::make_exception_ptr(std::runtime_error(
+                                "\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to add monitor detection zone.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+    // ItemManager.h
+    template<typename T>
+    void ItemManager::cvMdn_runMonitorDetectionMonitorCamera(int cameraIndex, std::string& tag) {
+        auto it = items.find(tag);
+        if (it != items.end()) {
+            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+            if (wrapper) {
+                wrapper->runMonitorDetectionMonitorCamera(cameraIndex);
+            } else {
+                LOG_CONTEXT(LogLevel::WARNING,
+                            "Run monitor detection camera failed with tag '" + tag + "'.",
+                            std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+            }
+        } else {
+            LOG_CONTEXT(LogLevel::ERR,
+                        "No item found with tag '" + tag + "' to run monitor detection camera.",
+                        ErrorCode::ITEM_NOT_FOUND);
+        }
+    }
+
+
+
+
+    
+    
+
+    

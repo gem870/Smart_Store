@@ -10,6 +10,7 @@
 #include "microservice/net_curl/network/network_agent.hpp"
 #include "microservice/computer_vision/survelliance/FaceRecognition.hpp"
 #include "microservice/computer_vision/survelliance/MotionDetection.hpp"
+
 class MicroserviceManager {
 public:
     static std::unique_ptr<BaseMicroservice> createMicroObjects(const std::string& productType) {

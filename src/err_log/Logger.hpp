@@ -14,6 +14,14 @@
 #include <source_location>
 #include <optional>
 
+/**
+ * @brief Macro to log messages with context information.
+ * @param level The log level (e.g., LogLevel::INFO).
+ * @param message The log message.
+ * @param hint Additional hint information (optional).
+ * @note This macro captures the file name, line number, and function name
+ *      automatically using predefined macros.
+ */
 #define LOG_CONTEXT(level, message, hint) \
     Logger::log_with_context(level, message, hint, __FILE__, __LINE__, __func__)
 
@@ -102,6 +110,11 @@ class Logger {
 public:
 using ErrorHint = std::variant<std::monostate, std::nullptr_t, std::exception_ptr, int, std::string, std::optional<std::string>, bool>;
 
+    /**
+     * @brief Logs a message with a specified log level.
+     * @param level The log level (e.g., INFO, WARNING, ERR).
+     * @param message The message to log.
+     */
     static void log_base(LogLevel level, const std::string& message) {
         std::string prefix = getPrefix(level);
         std::string timestamp = getTimestamp();
@@ -158,12 +171,20 @@ using ErrorHint = std::variant<std::monostate, std::nullptr_t, std::exception_pt
     }
 
 
+    /**
+     * @brief Generates a timestamped log stamp.
+     * @return Formatted timestamp string.
+     */
     static std::string getStamp() {
          return getColorCode(LogColor::RED) + "\n["  + getColorCode(LogColor::RESET) + getTimestamp() + 
                                                      getColorCode(LogColor::RED) + "]" + getColorCode(LogColor::RESET);
     }
     
-    // Returns a color code for terminal output
+    /**
+     * @brief Returns the ANSI color code for the specified LogColor.
+     * @param color The LogColor enum value.
+     * @return Corresponding ANSI color code string.
+     */
     static std::string getColorCode(LogColor color) {
         switch (color) {
             case LogColor::RED: return "\033[1;31m";

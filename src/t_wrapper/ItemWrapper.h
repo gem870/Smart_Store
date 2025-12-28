@@ -47,9 +47,15 @@ using json = nlohmann::json;
 
 namespace IdProvider {
     inline std::string generateId() {
+
+    inline std::string generateId() 
+    {
+        static constexpr char hex_chars[] = "0123456789abcdef";
+
         static std::random_device rd;
         static std::mt19937 gen(rd());
         static std::uniform_int_distribution<> dis(0, 15);
+
 
         std::stringstream ss;
         ss << "obj_";
@@ -64,6 +70,25 @@ namespace IdProvider {
         ss << '-';
         for (int i = 0; i < 12; ++i) ss << std::hex << dis(gen);
         return ss.str();
+
+       // Pre-allocate the string to avoid multiple reallocations
+        std::string ss;
+        ss.reserve(36); // UUID length
+        ss += "obj_";
+
+        auto add_hex = [&](int count) 
+        {
+            for (int i = 0; i < count; ++i) ss += hex_chars[dis(gen)];
+        };
+
+        add_hex(8); ss += '-';
+        add_hex(4); ss += "-4"; // v4
+        add_hex(3); ss += '-';
+        ss += hex_chars[(dis(gen) & 0x3) | 0x8]; // variant
+        add_hex(3); ss += '-';
+        add_hex(12);
+        return ss;
+
     }
 }
 

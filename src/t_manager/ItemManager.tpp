@@ -463,10 +463,6 @@ void ItemManager::asyncExportToFile_Json(const std::string& filename) const {
     }).detach();  // Fire-and-forget
 }
 
-
-
-/*
-
 void ItemManager::importFromFile_Json(const std::string& filename) {
 
     if (filename.empty()) {
@@ -564,110 +560,6 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
 
     LOG_CONTEXT(LogLevel::INFO, "Completed import of " + std::to_string(importCount) + " item(s) from JSON file: " + filename, {});
 }
-<<<<<<< HEAD
-
-=======
-*/
-
-void ItemManager::importFromFile_Json(const std::string& filename) {
-
-    if (filename.empty()) {
-        LOG_CONTEXT(LogLevel::ERR, "Cannot import from empty filename.", ErrorCode::ITEM_NOT_FOUND);
-    }
-
-    LOG_CONTEXT(LogLevel::INFO, "Attempting JSON import from file: " + filename, {});
-    
-    std::ifstream in(filename);
-    if (!in) {
-        LOG_CONTEXT(LogLevel::ERR, "Cannot open file for reading: " + filename, ErrorCode::FILE_LOAD_FAILED);
-    }
-
-    json parsedJson;
-    in >> parsedJson;
-
-    std::cout << Logger::getColorCode(LogColor::CYAN) + "\n:::| Loaded JSON content from file:\n" 
-                                        << Logger::getColorCode(LogColor::RESET) << parsedJson.dump(2) << "\n";
-    LOG_CONTEXT(LogLevel::DEBUG, "JSON file loaded successfully: " + filename, {});
-
-    if (parsedJson.is_array()) {
-        LOG_CONTEXT(LogLevel::DEBUG, "Processing JSON array format.", {});
-    } else if (parsedJson.contains("items") && parsedJson["items"].is_array()) {
-        parsedJson = parsedJson["items"];
-        LOG_CONTEXT(LogLevel::DEBUG, "Processing JSON with 'items' key.", {});
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
-                                          "Invalid JSON format: " + filename + " Expected an array or 'items' key.")));
-    }
-
-    undoHistory.push_back(cloneCurrentState());
-    redoQueue = {};
-    items.clear();
-
-    int importCount = 0;
-
-    std::unordered_map<std::string, std::string> demangledCache;
-    std::unordered_map<std::string, decltype(deserializers)::mapped_type> desCache;
-
-    for (const auto& entry : parsedJson) {
-        // 2. Use find() to get iterators – this is the fastest way to check existence and get data
-        auto itTag  = entry.find("tag");
-        auto itType = entry.find("type");
-        auto itData = entry.find("data");
-
-        // Skip if any essential key is missing
-        if (itTag == entry.end() || itType == entry.end() || itData == entry.end()) continue;
-
-        // 3. Zero-copy string access: get a reference directly from the JSON memory
-        const std::string& tag = itTag->get_ref<const std::string&>();
-        const std::string& typeName = itType->get_ref<const std::string&>();
-
-        // 4. Handle Demangling Cache (CPU Optimization)
-        if (demangledCache.find(typeName) == demangledCache.end()) {
-            demangledCache[typeName] = demangleType(typeName);
-        }
-        const std::string& prettyName = demangledCache[typeName];
-
-        // 5. Handle Deserializer Cache (Lookup Optimization)
-        auto cachedDesIt = desCache.find(typeName);
-        if (cachedDesIt == desCache.end()) {
-            auto globalIt = deserializers.find(typeName);
-            desCache[typeName] = (globalIt != deserializers.end()) ? globalIt->second : nullptr;
-            cachedDesIt = desCache.find(typeName);
-        }
-
-        if (!cachedDesIt->second) {
-            LOG_CONTEXT(LogLevel::WARNING, "No deserializer for: " + prettyName, {});
-            continue;
-        }
-
-        // 6. Process Data
-        int version = entry.value("version", 1);
-        json rawData = *itData; // Copy once for migration
-
-        if (auto itId = entry.find("id"); itId != entry.end() && !rawData.contains("id")) {
-            rawData["id"] = *itId;
-        }
-
-        // 7. Schema Registry: Only store if we haven't seen this type in this session
-        if (auto itSchema = entry.find("schema"); itSchema != entry.end()) {
-            schemaRegistry.try_emplace(typeName, [schema = *itSchema]() { return schema; });
-        }
-
-        try {
-            json upgraded = migrationRegistry.upgradeToLatest(typeName, version, rawData);
-            
-            // Use the cached function pointer to deserialize
-            if (auto newItem = cachedDesIt->second(upgraded, tag)) {
-                items[tag] = std::move(newItem);
-                ++importCount;
-            }
-        } catch (const std::exception& e) {
-            LOG_CONTEXT(LogLevel::ERR, "Import fail [" + tag + "]: " + e.what(), {});
-        }
-    }
-
-    LOG_CONTEXT(LogLevel::INFO, "Completed import of " + std::to_string(importCount) + " item(s) from JSON file: " + filename, {});
-}
 
 void ItemManager::asyncImportFromFile_Json(const std::string& filename) {
     std::thread([this, filename]() {
@@ -704,7 +596,6 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
                                           "Failed to parse JSON from file '" + filename + "': " + e.what())));
         
     }
-
 
     for (const auto& entry : array) {
         if (entry.value("tag", "") == tag && entry.value("type", "") == typeName) {
@@ -762,71 +653,6 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
                 LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
                                           "Exception during deserialization of '" + tag + "': " + e.what())));
             }
-
-    // Pre-demangle the target type name once before entering the loop
-    const std::string targetTypeNameDemangled = demangleType(typeName);
-
-    for (const auto& entry : array) {
-        // 1. Efficient key access using find() to avoid double lookups
-        auto itTag  = entry.find("tag");
-        auto itType = entry.find("type");
-
-        if (itTag == entry.end() || itType == entry.end()) continue;
-
-        // 2. Zero-copy comparison using get_ref to avoid string allocations
-        if (itTag->get_ref<const std::string&>() == tag && 
-            itType->get_ref<const std::string&>() == typeName) {
-
-            LOG_CONTEXT(LogLevel::INFO, "Found match: '" + tag + "' [" + targetTypeNameDemangled + "]", {});
-
-            // 3. Extract version and data pointer
-            int version = entry.value("version", 1);
-            auto itData = entry.find("data");
-            if (itData == entry.end()) {
-                LOG_CONTEXT(LogLevel::ERR, "Object found but 'data' key is missing.", {});
-                return nullptr;
-            }
-
-            // Copy rawData once for potential mutation/migration
-            json rawData = *itData;
-
-            // 4. Inject ID if it exists at the entry level but not inside data
-            if (auto itId = entry.find("id"); itId != entry.end()) {
-                if (!rawData.contains("id")) {
-                    rawData["id"] = *itId;
-                }
-            }
-
-            // 5. Schema Registration (using try_emplace to avoid redundant lambda creation)
-            if (auto itSchema = entry.find("schema"); itSchema != entry.end()) {
-                schemaRegistry.try_emplace(typeName, [s = *itSchema]() { return s; });
-            }
-
-            // 6. Migration and Deserialization
-            try {
-                json upgraded = migrationRegistry.upgradeToLatest(typeName, version, rawData);
-                
-                // Check deserializer once
-                auto desIt = deserializers.find(typeName);
-                if (desIt == deserializers.end()) [[unlikely]] {
-                    LOG_CONTEXT(LogLevel::ERR, "No deserializer for type: " + targetTypeNameDemangled, {});
-                    return nullptr;
-                }
-
-                auto item = desIt->second(upgraded, tag);
-                if (item) {
-                    // Successful path
-                    undoHistory.push_back(cloneCurrentState());
-                    redoQueue = {};
-                    items[tag] = item; 
-                    return item;
-                }
-            } catch (const std::exception& e) {
-                LOG_CONTEXT(LogLevel::ERR, "Deserialization error for '" + tag + "': " + e.what(), {});
-            }
-            
-            return nullptr; // Stop searching once target is found, even if it failed
-
         }
     }
 
@@ -864,7 +690,6 @@ bool ItemManager::exportToFile_Binary(const std::string& filename) const {
     }
 
     std::vector<uint8_t> buffer;
-
 
     for (const auto& [tag, item] : items) {
         json serializedJson = item->serialize();
@@ -909,45 +734,6 @@ bool ItemManager::exportToFile_Binary(const std::string& filename) const {
         dumpHex(tagStr.data(), tagSize);
         dumpHex(&dataSize, sizeof(dataSize));
         dumpHex(jsonStr.data(), dataSize);
-
-    buffer.reserve(items.size() * 512); 
-
-    for (const auto& [tag, item] : items) {
-        if (!item) [[unlikely]] continue;
-
-        // 2. Serialize and prepare metadata
-        json serializedJson = item->serialize();
-        serializedJson["id"]   = item->getId();
-        serializedJson["tag"]  = tag;
-        serializedJson["type"] = item->getTypeName();
-
-        const std::string& typeName = item->getTypeName();
-        const std::string jsonStr    = serializedJson.dump();
-
-        uint32_t typeSize = static_cast<uint32_t>(typeName.size());
-        uint32_t tagSize  = static_cast<uint32_t>(tag.size());
-        uint32_t dataSize = static_cast<uint32_t>(jsonStr.size());
-
-        // 3. High-speed Append logic using std::memcpy
-        // This avoids the overhead of buffer.insert (which checks capacity every time)
-        auto fastAppend = [&](const void* source, size_t size) {
-            if (size == 0) return;
-            const size_t oldSize = buffer.size();
-            buffer.resize(oldSize + size);
-            std::memcpy(buffer.data() + oldSize, source, size);
-        };
-
-        // 4. Sequential Write (The TLV Pattern)
-        fastAppend(&typeSize, sizeof(typeSize));
-        fastAppend(typeName.data(), typeSize);
-        fastAppend(&tagSize, sizeof(tagSize));
-        fastAppend(tag.data(), tagSize);
-        fastAppend(&dataSize, sizeof(dataSize));
-        fastAppend(jsonStr.data(), dataSize);
-
-        // 5. Logging Optimization: Only log metadata, never hex-dump in production loops
-        LOG_CONTEXT(LogLevel::DEBUG, "Buffered binary for tag: " + tag, {});
-
     }
 
     if (!AtomicFileWriter::writeAtomicallyBinary(filename, buffer)) {
@@ -993,7 +779,6 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
     undoHistory.push_back(cloneCurrentState());
     redoQueue = {};
     items.clear();
-
 
     while (in.peek() != EOF) {
         uint32_t typeSize = 0, tagSize = 0, dataSize = 0;
@@ -1068,70 +853,6 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
         }
     }
 
-
-    // 1. Move buffers outside the loop to reuse memory (Prevents thousands of heap allocations)
-    std::string typeBuf, tagBuf, dataBuf;
-    std::unordered_map<std::string, std::string> demangledCache;
-    uint32_t typeSize, tagSize, dataSize;
-
-    // 2. Use the return value of read() directly for the loop condition
-    while (in.read(reinterpret_cast<char*>(&typeSize), sizeof(typeSize)))
-     {
-        
-        // Read Type
-        typeBuf.resize(typeSize);
-        if (!in.read(typeBuf.data(), typeSize)) break;
-
-        // Read Tag
-        if (!in.read(reinterpret_cast<char*>(&tagSize), sizeof(tagSize))) break;
-        tagBuf.resize(tagSize);
-        if (!in.read(tagBuf.data(), tagSize)) break;
-
-        // Read Data
-        if (!in.read(reinterpret_cast<char*>(&dataSize), sizeof(dataSize))) break;
-        dataBuf.resize(dataSize);
-        if (!in.read(dataBuf.data(), dataSize)) break;
-
-        // 3. Optimization: Cache demangled names (demangling is expensive)
-        if (demangledCache.find(typeBuf) == demangledCache.end()) {
-            demangledCache[typeBuf] = demangleType(typeBuf);
-        }
-        const std::string& prettyType = demangledCache[typeBuf];
-
-        // 4. Removed Hex Dump (Massive Bottleneck)
-        // Writing to terminal is ~100x slower than memory operations. 
-        // If needed, only do this if LogLevel is explicitly set to DEBUG.
-        
-        try {
-            // 5. Parse JSON directly from the reused string buffer
-            json serialized = json::parse(dataBuf);
-            
-            // Use value() to avoid double lookups with contains()
-            int version = serialized.value("version", 1);
-            
-            if (!serialized.contains("id")) {
-                serialized["id"] = tagBuf; 
-            }
-
-            // Migration
-            json upgraded = migrationRegistry.upgradeToLatest(typeBuf, version, serialized);
-
-            // 6. Fast Deserializer Lookup
-            auto desIt = deserializers.find(typeBuf);
-            if (desIt == deserializers.end()) [[unlikely]] {
-                LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + prettyType, {});
-                continue;
-            }
-
-            if (auto object = desIt->second(upgraded, tagBuf)) {
-                items[tagBuf] = std::move(object);
-                LOG_CONTEXT(LogLevel::INFO, "Imported " + tagBuf + " [" + prettyType + "]", {});
-            }
-
-        } catch (const std::exception& e) {
-            LOG_CONTEXT(LogLevel::ERR, "Failed tag '" + tagBuf + "': " + e.what(), {});
-        }
-    }
     in.close();
     LOG_CONTEXT(LogLevel::INFO, "Binary import from '" + filename + "' completed successfully with " + std::to_string(items.size()) + " items.", true);
     return true;
@@ -1164,7 +885,6 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::stri
     if (!in) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot open binary file '" + filename + "' for reading.", ErrorCode::FILE_LOAD_FAILED);
     }
-
 
 
     while (in.peek() != EOF) {
@@ -1246,60 +966,6 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::stri
 
             LOG_CONTEXT(LogLevel::INFO, "Successfully imported object with tag '" + tag + "' from file '" + filename + "'", {});
             return object;
-
-    // 1. Buffers declared outside the loop to reuse memory
-    std::string entryType, entryTag;
-    uint32_t typeSize = 0, tagSize = 0, dataSize = 0;
-
-    while (in.read(reinterpret_cast<char*>(&typeSize), sizeof(typeSize))) {
-        // 2. Read Metadata: Type
-        entryType.resize(typeSize);
-        in.read(entryType.data(), typeSize);
-
-        // 3. Read Metadata: Tag
-        in.read(reinterpret_cast<char*>(&tagSize), sizeof(tagSize));
-        entryTag.resize(tagSize);
-        in.read(entryTag.data(), tagSize);
-
-        // 4. Read Data Size (But don't read the data yet!)
-        in.read(reinterpret_cast<char*>(&dataSize), sizeof(dataSize));
-
-        // 5. SMART SKIP: Check if this is NOT the one we want
-        if (entryType != type || entryTag != tag) {
-            // Skip the data bytes entirely at the file pointer level
-            in.seekg(dataSize, std::ios::cur); 
-            continue;
-        }
-
-        // --- MATCH FOUND ---
-        // Only now do we allocate memory and read the JSON content
-        std::string jsonStr(dataSize, '\0');
-        in.read(jsonStr.data(), dataSize);
-
-        try {
-            json serialized = json::parse(jsonStr);
-            
-            // Handle ID injection and Versioning efficiently
-            if (!serialized.contains("id")) serialized["id"] = tag;
-            int version = serialized.value("version", 1);
-
-            // Migration and Deserialization
-            json upgraded = migrationRegistry.upgradeToLatest(entryType, version, serialized);
-            
-            auto it = deserializers.find(entryType);
-            if (it != deserializers.end()) {
-                auto object = it->second(upgraded, tag);
-                if (object) {
-                    undoHistory.push_back(cloneCurrentState());
-                    redoQueue = {};
-                    items[tag] = object;
-                    return object;
-                }
-            }
-        } catch (const std::exception& e) {
-            LOG_CONTEXT(LogLevel::ERR, "Import failure: " + std::string(e.what()), {});
-            return nullptr;
-
         }
     }
 
@@ -1323,7 +989,6 @@ void ItemManager::asyncImportSingleObject_Binary(const std::string& filename,
 }
 
 bool ItemManager::exportToFile_XML(const std::string& filename) const {
-
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot export to empty filename.", ErrorCode::INVALID_INPUT );
@@ -1392,70 +1057,6 @@ bool ItemManager::exportToFile_XML(const std::string& filename) const {
     }
 
     LOG_CONTEXT(LogLevel::INFO, "XML export completed successfully to file: " + filename, true);
-
-    if (filename.empty()) [[unlikely]] 
-    {
-        LOG_CONTEXT(LogLevel::ERR, "Cannot export to empty filename.", ErrorCode::INVALID_INPUT);
-        return false;
-    }
-
-    if (items.empty()) 
-    {
-        LOG_CONTEXT(LogLevel::WARNING, "No items found for XML export to: " + filename, {});
-    }
-
-        tinyxml2::XMLDocument doc;
-        // Standard XML Declaration
-        doc.InsertFirstChild(doc.NewDeclaration());
-        
-        auto* root = doc.NewElement("SmartStore");
-        doc.InsertEndChild(root);
-
-        for (const auto& [tag, item] : items) 
-        {
-            if (!item) [[unlikely]] continue;
-
-            auto* itemElement = doc.NewElement("Item");
-            root->InsertEndChild(itemElement);
-
-            // 1. Setting Attributes vs Elements
-            // Attributes are faster to parse and more compact for metadata
-            itemElement->SetAttribute("tag", tag.c_str());
-            itemElement->SetAttribute("type", item->getTypeName().c_str());
-
-            // 2. Optimized JSON Wrapping
-            nlohmann::json wrapped;
-            wrapped["id"] = item->getId();
-            // Avoid redundant "tag" and "type" keys inside the JSON if they are already in XML attributes
-            
-            nlohmann::json userData = item->toJson();
-            wrapped["data"] = userData.is_object() ? std::move(userData) : nlohmann::json{{"value", userData}};
-
-            // 3. Fast Serialization: Avoid std::ostringstream
-            // nlohmann::json::dump() is significantly faster than ostringstream operator<<
-            std::string jsonStr = wrapped.dump();
-            
-            auto* dataElement = doc.NewElement("Data");
-            dataElement->SetText(jsonStr.c_str());
-            itemElement->InsertEndChild(dataElement);
-
-            // Debug logging only in non-production environments
-    #ifdef _DEBUG
-            LOG_CONTEXT(LogLevel::INFO, "Exported item: " + tag, {});
-    #endif
-        }
-
-    // 4. Efficient Printing
-    tinyxml2::XMLPrinter printer;
-    doc.Accept(&printer); // Accept is often more robust than Print()
-
-    if (!AtomicFileWriter::writeAtomically(filename, printer.CStr())) {
-            LOG_CONTEXT(LogLevel::ERR, "Failed atomic XML write: " + filename, false);
-            return false;
-    }
-
-    LOG_CONTEXT(LogLevel::INFO, "XML export successful: " + filename, true);
-
     return true;
 }
 
@@ -1591,7 +1192,6 @@ void ItemManager::asyncImportFromFile_XML(const std::string& filename) {
 
 std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(const std::string& filename, 
                                                                              const std::string& type, 
-
                                                                              const std::string& tag) {
 
     if (filename.empty()) {
@@ -1603,28 +1203,17 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
                                         " with type '" + demangleType(type) + "' and tag '" + tag + "'", {});
 
     if (filename.empty()) {
-
-                                                                             const std::string& tag) 
-{
-
-   if (filename.empty()) [[unlikely]] {
-
         LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot import from XML.", {});
         return std::nullopt;
     }
 
     tinyxml2::XMLDocument doc;
-
     if (doc.LoadFile(filename.c_str()) != tinyxml2::XML_SUCCESS) {
-
-    if (doc.LoadFile(filename.c_str()) != tinyxml2::XML_SUCCESS) [[unlikely]] {
-
         LOG_CONTEXT(LogLevel::ERR, "Failed to load XML file: " + filename, {});
         return std::nullopt;
     }
 
     auto* root = doc.FirstChildElement("SmartStore");
-
     if (!root) {
         LOG_CONTEXT(LogLevel::ERR, "Missing <SmartStore> root element in XML file: " + filename, {});
         return std::nullopt;
@@ -1678,77 +1267,12 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
             return item;
         } catch (const std::exception& e) {
             LOG_CONTEXT(LogLevel::ERR, "Failed to parse JSON data for tag '" + tag + "': " + e.what(), {});
-
-    if (!root) [[unlikely]] {
-        LOG_CONTEXT(LogLevel::ERR, "Missing <SmartStore> root in: " + filename, {});
-        return std::nullopt;
-    }
-
-    // Pre-check for deserializer availability before entering the heavy loop
-    auto desIt = deserializers.find(type);
-    if (desIt == deserializers.end()) [[unlikely]] {
-        LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type: " + demangleType(type), {});
-        return std::nullopt;
-    }
-
-    // Linear Search through XML items
-    for (auto* itemElement = root->FirstChildElement("Item"); itemElement; itemElement = itemElement->NextSiblingElement("Item")) {
-        
-        // 1. Efficient Lookups
-        // Use Attribute checks if you adopted the <Item tag="..." type="..."> optimization,
-        // otherwise, use ChildElement as you have below.
-        auto* tagElement  = itemElement->FirstChildElement("Tag");
-        auto* typeElement = itemElement->FirstChildElement("Type");
-
-        if (!tagElement || !typeElement) continue;
-
-        const char* tagText  = tagElement->GetText();
-        const char* typeText = typeElement->GetText();
-
-        // 2. String Comparison without allocation
-        // Comparing raw char pointers (strcmp) is faster than std::string(tagText) == tag
-        if (!tagText || !typeText || std::strcmp(tagText, tag.c_str()) != 0 || std::strcmp(typeText, type.c_str()) != 0) {
-            continue;
-        }
-
-        // 3. We have a match, now extract the heavier data element
-        auto* dataElement = itemElement->FirstChildElement("Data");
-        const char* dataText = dataElement ? dataElement->GetText() : nullptr;
-        if (!dataText) continue;
-
-        try {
-            // 4. Parse directly from char pointer
-            nlohmann::json j = nlohmann::json::parse(dataText);
-
-            // Ensure metadata is synchronized
-            if (!j.contains("id"))  j["id"] = tagText;
-            if (!j.contains("tag")) j["tag"] = tagText;
-            
-            int version = j.value("version", 1);
-            json upgraded = migrationRegistry.upgradeToLatest(type, version, j);
-
-            // 5. Build and State Update
-            auto item = desIt->second(upgraded, tag);
-            if (item) {
-                undoHistory.push_back(cloneCurrentState());
-                redoQueue = {};
-                items[tag] = item;
-                
-                LOG_CONTEXT(LogLevel::INFO, "Imported item: " + tag, {});
-                return item;
-            }
-        } catch (const std::exception& e) {
-            LOG_CONTEXT(LogLevel::ERR, "XML Parse/Upgrade error: " + std::string(e.what()), {});
-
             return std::nullopt;
         }
     }
 
     LOG_CONTEXT(LogLevel::INFO, "No matching item found for tag '" + tag + "' and type '" + demangleType(type)
                                                                                  + "' in XML file: " + filename, {});
-
-    LOG_CONTEXT(LogLevel::WARNING, "Item not found in XML: " + tag, {});
-
     return std::nullopt;
 }
 

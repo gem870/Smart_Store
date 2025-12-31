@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700">
+  <style>
+    .box { fill:#F6F8FA; stroke:#34495E; stroke-width:2; rx:8; }
+    .facade { fill:#E8F1F8; stroke:#2C3E50; stroke-width:3; rx:10; }
+    .title { font: bold 16px sans-serif; fill:#2C3E50; }
+    .label { font: 13px sans-serif; fill:#2C3E50; }
+    .small { font: 11px sans-serif; fill:#2C3E50; }
+    .arrow { stroke:#2C3E50; stroke-width:2; marker-end:url(#arrowhead); }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2C3E50" />
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Facade -->
+  <g transform="translate(250,40)">
+    <rect class="facade" x="0" y="0" width="500" height="100" filter="url(#shadow)"/>
+    <text class="title" x="250" y="32" text-anchor="middle">ItemManager (Facade)</text>
+    <text class="small" x="250" y="58" text-anchor="middle">Thin façade delegating responsibilities to components</text>
+  </g>
+
+  <!-- Component boxes -->
+  <g>
+    <rect class="box" x="60" y="180" width="220" height="90"/>
+    <text class="label" x="170" y="210" text-anchor="middle">ItemStore</text>
+    <text class="small" x="170" y="230" text-anchor="middle">storage: items, idMap, get/add/remove</text>
+
+    <rect class="box" x="360" y="180" width="220" height="90"/>
+    <text class="label" x="470" y="210" text-anchor="middle">UndoRedoManager</text>
+    <text class="small" x="470" y="230" text-anchor="middle">undo/redo history, saveState()</text>
+
+    <rect class="box" x="660" y="180" width="220" height="90"/>
+    <text class="label" x="770" y="210" text-anchor="middle">TypeRegistry</text>
+    <text class="small" x="770" y="230" text-anchor="middle">serializers, schemas, deserializers</text>
+  </g>
+
+  <g>
+    <rect class="box" x="60" y="320" width="220" height="90"/>
+    <text class="label" x="170" y="350" text-anchor="middle">PersistenceManager</text>
+    <text class="small" x="170" y="370" text-anchor="middle">JSON/BIN/XML/CSV import/export</text>
+
+    <rect class="box" x="360" y="320" width="220" height="90"/>
+    <text class="label" x="470" y="350" text-anchor="middle">CVManager</text>
+    <text class="small" x="470" y="370" text-anchor="middle">cvFgn, cvMdn, cvQRC, etc.</text>
+
+    <rect class="box" x="660" y="320" width="220" height="90"/>
+    <text class="label" x="770" y="350" text-anchor="middle">NetworkManager</text>
+    <text class="small" x="770" y="370" text-anchor="middle">networkMessage_Send/Receive</text>
+  </g>
+
+  <!-- Arrows from Facade to components -->
+  <path class="arrow" d="M500 140 L170 180" />
+  <path class="arrow" d="M500 140 L470 180" />
+  <path class="arrow" d="M500 140 L770 180" />
+  <path class="arrow" d="M500 140 L170 320" />
+  <path class="arrow" d="M500 140 L470 320" />
+  <path class="arrow" d="M500 140 L770 320" />
+
+  <!-- Data labels on arrows -->
+  <text class="small" x="340" y="120" text-anchor="middle">delegates calls</text>
+  <text class="small" x="230" y="200" text-anchor="middle">items CRUD</text>
+  <text class="small" x="470" y="200" text-anchor="middle">history ops</text>
+  <text class="small" x="770" y="200" text-anchor="middle">type schemas</text>
+  <text class="small" x="170" y="340" text-anchor="middle">import/export</text>
+  <text class="small" x="470" y="340" text-anchor="middle">computer vision</text>
+  <text class="small" x="770" y="340" text-anchor="middle">networking</text>
+
+  <!-- Interaction arrows between components -->
+  <path class="arrow" d="M280 270 L340 320" />
+  <text class="small" x="310" y="295" text-anchor="middle">saveState()</text>
+
+  <path class="arrow" d="M740 270 L700 320" />
+  <text class="small" x="720" y="295" text-anchor="middle">requests schemas</text>
+
+  <path class="arrow" d="M280 410 L340 380" />
+  <text class="small" x="310" y="400" text-anchor="middle">reads/writes</text>
+
+  <!-- Legend -->
+  <rect x="28" y="540" width="240" height="120" rx="8" fill="#ffffff" stroke="#bdc3c7"/>
+  <text class="title" x="150" y="562" text-anchor="middle">Legend</text>
+  <text class="small" x="50" y="590">- Facade: single entry point for consumers</text>
+  <text class="small" x="50" y="610">- Components: focused managers with single responsibility</text>
+  <text class="small" x="50" y="630">- Arrows: direction of calls / data requests</text>
+
+  <!-- Footer -->
+  <text class="small" x="880" y="680" text-anchor="end">Generated diagram: ItemManager refactor</text>
+
+</svg>

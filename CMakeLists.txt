@@ -1,21 +1,23 @@
 
 
-
 cmake_minimum_required(VERSION 3.16)
 project(ItemManagerProject LANGUAGES CXX)
 
 # -----------------------------------
-# Compiler and Build Configuration
+# Compiler and build configuration
 # -----------------------------------
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "-g -O1 -Wall -Wextra -pedantic")
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
+endif()
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O1 -Wall -Wextra -pedantic")
 
 # -----------------------------------
-# External Dependencies
+# External dependencies
 # -----------------------------------
 include(FetchContent)
 
@@ -36,95 +38,115 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 # -----------------------------------
-# OpenCV (bundled in lib/opencv)
+# Core interfaces (shared headers)
 # -----------------------------------
-set(OpenCV_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/opencv/include")
-
-# Pick platform-specific lib/bin folders
-if(MSVC)
-    set(OpenCV_LIB_DIR "${PROJECT_SOURCE_DIR}/lib/opencv/win-msvc/lib")
-    set(OpenCV_BIN_DIR "${PROJECT_SOURCE_DIR}/lib/opencv/win-msvc/bin")
-elseif(MINGW)
-    set(OpenCV_LIB_DIR "${PROJECT_SOURCE_DIR}/lib/opencv/win-mingw/lib")
-    set(OpenCV_BIN_DIR "${PROJECT_SOURCE_DIR}/lib/opencv/win-mingw/bin")
-elseif(UNIX AND NOT APPLE)
-    set(OpenCV_LIB_DIR "${PROJECT_SOURCE_DIR}/lib/opencv/linux/lib")
-elseif(APPLE)
-    set(OpenCV_LIB_DIR "${PROJECT_SOURCE_DIR}/lib/opencv/macos/lib")
-endif()
-
-include_directories(${OpenCV_INCLUDE_DIR})
-link_directories(${OpenCV_LIB_DIR})
-
-# Only grab actual library files (.a for MinGW, .lib for MSVC)
-file(GLOB OPENCV_LIBS "${OpenCV_LIB_DIR}/*.a" "${OpenCV_LIB_DIR}/*.lib")
+add_library(core_interfaces INTERFACE)
+target_include_directories(core_interfaces INTERFACE
+    ${PROJECT_SOURCE_DIR}/src/microservice_interface
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/src/interface
+    ${PROJECT_SOURCE_DIR}/lib/asio/include
+    ${json_SOURCE_DIR}/single_include
+)
 
 # -----------------------------------
-# ItemManager Library
+# Local TinyXML2
 # -----------------------------------
-add_library(ItemManagerLib STATIC
-    lib/tinyxml2/tinyxml2.cpp
-    src/microservice/net_curl/network/network_agent.cpp
+add_library(tinyxml2_static STATIC
+    ${PROJECT_SOURCE_DIR}/lib/tinyxml2/tinyxml2.cpp
+)
+target_include_directories(tinyxml2_static PUBLIC
+    ${PROJECT_SOURCE_DIR}/lib/tinyxml2
+)
+
+# -----------------------------------
+# Microservices
+# -----------------------------------
+add_subdirectory(src/microservice/alarm_system)
+add_subdirectory(src/microservice/computer_vision)
+add_subdirectory(src/microservice/net_curl)
+
+# -----------------------------------
+# t_manager module (ItemManager headers + MigrationRegistry implementation)
+# -----------------------------------
+add_library(t_manager STATIC
     src/versionForMigration/MigrationRegistry.cpp
-    src/microservice/computer_vision/survelliance/FaceRecognition.cpp
-    src/microservice/computer_vision/survelliance/FaceWatchlist.cpp
-    src/microservice/computer_vision/survelliance/MotionDetection.cpp
 )
 
-target_include_directories(ItemManagerLib
+target_include_directories(t_manager
     PUBLIC
-        ${PROJECT_SOURCE_DIR}/src
-        ${PROJECT_SOURCE_DIR}/src/microservice_interface
-        ${PROJECT_SOURCE_DIR}/src/microservice/net_curl
-        ${PROJECT_SOURCE_DIR}/src/microservice/computer_vision/survelliance
-        ${PROJECT_SOURCE_DIR}/src/microservice/net_curl/network
-        ${PROJECT_SOURCE_DIR}/lib/tinyxml2
-        ${json_SOURCE_DIR}/single_include
-        ${PROJECT_SOURCE_DIR}/lib/asio/include
-        ${OpenCV_INCLUDE_DIR}
+        ${PROJECT_SOURCE_DIR}/src/t_manager
+        ${PROJECT_SOURCE_DIR}/src/interface
+        ${PROJECT_SOURCE_DIR}/src/versionForMigration
 )
 
-target_link_libraries(ItemManagerLib
+target_link_libraries(t_manager
     PUBLIC
+        core_interfaces
         nlohmann_json::nlohmann_json
-        ${OPENCV_LIBS}
+        tinyxml2_static
 )
 
-# -----------------------------------
-# Test Executable
-# -----------------------------------
-add_executable(TestApp
-    tests/test_ItemManager.cpp
-)
+target_compile_features(t_manager PUBLIC cxx_std_20)
 
-target_include_directories(TestApp
-    PRIVATE
-        ${PROJECT_SOURCE_DIR}/src
-        ${PROJECT_SOURCE_DIR}/lib/tinyxml2
-        ${json_SOURCE_DIR}/single_include
-        ${PROJECT_SOURCE_DIR}/lib/asio/include
-        ${OpenCV_INCLUDE_DIR}
+# -----------------------------------
+# Top-level test executable
+# -----------------------------------
+add_executable(TestApp tests/test_ItemManager.cpp)
+
+# Make sure TestApp sees OpenCV headers
+target_include_directories(TestApp PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/lib/asio/include
+    ${json_SOURCE_DIR}/single_include
+    ${PROJECT_SOURCE_DIR}/lib/tinyxml2
+    ${PROJECT_SOURCE_DIR}/lib/opencv/include
 )
 
 target_compile_definitions(TestApp PRIVATE -DASIO_STANDALONE)
 
+# Link order: project libs -> third-party libs -> system libs (system libs last!)
 target_link_libraries(TestApp PRIVATE
-    ItemManagerLib
+    alarm_microservice
+    scanner_microservice
+    face_monitor_microservice
+    face_recognition_microservice
+    motion_detection_microservice
+    net_curl_microservice
+    t_manager
+    tinyxml2_static
     gtest
     gtest_main
-    ws2_32
+    ${OPENCV_LIBS}
+    ${SDL2_LIBS}
+    ${SDL2_MIXER_LIBS}
+    $<$<PLATFORM_ID:Windows>:ws2_32 setupapi imm32 version winmm>
 )
 
-# Copy DLLs automatically on Windows
-if(WIN32 AND DEFINED OpenCV_BIN_DIR)
-    add_custom_command(TARGET TestApp POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${OpenCV_BIN_DIR} $<TARGET_FILE_DIR:TestApp>)
+# Copy DLLs automatically on Windows (MinGW/MSVC)
+if(WIN32)
+    if(DEFINED OpenCV_BIN_DIR AND EXISTS ${OpenCV_BIN_DIR})
+        add_custom_command(TARGET TestApp POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${OpenCV_BIN_DIR} $<TARGET_FILE_DIR:TestApp>)
+    endif()
+    if(DEFINED SDL2_BIN_DIR AND EXISTS ${SDL2_BIN_DIR})
+        add_custom_command(TARGET TestApp POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${SDL2_BIN_DIR} $<TARGET_FILE_DIR:TestApp>)
+    endif()
+    if(DEFINED SDL2_MIXER_BIN_DIR AND EXISTS ${SDL2_MIXER_BIN_DIR})
+        add_custom_command(TARGET TestApp POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${SDL2_MIXER_BIN_DIR} $<TARGET_FILE_DIR:TestApp>)
+    endif()
 endif()
 
+
 # -----------------------------------
-# Enable Test Discovery
+# Enable test discovery
 # -----------------------------------
+enable_testing()
 include(GoogleTest)
 gtest_discover_tests(TestApp
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
@@ -132,14 +154,8 @@ gtest_discover_tests(TestApp
 )
 
 # -----------------------------------
-# Output Summary
+# Output summary
 # -----------------------------------
 message(STATUS "✅ Project Configured Successfully.")
-message(STATUS "✅ OpenCV headers from ${OpenCV_INCLUDE_DIR}")
-message(STATUS "✅ OpenCV libraries from ${OpenCV_LIB_DIR}")
-message(STATUS "✅ Linked OpenCV libs: ${OPENCV_LIBS}")
-
-
-
 
 

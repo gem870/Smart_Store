@@ -24,6 +24,7 @@ using json = nlohmann::json;
 //::::: PRIVATE FUNCTIONS ::::::
 //******************************
 
+
 template<typename T>
 std::string ItemManager::getCompilerTypeName() {
  return typeid(T).name(); // Return the mangled name directly for simplicity
@@ -96,110 +97,72 @@ json ItemManager::getSchemaForType(std::string type) const {
     return (it != schemaRegistry.end()) ? it->second() : json{};
 }
 
-
-// ::::: MAIN API USER CALLS OR PUBLIC FUNCTIONS ::::::
-// ****************************************************
-
-void ItemManager::printIds() {
-    std::cout << "\033[1;31m::: Debug: ID:  id  | Item Tag \033[0m\n" << std::endl;
-    for (const auto& [id, item] : idMap) {
-        std::cout << "\033[1;31m::: Debug: ID: " << id << " | Item Tag: " << item->getTag() << "\033[0m\n";
-    }
-}
-
-void ItemManager::showSignature() {
-    Author::getSignature();
-}
-
-void ItemManager::displayRegisteredDeserializers() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
-    std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered Deserializers in ItemManager |:::\n" << Logger::getColorCode(LogColor::RESET);
-    
-    if (deserializers.empty()) {
-        LOG_CONTEXT(LogLevel::INFO, "No deserializers registered", {});
-        return;
-    }
-
-    for (const auto& entry : deserializers) {
-        LOG_CONTEXT(LogLevel::DEBUG, "Type: " + demangleType(entry.first) + " -> Deserialization Function Exists", {});
-    }
-
-    std::cout << "\n::::::::::::::::::::::::::::::::::::::::::::::::\n";
-
-    std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered types in ItemManager |:::\n" << Logger::getColorCode(LogColor::RESET);
-    if (registeredTypes.empty()) {
-        LOG_CONTEXT(LogLevel::INFO, "No types registered", {});
-        return;
-    }
-    for (const auto& entry : registeredTypes) {
-        LOG_CONTEXT(LogLevel::DEBUG, "Type: " + demangleType(entry.first) + " -> Type Index: " + demangleType(entry.second.name()), {});
-    }
-    std::cout << "\n::::::::::::::::::::::::::::::::::::::::::::::::\n";
-}
-
-bool ItemManager::hasItem(const std::string& tag) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (tag.empty()) {
-        LOG_CONTEXT(LogLevel::WARNING, "Empty tag provided for hasItem check", false);
-        return false;
-    }
-    if(items.find(tag) != items.end()){
-        LOG_CONTEXT(LogLevel::DEBUG, "Item with tag '" + tag + "' exists in ItemManager", true);
-        return true;
-    } else {
-        LOG_CONTEXT(LogLevel::DEBUG, "Item with tag '" + tag + "' does not exist in ItemManager", false);
-        return false;
-    }
-}
-
-std::string ItemManager::demangleType(const std::string& mangledName) const{
-    #if defined(__GNUC__) || defined(__clang__)
+std::string ItemManager::demangleType(const std::string& mangledName) const {
+#if defined(__GNUC__) || defined(__clang__)
     int status;
     char* demangled = abi::__cxa_demangle(mangledName.c_str(), nullptr, nullptr, &status);
 
     std::string result;
     if (status == 0 && demangled) {
         result = std::string(demangled);  // Store safely in std::string
-        free(demangled);  // Ensure valid memory cleanup
-        demangled = nullptr;  // Prevent accidental reuse
+        free(demangled);                  // Ensure valid memory cleanup
+        demangled = nullptr;              // Prevent accidental reuse
     } else {
-        result = mangledName.c_str();
+        result = mangledName;
     }
 
     return result;
-    #elif defined(_MSC_VER)
-        return mangledName.c_str();
-    #else
-        return "Unknown compiler";
-    #endif
+#elif defined(_MSC_VER)
+    return mangledName;
+#else
+    return "Unknown compiler";
+#endif
 }
 
+
+
+
+
+// ::::: MAIN API USER CALLS OR PUBLIC FUNCTIONS ::::::
+// ****************************************************
+
+void ItemManager::showSignature() {
+    Author::getSignature();
+}
+
+
+
+
 template<typename T>
-void ItemManager::addItem(std::shared_ptr<T> obj, const std::string& tag) {
-    std::lock_guard<std::mutex> lock(mutex_);
+void ItemManager::StateManager::addItem(std::shared_ptr<T> obj, const std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  
 
     if (tag.empty()) {
-        std::string errorMsg = "Tag cannot be empty for item of type: " + demangleType(typeid(T).name());
+        std::string errorMsg = "Tag cannot be empty for item of type: "
+                             + parent.demangleType(typeid(T).name());
         LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(errorMsg)));
     }
 
-    if (obj == nullptr || !obj) {
-        std::string errorMsg = "Cannot add null object with tag: " + tag + " and type: " + demangleType(typeid(T).name());
+    if (!obj) {
+        std::string errorMsg = "Cannot add null object with tag: " + tag
+                             + " and type: " + parent.demangleType(typeid(T).name());
         LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(errorMsg)));
     }
 
     // Check if an item with the same tag already exists
-    if (items.find(tag) != items.end()) {
-        std::string errorMsg = "Item with tag '" + tag + "' already exists. Cannot add another item of type: " + demangleType(typeid(T).name());
+    if (parent.items.find(tag) != parent.items.end()) {
+        std::string errorMsg = "Item with tag '" + tag + "' already exists. Cannot add another item of type: "
+                             + parent.demangleType(typeid(T).name());
         LOG_CONTEXT(LogLevel::ERR, errorMsg, std::make_exception_ptr(std::runtime_error(errorMsg)));
     }
 
-    std::cout <<Logger::getColorCode(LogColor::GREEN) + "\nAn item added with tag: " << tag << Logger::getColorCode(LogColor::RESET) << std::endl;
+    std::cout << Logger::getColorCode(LogColor::GREEN)
+              << "\nAn item added with tag: " << tag
+              << Logger::getColorCode(LogColor::RESET) << std::endl;
 
-    saveState();
-    undoHistory.push_back(cloneCurrentState());
-    redoQueue = {};
+    parent.saveState();                                   
+    parent.undoHistory.push_back(parent.cloneCurrentState()); 
+    parent.redoQueue = {};                                
 
 #if defined(__cpp_concepts) && __cpp_concepts >= 201907L
     std::cout << "Using C++20 Concepts for Type Registration.\n";
@@ -208,61 +171,61 @@ void ItemManager::addItem(std::shared_ptr<T> obj, const std::string& tag) {
 #endif
 
     // Automatic Type Registration
-    migrationRegistry.registerVersion("User", 3);
-    migrationRegistry.registerMigration("User", 1, [](const json& j) {
+    parent.migrationRegistry.registerVersion("User", 3);
+    parent.migrationRegistry.registerMigration("User", 1, [](const json& j) {
         json upgraded = j;
         upgraded["age"] = 0;
         return upgraded;
     });
-    migrationRegistry.registerMigration("User", 2, [](const json& j) {
+    parent.migrationRegistry.registerMigration("User", 2, [](const json& j) {
         json upgraded = j;
         upgraded["email"] = "unknown@example.com";
         return upgraded;
     });
-    registerType<T>();  // Ensures type is registered separately for imports
 
-    items[tag] = std::make_shared<ItemWrapper<T>>(std::move(obj), tag);
+    parent.registerType<T>(); 
 
-    for (const auto& [key, value] : items) {
-        LOG_CONTEXT(LogLevel::DEBUG, "Item with tag '" + key + "' registered with type: " + demangleType(value->getTypeName()), {});
+    parent.items[tag] = std::make_shared<ItemWrapper<T>>(std::move(obj), tag);
+
+    for (const auto& [key, value] : parent.items) {
+        LOG_CONTEXT(LogLevel::DEBUG,
+                    "Item with tag '" + key + "' registered with type: "
+                    + parent.demangleType(value->getTypeName()), {});
     }
 
-    LOG_CONTEXT(LogLevel::INFO, "Item with tag '" + tag + "' added successfully. Type: " + demangleType(getCompilerTypeName<T>()), {});
+    LOG_CONTEXT(LogLevel::INFO,
+                "Item with tag '" + tag + "' added successfully. Type: "
+                + parent.demangleType(ItemManager::getCompilerTypeName<T>()), {});
+}
+
+bool ItemManager::StateManager::hasItem(const std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    if (tag.empty()) {
+        LOG_CONTEXT(LogLevel::WARNING, "Empty tag provided for hasItem check", false);
+        return false;
+    }
+    if(parent.items.find(tag) != parent.items.end()){
+        LOG_CONTEXT(LogLevel::DEBUG, "Item with tag '" + tag + "' exists in ItemManager", true);
+        return true;
+    } else {
+        LOG_CONTEXT(LogLevel::DEBUG, "Item with tag '" + tag + "' does not exist in ItemManager", false);
+        return false;
+    }
 }
 
 template<typename T>
-bool ItemManager::modifyItem(const std::string& tag, const std::function<void(T&)>& modifier) {
-    std::lock_guard<std::mutex> lock(mutex_);
+std::optional<T> ItemManager::StateManager::getItem(const std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
     
-    auto it = items.find(tag);
-    if (it != items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            undoHistory.push_back(cloneCurrentState());
-            redoQueue = {};
-            modifier(wrapper->getMutableData());
-            LOG_CONTEXT(LogLevel::DEBUG, "Modified item with tag '" + tag + "' of type: " + demangleType(typeid(T).name()), {});
-            return true;
-        }
-    }
-    LOG_CONTEXT(LogLevel::WARNING, "Item with tag '" + tag + 
-                            "' not found or type mismatch. Requested type: " + demangleType(typeid(T).name()), false);
-                            return false;
-}
-
-template<typename T>
-std::optional<T> ItemManager::getItem(const std::string& tag) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
-    auto it = items.find(tag);
-    if (it != items.end()) {
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
             return wrapper->getData();
         } else {
             LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(std::runtime_error(
-                    "Type mismatch for item with tag '" + tag + "'. Requested type: " + demangleType(typeid(T).name()) +
-                                                              ", Actual type: " + demangleType(it->second->getTypeName()))));
+                    "Type mismatch for item with tag '" + tag + "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                                                              ", Actual type: " + parent.demangleType(it->second->getTypeName()))));
         }
     } else {
         LOG_CONTEXT(LogLevel::WARNING, "No item found with tag '" + tag + "'", ErrorCode::ITEM_NOT_FOUND);
@@ -271,17 +234,17 @@ std::optional<T> ItemManager::getItem(const std::string& tag) const {
 }
 
 template<typename T>
-T& ItemManager::getItemRaw(const std::string& tag) {
-    std::lock_guard<std::mutex> lock(mutex_);
+T& ItemManager::StateManager::getItemRaw(const std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
-    auto it = items.find(tag);
-    if (it != items.end()) {
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
             return wrapper->getMutableData();
         } else {
             LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: "
-                      + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
+                      + parent.demangleType(typeid(T).name()) + ", Actual type: " + parent.demangleType(it->second->getTypeName()), {});
             throw std::runtime_error("\n:::| Type mismatch for item with tag '" + tag + "'.\n");
         }
     } else {
@@ -291,17 +254,17 @@ T& ItemManager::getItemRaw(const std::string& tag) {
 }
 
 template<typename T>
-const T& ItemManager::getItemRaw(const std::string& tag) const {
-    std::lock_guard<std::mutex> lock(mutex_);
+const T& ItemManager::StateManager::getItemRaw(const std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
-    auto it = items.find(tag);
-    if (it != items.end()) {
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<const ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
             return wrapper->getData();
         } else {
             LOG_CONTEXT(LogLevel::WARNING, "Type mismatch for item with tag '" + tag + "'. Requested type: " 
-                        + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
+                        + parent.demangleType(typeid(T).name()) + ", Actual type: " + parent.demangleType(it->second->getTypeName()), {});
             throw std::runtime_error("\n:::| Please check your item type.\n");
         }
     } else {
@@ -310,57 +273,84 @@ const T& ItemManager::getItemRaw(const std::string& tag) const {
     }
 }
 
-void ItemManager::displayAll() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+template<typename T>
+bool ItemManager::StateManager::modifyItem(const std::function<void(T&)>& modifier, const std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            parent.undoHistory.push_back(parent.cloneCurrentState());
+            parent.redoQueue = {};
+            modifier(wrapper->getMutableData());
+            LOG_CONTEXT(LogLevel::DEBUG, "Modified item with tag '" + tag + "' of type: " + parent.demangleType(typeid(T).name()), {});
+            return true;
+        }
+    }
+    LOG_CONTEXT(LogLevel::WARNING, "Item with tag '" + tag + 
+                            "' not found or type mismatch. Requested type: " + parent.demangleType(typeid(T).name()), false);
+                            return false;
+}
 
-    LOG_CONTEXT(LogLevel::DISPLAY, ":::::: Types Stored ::::::", {});
-    if (!items.empty()) {
-        for (const auto& [_, item] : items) item->display();
-    }else{
-        LOG_CONTEXT(LogLevel::INFO, "No items found to display. ", ErrorCode::ITEM_NOT_FOUND);
+void ItemManager::StateManager::undo() {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    if (!parent.undoHistory.empty()) {
+        auto current = parent.cloneCurrentState();            // Save current state
+        auto prev = std::move(parent.undoHistory.back());     // Last undo state
+        parent.undoHistory.pop_back();
+
+        parent.redoQueue.push(std::move(current));            // Push current into redo
+        parent.items = std::move(prev);                       // Restore previous state
+
+        LOG_CONTEXT(LogLevel::DEBUG, "Undo successful. Restored to previous state.", {});
+    } else {
+        LOG_CONTEXT(LogLevel::INFO, "Nothing to undo.", {});
     }
 }
 
-void ItemManager::displayByTag(const std::string& tag) const {
-    std::lock_guard<std::mutex> lock(mutex_);
+void ItemManager::StateManager::redo() {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+  
+    if (!parent.redoQueue.empty()) {
+        parent.undoHistory.push_back(parent.cloneCurrentState());   // Save current state
+        parent.items = std::move(parent.redoQueue.front());         // Restore redo state
+        parent.redoQueue.pop();
 
-    auto it = items.find(tag);
-    if (it != items.end()) {
-        LOG_CONTEXT(LogLevel::DISPLAY, "Displaying item with tag '" + tag + "'", {});
-        it->second->display();
-        return;
+        LOG_CONTEXT(LogLevel::DEBUG, "Redo successful. Restored to next state.", {});
+    } else {
+        LOG_CONTEXT(LogLevel::INFO, "Nothing to redo.", {});
     }
-
-    LOG_CONTEXT(LogLevel::WARNING, "Item with tag '" + tag + "' not found.", ErrorCode::ITEM_NOT_FOUND);
 }
 
-void ItemManager::removeByTag(const std::string& tag) {
-    std::lock_guard<std::mutex> lock(mutex_);
+void ItemManager::StateManager::removeByTag(const std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     if (tag.empty()) {
         LOG_CONTEXT(LogLevel::WARNING, "Cannot remove item with empty tag.", ErrorCode::ITEM_NOT_FOUND);
     }
 
-    auto it = items.find(tag);
-    if (it != items.end()) {
-        undoHistory.push_back(cloneCurrentState());
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        parent.undoHistory.push_back(parent.cloneCurrentState());
 
         std::queue<State> empty;
-        std::swap(redoQueue, empty);
+        std::swap(parent.redoQueue, empty);
 
         std::string typeName = it->second->getTypeName();
         std::string id = it->second->getId(); // Extract ID before erasing
 
-        if (--typeUsage[typeName] == 0) {
-            typeUsage.erase(typeName);
-            registeredTypes.erase(typeName);
-            deserializers.erase(typeName);
-            schemaRegistry.erase(typeName);  //  Clean up schema too
-            LOG_CONTEXT(LogLevel::DEBUG, "Removed type: " + demangleType(typeName) + " from registry", {});
+        if (--parent.typeUsage[typeName] == 0) {
+            parent.typeUsage.erase(typeName);
+            parent.registeredTypes.erase(typeName);
+            parent.deserializers.erase(typeName);
+            parent.schemaRegistry.erase(typeName);  //  Clean up schema too
+            LOG_CONTEXT(LogLevel::DEBUG, "Removed type: " + parent.demangleType(typeName) + " from registry", {});
         }
 
-        items.erase(it);
-        idMap.erase(id); // Now erase from idMap as well
+        parent.items.erase(it);
+        parent.idMap.erase(id); // Now erase from idMap as well
 
         LOG_CONTEXT(LogLevel::DEBUG, "Removed item with tag '" + tag + "' and id '" + id + "'", {});
     } else {
@@ -369,38 +359,155 @@ void ItemManager::removeByTag(const std::string& tag) {
     }
 }
 
-void ItemManager::undo() {
-    std::lock_guard<std::mutex> lock(mutex_);  // Thread guard
-
-    if (!undoHistory.empty()) {
-        auto current = cloneCurrentState();            // Save current state
-        auto prev = std::move(undoHistory.back());     // Last undo state
-        undoHistory.pop_back();
-
-        redoQueue.push(std::move(current));            // Push current into redo
-        items = std::move(prev);                       // Restore previous state
-
-        LOG_CONTEXT(LogLevel::DEBUG, "Undo successful. Restored to previous state.", {});
-    } else {
-        LOG_CONTEXT(LogLevel::INFO, "Nothing to undo.", {});
+void ItemManager::StateManager::printIds() {
+    std::cout << "\033[1;31m::: Debug: ID:  id  | Item Tag \033[0m\n" << std::endl;
+    for (const auto& [id, item] : parent.idMap) {
+        std::cout << "\033[1;31m::: Debug: ID: " << id << " | Item Tag: " << item->getTag() << "\033[0m\n";
     }
 }
 
-void ItemManager::redo() {
-    std::lock_guard<std::mutex> lock(mutex_);
-  
-    if (!redoQueue.empty()) {
-        undoHistory.push_back(cloneCurrentState());   // Save current state
-        items = std::move(redoQueue.front());         // Restore redo state
-        redoQueue.pop();
+void ItemManager::StateManager::displayByTag(const std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
-        LOG_CONTEXT(LogLevel::DEBUG, "Redo successful. Restored to next state.", {});
-    } else {
-        LOG_CONTEXT(LogLevel::INFO, "Nothing to redo.", {});
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        LOG_CONTEXT(LogLevel::DISPLAY, "Displaying item with tag '" + tag + "'", {});
+        it->second->display();
+        return;
+    }
+
+    LOG_CONTEXT(LogLevel::WARNING, "Item with tag '" + tag + "' not found.", ErrorCode::ITEM_NOT_FOUND);
+}
+
+void ItemManager::StateManager::displayAll() const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    LOG_CONTEXT(LogLevel::DISPLAY, ":::::: Types Stored ::::::", {});
+    if (!parent.items.empty()) {
+        for (const auto& [_, item] : parent.items) item->display();
+    }else{
+        LOG_CONTEXT(LogLevel::INFO, "No items found to display. ", ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
-void ItemManager::exportToFile_Json(const std::string& filename) const {
+void ItemManager::StateManager::displayAllClasses() const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    std::unordered_map<std::string, int> classCounts;
+
+    if(parent.items.empty()) {
+        LOG_CONTEXT(LogLevel::INFO, "No items available to display classes.", {});
+        return;
+    }
+
+    for (const auto& [tag, item] : parent.items) {
+        classCounts[item->getTypeName()]++;
+    }
+
+    std::cout << Logger::getColorCode(LogColor::CYAN) + "\n:::::: Unique Item Classes ::::::\n" + Logger::getColorCode(LogColor::RESET);
+
+    for (const auto& [type, count] : classCounts) {
+        std::cout << Logger::getColorCode(LogColor::BLUE) + ":::| " +  Logger::getColorCode(LogColor::RESET)  
+                  <<  parent.demangleType(type) <<  Logger::getColorCode(LogColor::BLUE) + "   X" + Logger::getColorCode(LogColor::RESET) << count << '\n';
+    }
+}
+
+void ItemManager::StateManager::displayRegisteredDeserializers() {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    
+    std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered Deserializers in ItemManager |:::\n" << Logger::getColorCode(LogColor::RESET);
+    
+    if (parent.deserializers.empty()) {
+        LOG_CONTEXT(LogLevel::INFO, "No deserializers registered", {});
+        return;
+    }
+
+    for (const auto& entry : parent.deserializers) {
+        LOG_CONTEXT(LogLevel::DEBUG, "Type: " + parent.demangleType(entry.first) + " -> Deserialization Function Exists", {});
+    }
+
+    std::cout << "\n::::::::::::::::::::::::::::::::::::::::::::::::\n";
+
+    std::cout << Logger::getColorCode(LogColor::MAGENTA) << "\n:::| Registered types in ItemManager |:::\n" << Logger::getColorCode(LogColor::RESET);
+    if (parent.registeredTypes.empty()) {
+        LOG_CONTEXT(LogLevel::INFO, "No types registered", {});
+        return;
+    }
+    for (const auto& entry : parent.registeredTypes) {
+        LOG_CONTEXT(LogLevel::DEBUG, "Type: " + parent.demangleType(entry.first) + " -> Type Index: " + parent.demangleType(entry.second.name()), {});
+    }
+    std::cout << "\n::::::::::::::::::::::::::::::::::::::::::::::::\n";
+}
+
+void ItemManager::StateManager::listRegisteredTypes() const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    
+    std::cout << Logger::getColorCode(LogColor::CYAN) +":::| Registered Types:\n" + Logger::getColorCode(LogColor::RESET);
+    for (const auto& entry : parent.registeredTypes) {
+        std::cout << " - " << parent.demangleType(entry.first) << std::endl;
+    }
+}
+
+void ItemManager::StateManager::filterByTag(const std::vector<std::string>& tags) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    std::cout << Logger::getColorCode(LogColor::CYAN)
+              << "\n ::::::| Items filtered by tags |::::::\n"
+              << Logger::getColorCode(LogColor::RESET);
+
+    if (tags.empty()) {
+        LOG_CONTEXT(LogLevel::INFO, "No tags provided for filtering.", {});
+        return;
+    }
+
+    for (const auto& tag : tags) {
+        auto it = parent.items.find(tag);
+        if (it != parent.items.end()) {
+            it->second->display();  // Found: display the item
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "'.", {});  //  Not found: log it
+        }
+    }
+}
+
+void ItemManager::StateManager::sortItemsByTag() const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+   
+    if (parent.items.empty()) {
+        LOG_CONTEXT(LogLevel::INFO, "No items to sort by tag.", {});
+        return;
+    }
+
+    std::cout << Logger::getColorCode(LogColor::CYAN) + "\n:::::: Items Sorted By Tag ::::::\n" + Logger::getColorCode(LogColor::RESET);
+
+    // Create a temporary std::map which automatically sorts by key (tag)
+    std::map<std::string, const std::shared_ptr<BaseItem>&> sortedItems;
+    for (const auto& [tag, item] : parent.items) {
+        sortedItems.emplace(tag, item);
+    }
+
+    // Display items in sorted order
+    for (const auto& [tag, item] : sortedItems) {
+        std::cout << Logger::getColorCode(LogColor::CYAN) + "[ " + Logger::getColorCode(LogColor::RESET) << tag <<  Logger::getColorCode(LogColor::CYAN) + " ]" + Logger::getColorCode(LogColor::RESET);
+        item->display();
+    }
+}
+
+const std::unordered_map<std::string, std::shared_ptr<BaseItem>>& ItemManager::StateManager::getItemMapStore() const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    return parent.items;
+}
+
+
+
+
+
+
+
+
+
+
+void ItemManager::IO_ToFileManager::exportToFile_Json(const std::string& filename) const {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::WARNING, "Cannot export to empty filename.", ErrorCode::ITEM_NOT_FOUND);
@@ -408,13 +515,13 @@ void ItemManager::exportToFile_Json(const std::string& filename) const {
 
     LOG_CONTEXT(LogLevel::INFO, "Attempting JSON export to file: " + filename, {});
     
-    if (items.empty()) {
+    if (parent.items.empty()) {
             LOG_CONTEXT(LogLevel::WARNING, "No items found to export.", ErrorCode::ITEM_NOT_FOUND);
     }
 
     nlohmann::json jArray = nlohmann::json::array();
 
-    for (const auto& [tag, item] : items) {
+    for (const auto& [tag, item] : parent.items) {
         if (!item) {
             LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.", {});
             continue;
@@ -433,15 +540,15 @@ void ItemManager::exportToFile_Json(const std::string& filename) const {
             continue;
         }
 
-        auto schema = getSchemaForType(item->getTypeName());
+        auto schema = parent.getSchemaForType(item->getTypeName());
         if (!schema.is_null()) {
             entry["schema"] = schema;
-            LOG_CONTEXT(LogLevel::DEBUG, "Attached schema for type: " + demangleType(item->getTypeName()), {});
+            LOG_CONTEXT(LogLevel::DEBUG, "Attached schema for type: " + parent.demangleType(item->getTypeName()), {});
         }
 
         jArray.push_back(entry);
 
-        LOG_CONTEXT(LogLevel::INFO, "Exporting item with tag: " + tag + " of type: " + demangleType(item->getTypeName()), {});
+        LOG_CONTEXT(LogLevel::INFO, "Exporting item with tag: " + tag + " of type: " + parent.demangleType(item->getTypeName()), {});
         std::cout << Logger::getColorCode(LogColor::CYAN)
                   << entry.dump(4) 
                   << Logger::getColorCode(LogColor::RESET) + "\n";
@@ -458,7 +565,7 @@ void ItemManager::exportToFile_Json(const std::string& filename) const {
     LOG_CONTEXT(LogLevel::INFO, "Exported " + std::to_string(jArray.size()) + " items to file (atomically): " + filename, {});
 }
 
-void ItemManager::asyncExportToFile_Json(const std::string& filename) const {
+void ItemManager::IO_ToFileManager::asyncExportToFile_Json(const std::string& filename) const {
     std::thread([this, filename]() {
         try {
             this->exportToFile_Json(filename);  // Thread-safe at its core
@@ -469,7 +576,7 @@ void ItemManager::asyncExportToFile_Json(const std::string& filename) const {
     }).detach();  // Fire-and-forget
 }
 
-void ItemManager::importFromFile_Json(const std::string& filename) {
+void ItemManager::IO_ToFileManager::importFromFile_Json(const std::string& filename) {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot import from empty filename.", ErrorCode::ITEM_NOT_FOUND);
@@ -499,9 +606,9 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
                                           "Invalid JSON format: " + filename + " Expected an array or 'items' key.")));
     }
 
-    undoHistory.push_back(cloneCurrentState());
-    redoQueue = {};
-    items.clear();
+    parent.undoHistory.push_back(parent.cloneCurrentState());
+    parent.redoQueue = {};
+    parent.items.clear();
 
     int importCount = 0;
 
@@ -516,35 +623,35 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
         int version = entry.value("version", 1);
         json rawData = entry["data"];
 
-        LOG_CONTEXT(LogLevel::INFO, "Importing item: '" + tag + "' of type: '" + demangleType(typeName) + "'", {});
+        LOG_CONTEXT(LogLevel::INFO, "Importing item: '" + tag + "' of type: '" + parent.demangleType(typeName) + "'", {});
 
         if (!rawData.contains("id") && entry.contains("id")) {
             rawData["id"] = entry["id"];
         }
 
         if (entry.contains("schema")) {
-            LOG_CONTEXT(LogLevel::DEBUG, "Schema detected for type: " + demangleType(typeName), {});
-            schemaRegistry[typeName] = [schema = entry["schema"]]() {
+            LOG_CONTEXT(LogLevel::DEBUG, "Schema detected for type: " + parent.demangleType(typeName), {});
+            parent.schemaRegistry[typeName] = [schema = entry["schema"]]() {
                 return schema;
             };
         }
 
-        json upgraded = migrationRegistry.upgradeToLatest(typeName, version, rawData);
+        json upgraded = parent.migrationRegistry.upgradeToLatest(typeName, version, rawData);
         LOG_CONTEXT(LogLevel::DEBUG, "Schema migration applied (if needed) for '" + tag + "' to latest version.", {});
 
-        auto typeIt = registeredTypes.find(typeName);
-        if (typeIt == registeredTypes.end()) {
-            LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + demangleType(typeName) + " — skipping.", {});
+        auto typeIt = parent.registeredTypes.find(typeName);
+        if (typeIt == parent.registeredTypes.end()) {
+            LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + parent.demangleType(typeName) + " — skipping.", {});
             continue;
         }
 
-        auto desIt = deserializers.find(typeName);
-        if (desIt == deserializers.end()) {
-            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + demangleType(typeName) + " — skipping.", {});
+        auto desIt = parent.deserializers.find(typeName);
+        if (desIt == parent.deserializers.end()) {
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + parent.demangleType(typeName) + " — skipping.", {});
             continue;
         }
 
-        LOG_CONTEXT(LogLevel::INFO, "Attempting to deserialize item with tag '" + tag + "' and type '" + demangleType(typeName) + "'.", {});
+        LOG_CONTEXT(LogLevel::INFO, "Attempting to deserialize item with tag '" + tag + "' and type '" + parent.demangleType(typeName) + "'.", {});
         std::cout << Logger::getColorCode(LogColor::CYAN)
                   << entry.dump(4) 
                   << Logger::getColorCode(LogColor::RESET) + "\n";
@@ -552,7 +659,7 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
         try {
             auto newItem = desIt->second(upgraded, tag);
             if (newItem) {
-                items[tag] = std::move(newItem);
+                parent.items[tag] = std::move(newItem);
                 LOG_CONTEXT(LogLevel::INFO, "Item '" + tag + "' imported successfully.", {});
                 ++importCount;
             } else {
@@ -567,7 +674,7 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
     LOG_CONTEXT(LogLevel::INFO, "Completed import of " + std::to_string(importCount) + " item(s) from JSON file: " + filename, {});
 }
 
-void ItemManager::asyncImportFromFile_Json(const std::string& filename) {
+void ItemManager::IO_ToFileManager::asyncImportFromFile_Json(const std::string& filename) {
     std::thread([this, filename]() {
         try {
             this->importFromFile_Json(filename);  // Thread-safe core
@@ -578,9 +685,9 @@ void ItemManager::asyncImportFromFile_Json(const std::string& filename) {
     }).detach();  // Fire-and-forget style
 }
 
-std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string& filename, 
-                                                               const std::string& typeName, 
-                                                               const std::string& tag) {
+std::shared_ptr<BaseItem> ItemManager::IO_ToFileManager::importSingleObject_Json(const std::string& filename, 
+                                                                                 const std::string& typeName, 
+                                                                                 const std::string& tag) {
     
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot import from empty filename.", ErrorCode::ITEM_NOT_FOUND);
@@ -606,7 +713,7 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
     for (const auto& entry : array) {
         if (entry.value("tag", "") == tag && entry.value("type", "") == typeName) {
 
-            LOG_CONTEXT(LogLevel::INFO, "Found matching object with tag '" + tag + "' and type '" + demangleType(typeName) + "'.", {});
+            LOG_CONTEXT(LogLevel::INFO, "Found matching object with tag '" + tag + "' and type '" + parent.demangleType(typeName) + "'.", {});
 
             int version = entry.value("version", 1);
             json rawData = entry["data"];
@@ -621,28 +728,28 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
 
             if (entry.contains("schema")) {
                 LOG_CONTEXT(LogLevel::DEBUG, "Embedded schema detected for tag: " + tag, {});
-                schemaRegistry[typeName] = [schema = entry["schema"]]() {
+                parent.schemaRegistry[typeName] = [schema = entry["schema"]]() {
                     return schema;
                 };
             }
 
-            json upgraded = migrationRegistry.upgradeToLatest(typeName, version, rawData);
+            json upgraded = parent.migrationRegistry.upgradeToLatest(typeName, version, rawData);
             LOG_CONTEXT(LogLevel::DEBUG, "Schema migration applied (if needed) to latest version.", {});
 
-            auto typeIt = registeredTypes.find(typeName);
-            if (typeIt == registeredTypes.end()) {
-                LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + demangleType(typeName) + " — skipping.", {});
+            auto typeIt = parent.registeredTypes.find(typeName);
+            if (typeIt == parent.registeredTypes.end()) {
+                LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + parent.demangleType(typeName) + " — skipping.", {});
                 return nullptr;
             }
 
-            auto desIt = deserializers.find(typeName);
-            if (desIt == deserializers.end()) {
-                LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + demangleType(typeName) + " — skipping.", {});
+            auto desIt = parent.deserializers.find(typeName);
+            if (desIt == parent.deserializers.end()) {
+                LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + parent.demangleType(typeName) + " — skipping.", {});
                 return nullptr;
             }
 
             try {
-                LOG_CONTEXT(LogLevel::INFO, "Attempting to deserialize item with tag '" + tag + "' and type '" + demangleType(typeName) + "'.", {});
+                LOG_CONTEXT(LogLevel::INFO, "Attempting to deserialize item with tag '" + tag + "' and type '" + parent.demangleType(typeName) + "'.", {});
                 auto item = desIt->second(upgraded, tag);
                 if (item) {
                     LOG_CONTEXT(LogLevel::INFO, "Deserialization successful for tag '" + tag + "'.", {});
@@ -650,9 +757,9 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
                     LOG_CONTEXT(LogLevel::ERR, "Deserializer returned null for tag: " + tag, {});
                 }
 
-                undoHistory.push_back(cloneCurrentState());
-                redoQueue = {};
-                items[tag] = item;  // safely inserts into store
+                parent.undoHistory.push_back(parent.cloneCurrentState());
+                parent.redoQueue = {};
+                parent.items[tag] = item;  // safely inserts into store
 
                 return item;
             } catch (const std::exception& e) {
@@ -661,19 +768,18 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Json(const std::string
             }
         }
     }
-
-    LOG_CONTEXT(LogLevel::WARNING, "No object found with tag '" + tag + "' and type '" + demangleType(typeName) + "' in file: " + filename, {});
+        LOG_CONTEXT(LogLevel::WARNING, "No object found with tag '" + tag + "' and type '" + parent.demangleType(typeName) + "' in file: " + filename, {});
     return nullptr;
 }
 
-void ItemManager::asyncImportSingleObject_Json(const std::string& filename, 
-                                               const std::string& typeName, 
-                                               const std::string& tag) {
+void ItemManager::IO_ToFileManager::asyncImportSingleObject_Json(const std::string& filename, 
+                                                                 const std::string& typeName, 
+                                                                 const std::string& tag) {
     std::thread([this, filename, typeName, tag]() {
         auto item = this->importSingleObject_Json(filename, typeName, tag);
         if (item) {
-            std::lock_guard<std::mutex> lock(mutex_);
-            items[tag] = std::move(item);  // safely inserts into store
+            std::lock_guard<std::mutex> lock(parent.mutex_);
+            parent.items[tag] = std::move(item);  // safely inserts into store
             LOG_CONTEXT(LogLevel::INFO, "Async import of single item '" + tag + "' completed successfully.", {});
         } else {
             LOG_CONTEXT(LogLevel::WARNING, "Async import failed for tag '" + tag + "' from file '" + filename + "'.", {});
@@ -681,7 +787,7 @@ void ItemManager::asyncImportSingleObject_Json(const std::string& filename,
     }).detach();
 }
 
-bool ItemManager::exportToFile_Binary(const std::string& filename) const {
+bool ItemManager::IO_ToFileManager::exportToFile_Binary(const std::string& filename) const {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot export to empty filename.", false);
@@ -690,14 +796,14 @@ bool ItemManager::exportToFile_Binary(const std::string& filename) const {
 
     LOG_CONTEXT(LogLevel::INFO, "Attempting binary export to file: " + filename, {});
 
-    if (items.empty()) {
+    if (parent.items.empty()) {
         LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(
                                           std::runtime_error("No items found for export to file '" + filename + "'.")));
     }
 
     std::vector<uint8_t> buffer;
 
-    for (const auto& [tag, item] : items) {
+    for (const auto& [tag, item] : parent.items) {
         json serializedJson = item->serialize();
         serializedJson["id"] = item->getId();
         serializedJson["tag"] = tag;
@@ -723,7 +829,7 @@ bool ItemManager::exportToFile_Binary(const std::string& filename) const {
         append(&dataSize, sizeof(dataSize));
         append(jsonStr.data(), dataSize);
 
-        LOG_CONTEXT(LogLevel::INFO, "Exported binary object with tag '" + tag + "' of type '" + demangleType(type) + "' [hex]:", {});
+        LOG_CONTEXT(LogLevel::INFO, "Exported binary object with tag '" + tag + "' of type '" + parent.demangleType(type) + "' [hex]:", {});
 
         auto dumpHex = [](const void* data, size_t size) {
             const unsigned char* bytes = reinterpret_cast<const unsigned char*>(data);
@@ -751,7 +857,7 @@ bool ItemManager::exportToFile_Binary(const std::string& filename) const {
     return true;
 }
 
-void ItemManager::asyncExportToFile_Binary(const std::string& filename) const {
+void ItemManager::IO_ToFileManager::asyncExportToFile_Binary(const std::string& filename) const {
     std::thread([this, filename]() {
         try {
             bool success = this->exportToFile_Binary(filename);
@@ -767,7 +873,7 @@ void ItemManager::asyncExportToFile_Binary(const std::string& filename) const {
     }).detach();
 }
 
-bool ItemManager::importFromFile_Binary(const std::string& filename) {
+bool ItemManager::IO_ToFileManager::importFromFile_Binary(const std::string& filename) {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot import from empty filename.", false);
@@ -782,9 +888,9 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
         return false;
     }
 
-    undoHistory.push_back(cloneCurrentState());
-    redoQueue = {};
-    items.clear();
+    parent.undoHistory.push_back(parent.cloneCurrentState());
+    parent.redoQueue = {};
+    parent.items.clear();
 
     while (in.peek() != EOF) {
         uint32_t typeSize = 0, tagSize = 0, dataSize = 0;
@@ -810,7 +916,7 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
         in.read(jsonStr.data(), dataSize);
         if (in.gcount() != static_cast<std::streamsize>(dataSize)) break;
 
-        LOG_CONTEXT(LogLevel::DEBUG, "Processing binary object with tag '" + tag + "' of type '" + demangleType(type) + "' [hex]:", {});
+        LOG_CONTEXT(LogLevel::DEBUG, "Processing binary object with tag '" + tag + "' of type '" + parent.demangleType(type) + "' [hex]:", {});
         for (size_t i = 0; i < dataSize; ++i) {
             std::printf("%02X ", static_cast<unsigned char>(jsonStr[i]));
             if ((i + 1) % 16 == 0) std::cout << '\n';
@@ -835,11 +941,11 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
             version = serialized["version"].get<int>();
         }
 
-        json upgraded = migrationRegistry.upgradeToLatest(type, version, serialized);
+        json upgraded = parent.migrationRegistry.upgradeToLatest(type, version, serialized);
         LOG_CONTEXT(LogLevel::DEBUG, "Schema migration applied (if needed) for tag: " + tag + " to latest version.", {});
 
-        auto desIt = deserializers.find(type);
-        if (desIt == deserializers.end()) {
+        auto desIt = parent.deserializers.find(type);
+        if (desIt == parent.deserializers.end()) {
             LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + type + " — skipping.", {});
             continue;
         }
@@ -851,7 +957,7 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
                 continue;
             }
 
-            items[tag] = object;
+            parent.items[tag] = object;
             LOG_CONTEXT(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' and type '" + type + "' from binary file: " + filename, {});
         } catch (const std::exception& e) {
             LOG_CONTEXT(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + std::string(e.what()), {});
@@ -860,11 +966,11 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
     }
 
     in.close();
-    LOG_CONTEXT(LogLevel::INFO, "Binary import from '" + filename + "' completed successfully with " + std::to_string(items.size()) + " items.", true);
+    LOG_CONTEXT(LogLevel::INFO, "Binary import from '" + filename + "' completed successfully with " + std::to_string(parent.items.size()) + " items.", true);
     return true;
 }
 
-void ItemManager::asyncImportFromFile_Binary(const std::string& filename) {
+void ItemManager::IO_ToFileManager::asyncImportFromFile_Binary(const std::string& filename) {
     std::thread([this, filename]() {
         try {
             this->importFromFile_Binary(filename);  // Thread-safe if core is locked
@@ -876,16 +982,16 @@ void ItemManager::asyncImportFromFile_Binary(const std::string& filename) {
     }).detach();
 }
 
-std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::string& filename, 
-                                                                 const std::string& type, 
-                                                                 const std::string& tag) {
+std::shared_ptr<BaseItem> ItemManager::IO_ToFileManager::importSingleObject_Binary(const std::string& filename, 
+                                                                                   const std::string& type, 
+                                                                                   const std::string& tag) {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error("Cannot import from empty filename.")));
     }
 
     LOG_CONTEXT(LogLevel::INFO, "Attempting to import single binary object from file: " 
-                                + filename + " with type '" + demangleType(type) + "' and tag '" + tag + "'", {});
+                                + filename + " with type '" + parent.demangleType(type) + "' and tag '" + tag + "'", {});
     
     std::ifstream in(filename, std::ios::binary);
     if (!in) {
@@ -918,7 +1024,7 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::stri
         if (in.gcount() != static_cast<std::streamsize>(dataSize)) break;
 
         if (entryType == type && entryTag == tag) {
-            LOG_CONTEXT(LogLevel::DEBUG, "Matched binary object for tag '" + tag + "' of type '" + demangleType(type) + "'", {});
+            LOG_CONTEXT(LogLevel::DEBUG, "Matched binary object for tag '" + tag + "' of type '" + parent.demangleType(type) + "'", {});
 
             auto dumpHex = [](const void* data, size_t size) {
                 const unsigned char* bytes = reinterpret_cast<const unsigned char*>(data);
@@ -952,12 +1058,12 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::stri
                 version = serialized["version"].get<int>();
             }
 
-            json upgraded = migrationRegistry.upgradeToLatest(entryType, version, serialized);
+            json upgraded = parent.migrationRegistry.upgradeToLatest(entryType, version, serialized);
 
-            auto it = deserializers.find(entryType);
-            if (it == deserializers.end()) {
+            auto it = parent.deserializers.find(entryType);
+            if (it == parent.deserializers.end()) {
                 LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(
-                                          std::runtime_error("No deserializer registered for type '" + demangleType(entryType) + "'.")));
+                                          std::runtime_error("No deserializer registered for type '" + parent.demangleType(entryType) + "'.")));
             }
             
             auto object = it->second(upgraded, tag);
@@ -966,27 +1072,27 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_Binary(const std::stri
                                           std::runtime_error("Deserializer returned null for tag '" + tag + "'.")));
             }
 
-            undoHistory.push_back(cloneCurrentState());
-            redoQueue = {};
-            items[tag] = object;  // Safely insert into store
+            parent.undoHistory.push_back(parent.cloneCurrentState());
+            parent.redoQueue = {};
+            parent.items[tag] = object;  // Safely insert into store
 
             LOG_CONTEXT(LogLevel::INFO, "Successfully imported object with tag '" + tag + "' from file '" + filename + "'", {});
             return object;
         }
     }
 
-    LOG_CONTEXT(LogLevel::WARNING, "No matching object found for tag '" + tag + "' and type '" + demangleType(type) + "' in file '" + filename + "'", {});
+    LOG_CONTEXT(LogLevel::WARNING, "No matching object found for tag '" + tag + "' and type '" + parent.demangleType(type) + "' in file '" + filename + "'", {});
     return nullptr;
 }
 
-void ItemManager::asyncImportSingleObject_Binary(const std::string& filename, 
-                                                 const std::string& typeName, 
-                                                 const std::string& tag) {
+void ItemManager::IO_ToFileManager::asyncImportSingleObject_Binary(const std::string& filename, 
+                                                                   const std::string& typeName, 
+                                                                   const std::string& tag) {
     std::thread([this, filename, typeName, tag]() {
         auto item = this->importSingleObject_Binary(filename, typeName, tag);
         if (item) {
-            std::lock_guard<std::mutex> lock(mutex_);
-            items[tag] = std::move(item);
+            std::lock_guard<std::mutex> lock(parent.mutex_);
+            parent.items[tag] = std::move(item);
             LOG_CONTEXT(LogLevel::INFO, "Async binary import of '" + tag + "' succeeded.", {});
         } else {
             LOG_CONTEXT(LogLevel::WARNING, "Async binary import failed for tag '" + tag + "' from file '" + filename + "'.", {});
@@ -994,7 +1100,7 @@ void ItemManager::asyncImportSingleObject_Binary(const std::string& filename,
     }).detach();
 }
 
-bool ItemManager::exportToFile_XML(const std::string& filename) const {
+bool ItemManager::IO_ToFileManager::exportToFile_XML(const std::string& filename) const {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot export to empty filename.", ErrorCode::INVALID_INPUT );
@@ -1002,7 +1108,7 @@ bool ItemManager::exportToFile_XML(const std::string& filename) const {
 
     LOG_CONTEXT(LogLevel::INFO, "Attempting XML export to file: " + filename, {});
 
-    if (items.empty()) {
+    if (parent.items.empty()) {
         LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(
                                           std::runtime_error("No items found for XML export to file '" + filename + "'.")));
     }
@@ -1011,13 +1117,13 @@ bool ItemManager::exportToFile_XML(const std::string& filename) const {
     auto* root = doc.NewElement("SmartStore");
     doc.InsertFirstChild(root);
 
-    for (const auto& [tag, item] : items) {
+    for (const auto& [tag, item] : parent.items) {
         if (!item) {
             LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.", {});
             continue;
         }
 
-        LOG_CONTEXT(LogLevel::INFO, "Exporting item with tag: " + tag + " of type: " + demangleType(item->getTypeName()), {});
+        LOG_CONTEXT(LogLevel::INFO, "Exporting item with tag: " + tag + " of type: " + parent.demangleType(item->getTypeName()), {});
 
         auto* itemElement = doc.NewElement("Item");
 
@@ -1066,7 +1172,7 @@ bool ItemManager::exportToFile_XML(const std::string& filename) const {
     return true;
 }
 
-void ItemManager::asyncExportToFile_XML(const std::string& filename) const {
+void ItemManager::IO_ToFileManager::asyncExportToFile_XML(const std::string& filename) const {
     std::thread([this, filename]() {
         try {
             bool success = this->exportToFile_XML(filename);
@@ -1082,7 +1188,7 @@ void ItemManager::asyncExportToFile_XML(const std::string& filename) const {
     }).detach();
 }
 
-bool ItemManager::importFromFile_XML(const std::string& filename) {
+bool ItemManager::IO_ToFileManager::importFromFile_XML(const std::string& filename) {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot proceed with XML import.", false);
@@ -1129,7 +1235,7 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
 
         if (tag.empty() || typeName.empty() || dataText.empty()) {
             LOG_CONTEXT(LogLevel::WARNING, "Skipping <Item> with empty fields: tag='" + tag + "', type='" 
-                                                    + demangleType(typeName) + "', data='" + dataText + "'", {});
+                                                    + parent.demangleType(typeName) + "', data='" + dataText + "'", {});
             continue;
         }
 
@@ -1144,24 +1250,24 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
             continue;
         }
 
-        LOG_CONTEXT(LogLevel::INFO, "Found item in XML: tag='" + tag + "', type='" + demangleType(typeName) + "'", {});
+        LOG_CONTEXT(LogLevel::INFO, "Found item in XML: tag='" + tag + "', type='" + parent.demangleType(typeName) + "'", {});
         std::cout << Logger::getColorCode(LogColor::YELLOW) << j.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
-        LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(typeName) 
+        LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + parent.demangleType(typeName) 
                                                                     + "' from version: " + std::to_string(version), {});
 
-        json upgraded = migrationRegistry.upgradeToLatest(typeName, version, j);
+        json upgraded = parent.migrationRegistry.upgradeToLatest(typeName, version, j);
 
-        auto it = deserializers.find(typeName);
-        if (it == deserializers.end()) {
-            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + demangleType(typeName) + "' — skipping item with tag '" + tag + "'", {});
+        auto it = parent.deserializers.find(typeName);
+        if (it == parent.deserializers.end()) {
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + parent.demangleType(typeName) + "' — skipping item with tag '" + tag + "'", {});
             continue;
         }
 
         try {
             auto item = it->second(upgraded, tag);
             if (item) {
-                items[tag] = item;
+                parent.items[tag] = item;
                 LOG_CONTEXT(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' from XML.", {});
                 loadedCount++;
             } else {
@@ -1177,7 +1283,7 @@ bool ItemManager::importFromFile_XML(const std::string& filename) {
     return true;
 }
 
-void ItemManager::asyncImportFromFile_XML(const std::string& filename) {
+void ItemManager::IO_ToFileManager::asyncImportFromFile_XML(const std::string& filename) {
     std::thread([this, filename]() {
         try {
             bool success = this->importFromFile_XML(filename);
@@ -1196,9 +1302,9 @@ void ItemManager::asyncImportFromFile_XML(const std::string& filename) {
     }).detach();  // Run the thread in background
 }
 
-std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(const std::string& filename, 
-                                                                             const std::string& type, 
-                                                                             const std::string& tag) {
+std::optional<std::shared_ptr<BaseItem>> ItemManager::IO_ToFileManager::importSingleObject_XML(const std::string& filename, 
+                                                                                               const std::string& type, 
+                                                                                               const std::string& tag) {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot import from XML.", {});
@@ -1206,7 +1312,7 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
     }
 
     LOG_CONTEXT(LogLevel::INFO, "Attempting to import single XML object from file: " + filename + 
-                                        " with type '" + demangleType(type) + "' and tag '" + tag + "'", {});
+                                        " with type '" + parent.demangleType(type) + "' and tag '" + tag + "'", {});
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot import from XML.", {});
@@ -1248,17 +1354,17 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
             if (!j.contains("type")) j["type"] = typeText;
 
             LOG_CONTEXT(LogLevel::INFO, "Found matching item in XML: tag='" + std::string(tagText) + 
-                                                    "', type='" + demangleType(std::string(typeText)) + "'", {});
+                                                    "', type='" + parent.demangleType(std::string(typeText)) + "'", {});
 
             std::cout << Logger::getColorCode(LogColor::YELLOW) << j.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
-            json upgraded = migrationRegistry.upgradeToLatest(type, 1, j); // Assumes version 1 if none is specified.
+            json upgraded = parent.migrationRegistry.upgradeToLatest(type, 1, j); // Assumes version 1 if none is specified.
             LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + std::string(tagText) + "' of type '" 
-                                                        + demangleType(std::string(typeText)) + "' to latest version.", {});
+                                                        + parent.demangleType(std::string(typeText)) + "' to latest version.", {});
 
-            auto it = deserializers.find(type);
-            if (it == deserializers.end()) {
-                LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + demangleType(type) 
+            auto it = parent.deserializers.find(type);
+            if (it == parent.deserializers.end()) {
+                LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + parent.demangleType(type) 
                                                             + "' — cannot import item with tag '" + tag + "'", {});
                 return std::nullopt;
             }
@@ -1266,9 +1372,9 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
             LOG_CONTEXT(LogLevel::INFO, "Attempting to import item with tag '" + tag + "' from XML.", {});
             auto item = it->second(upgraded, tag);
 
-            undoHistory.push_back(cloneCurrentState());
-            redoQueue = {};
-            items[tag] = item;
+            parent.undoHistory.push_back(parent.cloneCurrentState());
+            parent.redoQueue = {};
+            parent.items[tag] = item;
 
             return item;
         } catch (const std::exception& e) {
@@ -1277,18 +1383,18 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::importSingleObject_XML(con
         }
     }
 
-    LOG_CONTEXT(LogLevel::INFO, "No matching item found for tag '" + tag + "' and type '" + demangleType(type)
+    LOG_CONTEXT(LogLevel::INFO, "No matching item found for tag '" + tag + "' and type '" + parent.demangleType(type)
                                                                                  + "' in XML file: " + filename, {});
     return std::nullopt;
 }
 
-void ItemManager::asyncImportSingleObject_XML(const std::string& filename, const std::string& type, const std::string& tag) {
+void ItemManager::IO_ToFileManager::asyncImportSingleObject_XML(const std::string& filename, const std::string& type, const std::string& tag) {
     std::thread([this, filename, type, tag]() {
         try {
             auto result = this->importSingleObject_XML(filename, type, tag);
             if (result.has_value() && result.value()) {
-                std::lock_guard lock(mutex_);  // Ensure thread-safe map update
-                items[tag] = result.value();
+                std::lock_guard lock(parent.mutex_);  // Ensure thread-safe map update
+                parent.items[tag] = result.value();
                 LOG_CONTEXT(LogLevel::INFO, "Async import of single item '" + tag + "' completed successfully from XML file: " + filename, {});
             } else {
                 LOG_CONTEXT(LogLevel::WARNING, "Async import failed or returned null for tag '" + tag + "' from XML file: " + filename, {});
@@ -1303,7 +1409,7 @@ void ItemManager::asyncImportSingleObject_XML(const std::string& filename, const
     }).detach();
 }
 
-bool ItemManager::exportToFile_CSV(const std::string& filename) const {
+bool ItemManager::IO_ToFileManager::exportToFile_CSV(const std::string& filename) const {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "CSV export failed: empty filename.", true);
@@ -1312,7 +1418,7 @@ bool ItemManager::exportToFile_CSV(const std::string& filename) const {
 
     LOG_CONTEXT(LogLevel::INFO, "Attempting CSV export to file: " + filename, {});
 
-    if (items.empty()) {
+    if (parent.items.empty()) {
         LOG_CONTEXT(LogLevel::WARNING, "", std::make_exception_ptr(
                                           std::runtime_error("CSV export failed: No items found for export to file '" + filename + "'.")));
     }
@@ -1320,7 +1426,7 @@ bool ItemManager::exportToFile_CSV(const std::string& filename) const {
     std::ostringstream oss;
     oss << "id,tag,type,data\n"; // CSV header
 
-    for (const auto& [tag, item] : items) {
+    for (const auto& [tag, item] : parent.items) {
         if (!item) {
             LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.", {});
             continue;
@@ -1339,7 +1445,7 @@ bool ItemManager::exportToFile_CSV(const std::string& filename) const {
         }
 
         // Debug preview in terminal
-        LOG_CONTEXT(LogLevel::INFO, "Exporting item: id='" + id + "', tag='" + tag + "', type='" + demangleType(type) + "'", {});
+        LOG_CONTEXT(LogLevel::INFO, "Exporting item: id='" + id + "', tag='" + tag + "', type='" + parent.demangleType(type) + "'", {});
         std::cout << Logger::getColorCode(LogColor::YELLOW) + "{\n"
                   << "  \"id\": \"" << id << "\",\n"
                   << "  \"tag\": \"" << tag << "\",\n"
@@ -1373,7 +1479,7 @@ bool ItemManager::exportToFile_CSV(const std::string& filename) const {
     return true;
 }
 
-void ItemManager::asyncExportToFile_CSV(const std::string& filename) const {
+void ItemManager::IO_ToFileManager::asyncExportToFile_CSV(const std::string& filename) const {
     std::thread([this, filename]() {
         try {
             if (this->exportToFile_CSV(filename)) {
@@ -1391,7 +1497,7 @@ void ItemManager::asyncExportToFile_CSV(const std::string& filename) const {
     }).detach();
 }
 
-bool ItemManager::importFromFile_CSV(const std::string& filename) {
+bool ItemManager::IO_ToFileManager::importFromFile_CSV(const std::string& filename) {
 
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot import from empty filename.", false);
@@ -1413,9 +1519,9 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
         return false;
     }
 
-    undoHistory.push_back(cloneCurrentState());
-    redoQueue = {};
-    items.clear();
+    parent.undoHistory.push_back(parent.cloneCurrentState());
+    parent.redoQueue = {};
+    parent.items.clear();
 
     int loadedCount = 0;
     std::string line;
@@ -1474,8 +1580,8 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
                 version = parsedData["version"];
             }
 
-            json upgradedData = migrationRegistry.upgradeToLatest(type, version, parsedData);
-            LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + demangleType(type) + 
+            json upgradedData = parent.migrationRegistry.upgradeToLatest(type, version, parsedData);
+            LOG_CONTEXT(LogLevel::DEBUG, "Upgrading item '" + tag + "' of type '" + parent.demangleType(type) + 
                                                                         "' from version: " + std::to_string(version), {});
 
             j["data"] = upgradedData;
@@ -1491,16 +1597,16 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
 
         std::cout << "\n" + Logger::getColorCode(LogColor::YELLOW) << j.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
-        auto it = deserializers.find(type);
-        if (it == deserializers.end()) {
-            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + demangleType(type) + "' — skipping item with tag '" + tag + "'", {});
+        auto it = parent.deserializers.find(type);
+        if (it == parent.deserializers.end()) {
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + parent.demangleType(type) + "' — skipping item with tag '" + tag + "'", {});
             continue;
         }
 
         try {
             auto item = it->second(j, tag);
             if (item) {
-                items[tag] = item;
+                parent.items[tag] = item;
                 loadedCount++;
                 LOG_CONTEXT(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' from CSV.", {});
             } else {
@@ -1515,7 +1621,7 @@ bool ItemManager::importFromFile_CSV(const std::string& filename) {
     return true;
 }
 
-void ItemManager::asyncImportFromFile_CSV(const std::string& filename) {
+void ItemManager::IO_ToFileManager::asyncImportFromFile_CSV(const std::string& filename) {
     std::thread([this, filename]() {
         try {
             if (this->importFromFile_CSV(filename)) {
@@ -1533,9 +1639,9 @@ void ItemManager::asyncImportFromFile_CSV(const std::string& filename) {
     }).detach();
 }
 
-std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string& filename, 
-                                                              const std::string& type, 
-                                                              const std::string& tag) {
+std::shared_ptr<BaseItem> ItemManager::IO_ToFileManager::importSingleObject_CSV(const std::string& filename, 
+                                                                                const std::string& type, 
+                                                                                const std::string& tag) {
    
     if (filename.empty()) {
         LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot proceed with CSV import.", {});
@@ -1543,7 +1649,7 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string&
     }
 
     LOG_CONTEXT(LogLevel::INFO, "Attempting to import single CSV object from file: " + filename + " with type '" 
-                                                                    + demangleType(type) + "' and tag '" + tag + "'", {});
+                                                                    + parent.demangleType(type) + "' and tag '" + tag + "'", {});
     
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -1601,7 +1707,7 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string&
             version = rawData["version"];
         }
 
-        json upgradedData = migrationRegistry.upgradeToLatest(typeIn, version, rawData);
+        json upgradedData = parent.migrationRegistry.upgradeToLatest(typeIn, version, rawData);
 
         json wrapper;
         wrapper["id"]   = id;
@@ -1610,25 +1716,25 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string&
         wrapper["data"] = upgradedData;
 
         std::cout << Logger::getColorCode(LogColor::CYAN) + "\n>>> Matched CSV row: tag='"
-                             << tag << "', type='" << demangleType(type) << "'\n" + Logger::getColorCode(LogColor::YELLOW);
+                             << tag << "', type='" << parent.demangleType(type) << "'\n" + Logger::getColorCode(LogColor::YELLOW);
 
         std::cout << Logger::getColorCode(LogColor::YELLOW) << wrapper.dump(4) << Logger::getColorCode(LogColor::RESET) + "\n";
 
-        auto it = deserializers.find(typeIn);
-        if (it == deserializers.end()) {
-            LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + demangleType(typeIn) + 
-                                                    "' — cannot import item with tag '" + demangleType(tagIn) + "'", {});
+        auto it = parent.deserializers.find(typeIn);
+        if (it == parent.deserializers.end()) {
+            LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + parent.demangleType(typeIn) + 
+                                                    "' — cannot import item with tag '" + parent.demangleType(tagIn) + "'", {});
             return nullptr;
         }
 
         try {
             auto item = it->second(wrapper, tagIn);
-            LOG_CONTEXT(LogLevel::INFO, "Attempting to import item with tag '" + demangleType(tagIn) + "' from CSV.", {});
+            LOG_CONTEXT(LogLevel::INFO, "Attempting to import item with tag '" + parent.demangleType(tagIn) + "' from CSV.", {});
 
             // Undo/Redo support (only if it is actually imported)
-            undoHistory.push_back(cloneCurrentState());
-            redoQueue = {};
-            items[tagIn] = item;
+            parent.undoHistory.push_back(parent.cloneCurrentState());
+            parent.redoQueue = {};
+            parent.items[tagIn] = item;
 
             return item;
         } catch (const std::exception& e) {
@@ -1638,17 +1744,17 @@ std::shared_ptr<BaseItem> ItemManager::importSingleObject_CSV(const std::string&
     }
 
     LOG_CONTEXT(LogLevel::INFO, "No matching item found for tag '" + tag + "' and type '" + 
-                                        demangleType(type) + "' in CSV file: " + filename, {});
+                                        parent.demangleType(type) + "' in CSV file: " + filename, {});
                                         return nullptr;
 }
 
-void ItemManager::asyncImportSingleObject_CSV(const std::string& filename, const std::string& type,const std::string& tag){
+void ItemManager::IO_ToFileManager::asyncImportSingleObject_CSV(const std::string& filename, const std::string& type,const std::string& tag){
     std::thread([this, filename, type, tag]() {
         try {
             auto item = this->importSingleObject_CSV(filename, type, tag);
             if (item) {
-                std::lock_guard<std::mutex> lock(mutex_); // protect shared state
-                items[tag] = item;
+                std::lock_guard<std::mutex> lock(parent.mutex_); // protect shared state
+                parent.items[tag] = item;
                 LOG_CONTEXT(LogLevel::INFO, "Async import of single item '" + tag + "' completed successfully from CSV file: " + filename, {});
             } else {
                 LOG_CONTEXT(LogLevel::WARNING, "Async import failed or returned null for tag '" + tag + "' from CSV file: " + filename, {});
@@ -1663,941 +1769,1216 @@ void ItemManager::asyncImportSingleObject_CSV(const std::string& filename, const
     }).detach();
 }
 
-void ItemManager::listRegisteredTypes() const {
-    std::lock_guard<std::mutex> lock(mutex_);
+
+
+
+
+
+
+
+
+template<typename T>
+bool ItemManager::NetworkManager::networkMessage_Send(std::string& msg, std::string& tag) {
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->sendMessage(msg, "");
+            return true;
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Network message failed with tag '" + tag + "'. Requested type: " 
+                        + parent.demangleType(typeid(T).name()) + ", Actual type: " + parent.demangleType(it->second->getTypeName()), {});
+            throw std::runtime_error("\n:::| Please check your item type.\n");
+        }
+        
+    }else{
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to send network message.", ErrorCode::FLAG_FALSE);
+        return false;
+    }
+}
+
+template<typename T>
+bool ItemManager::NetworkManager::networkMessage_Receive(Message msg, std::string& tag){
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            wrapper->receiveMessage(msg);
+            return true;
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Network message failed with tag '" + tag + "'. Requested type: " 
+                        + parent.demangleType(typeid(T).name()) + ", Actual type: " + parent.demangleType(it->second->getTypeName()), {});
+            throw std::runtime_error("\n:::| Please check your item type.\n");
+        }
+        
+    }else{
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to send network message.", ErrorCode::FLAG_FALSE);
+        return false;
+    }
+}
+
+
+
+
+
+
+
+
+template<typename T>
+void ItemManager::ComputerVision::cvFgn_runRestrictedAreaMonitor(int cameraIndex, const std::string& cascadePath, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
     
-    std::cout << Logger::getColorCode(LogColor::CYAN) +":::| Registered Types:\n" + Logger::getColorCode(LogColor::RESET);
-    for (const auto& entry : registeredTypes) {
-        std::cout << " - " << demangleType(entry.first) << std::endl;
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->runRestrictedAreaMonitor(cameraIndex, cascadePath);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Run restricted area failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        {});
+            throw std::runtime_error("\n:::| Please check your item type.\n");
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to Run restricted area.",
+                    ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
-void ItemManager::filterByTag(const std::vector<std::string>& tags) const {
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    std::cout << Logger::getColorCode(LogColor::CYAN)
-              << "\n ::::::| Items filtered by tags |::::::\n"
-              << Logger::getColorCode(LogColor::RESET);
-
-    if (tags.empty()) {
-        LOG_CONTEXT(LogLevel::INFO, "No tags provided for filtering.", {});
-        return;
-    }
-
-    for (const auto& tag : tags) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            it->second->display();  // Found: display the item
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "'.", {});  //  Not found: log it
-        }
-    }
-}
-
-void ItemManager::sortItemsByTag() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-   
-    if (items.empty()) {
-        LOG_CONTEXT(LogLevel::INFO, "No items to sort by tag.", {});
-        return;
-    }
-
-    std::cout << Logger::getColorCode(LogColor::CYAN) + "\n:::::: Items Sorted By Tag ::::::\n" + Logger::getColorCode(LogColor::RESET);
-
-    // Create a temporary std::map which automatically sorts by key (tag)
-    std::map<std::string, const std::shared_ptr<BaseItem>&> sortedItems;
-    for (const auto& [tag, item] : items) {
-        sortedItems.emplace(tag, item);
-    }
-
-    // Display items in sorted order
-    for (const auto& [tag, item] : sortedItems) {
-        std::cout << Logger::getColorCode(LogColor::CYAN) + "[ " + Logger::getColorCode(LogColor::RESET) << tag <<  Logger::getColorCode(LogColor::CYAN) + " ]" + Logger::getColorCode(LogColor::RESET);
-        item->display();
-    }
-}
-
-void ItemManager::displayAllClasses() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-
-    std::unordered_map<std::string, int> classCounts;
-
-    if(items.empty()) {
-        LOG_CONTEXT(LogLevel::INFO, "No items available to display classes.", {});
-        return;
-    }
-
-    for (const auto& [tag, item] : items) {
-        classCounts[item->getTypeName()]++;
-    }
-
-    std::cout << Logger::getColorCode(LogColor::CYAN) + "\n:::::: Unique Item Classes ::::::\n" + Logger::getColorCode(LogColor::RESET);
-
-    for (const auto& [type, count] : classCounts) {
-        std::cout << Logger::getColorCode(LogColor::BLUE) + ":::| " +  Logger::getColorCode(LogColor::RESET)  <<  demangleType(type) <<  Logger::getColorCode(LogColor::BLUE) + "   X" + Logger::getColorCode(LogColor::RESET) << count << '\n';
-    }
-}
-
-const std::unordered_map<std::string, std::shared_ptr<BaseItem>>& ItemManager::getItemMapStore() const {
-    std::lock_guard<std::mutex> lock(mutex_);
-    return items;
-}
-
-
-
-
-
-    /***************************************************************
-     *                   NETWORK AGENT SECTION 
-     ***************************************************************/
-   
-    template<typename T>
-     bool ItemManager::networkMessage_Send(std::string& msg, std::string& tag) {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->sendMessage(msg, "");
-                return true;
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING, "Network message failed with tag '" + tag + "'. Requested type: " 
-                            + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
-                throw std::runtime_error("\n:::| Please check your item type.\n");
-            }
-            
-        }else{
-            LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to send network message.", ErrorCode::FLAG_FALSE);
-            return false;
-        }
-    }
-
-    template<typename T>
-    bool ItemManager::networkMessage_Receive(Message msg, std::string& tag){
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                wrapper->receiveMessage(msg);
-                return true;
-           } else {
-                LOG_CONTEXT(LogLevel::WARNING, "Network message failed with tag '" + tag + "'. Requested type: " 
-                            + demangleType(typeid(T).name()) + ", Actual type: " + demangleType(it->second->getTypeName()), {});
-                throw std::runtime_error("\n:::| Please check your item type.\n");
-            }
-            
-        }else{
-            LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to send network message.", ErrorCode::FLAG_FALSE);
-            return false;
-        }
-    }
-
-
-
-
-    /***************************************************************
-     *                  COMPUTER VISION SECTION 
-     ***************************************************************/
-     template<typename T>
-    void ItemManager::cvFgn_runRestrictedAreaMonitor(int cameraIndex, const std::string& cascadePath, std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->runRestrictedAreaMonitor(cameraIndex, cascadePath);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Run restricted area failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            {});
-                throw std::runtime_error("\n:::| Please check your item type.\n");
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to Run restricted area.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    const std::unordered_map<int, FaceTrack>& ItemManager::cvFgn_getRunRestrictedTracks(std::string& tag) const {
-        static std::unordered_map<int, FaceTrack> emptyMap; // Return an empty map if no items found
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                return wrapper->getRunRestrictedTracks();
-            }
-        }
-        LOG_CONTEXT(LogLevel::WARNING, "No FaceRecognitionItem found to get restricted tracks.", {});
-        return emptyMap;
-    }
-
-    template<typename T>
-    void ItemManager::cvFgn_addRunRestrictedTrack(int id, const FaceTrack& track, std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->addRunRestictedTrack(id, track);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Add restricted track failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to add restricted track.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager::cvFgn_removeRunRestrictedTrack(int id, std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->removeRunRestrictedTrack(id);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Remove restricted track failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to remove restricted track.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager:: cvFgn_resetRunRestrictedConfig(std::string& tag) {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                wrapper->restRunstrictedConfig();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Reset restricted configuration failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to reset restricted configuration.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager:: cvFgn_setRunRestrictedScaleFactor(double scaleFactor, std::string& tag) {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                wrapper->setRunRestrictedScaleFactor(scaleFactor);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set restricted scale factor failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set restricted scale factor.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager:: cvFgn_setRunRestrictedMinNeighbors(int minNeighbors, std::string& tag) {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                wrapper->setRunRestrictedMinNeighbors(minNeighbors);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set restricted min neighbors failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set restricted min neighbors.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager:: cvFgn_setRunRestrictedMinFaceSize(const cv::Size& size, std::string& tag) {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                wrapper->setRunRestrictedMinFaceSize(size);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set restricted min face size failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set restricted min face size.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager:: cvFgn_setIouMatchThreshold(double threshold, std::string& tag) {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                wrapper->setIouMatchThreshold(threshold);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set IOU match threshold failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set IOU match threshold.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    double ItemManager:: cvFgn_getRunRestrictedScaleFactor( std::string& tag) const {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                return wrapper->getRunRestrictedScaleFactor();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Get restricted scale factor failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to get restricted scale factor.",
-                        ErrorCode::ITEM_NOT_FOUND);
-            return 0.0;
-        }
-    }
-
-    template<typename T>
-    int ItemManager:: cvFgn_getRunRestrictedMinNeighbors( std::string& tag) const {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                return wrapper->getRunRestrictedMinNeighbors();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Get restricted min neighbors failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to get restricted min neighbors.",
-                        ErrorCode::ITEM_NOT_FOUND);
-            return 0;
-        }
-    }
-
-    template<typename T>
-    cv::Size ItemManager:: cvFgn_getRunRestrictedMinFaceSize( std::string& tag) const {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                return wrapper->getRunRestrictedMinFaceSize();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Get restricted min face size failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to get restricted min face size.",
-                        ErrorCode::ITEM_NOT_FOUND);
-            return cv::Size();
-        }
-    }
-
-    template<typename T>
-    double ItemManager:: cvFgn_getIouMatchThreshold( std::string& tag) const {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                return wrapper->getIouMatchThreshold();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Get IOU match threshold failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to get IOU match threshold.",
-                        ErrorCode::ITEM_NOT_FOUND);
-            return 0.0;
-        }
-    }
+template<typename T>
+const std::unordered_map<int, FaceTrack>& ItemManager::ComputerVision::cvFgn_getRunRestrictedTracks(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
     
-
-
-
-
-
-
-    template<typename T>
-    double ItemManager::cvFwl_getMonitorCameraThreshold(std::string& tag) const {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                return wrapper->getMonitorCameraThreshold();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Get monitor camera threshold failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to get monitor camera threshold.",
-                        ErrorCode::ITEM_NOT_FOUND);
-            return -1;
+    static std::unordered_map<int, FaceTrack> emptyMap; // Return an empty map if no items found
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->getRunRestrictedTracks();
         }
     }
+    LOG_CONTEXT(LogLevel::WARNING, "No FaceRecognitionItem found to get restricted tracks.", {});
+    return emptyMap;
+}
 
-    template<typename T>
-    void ItemManager::cvFwl_setMonitorCameraThreshold(double newThreshold, std::string& tag) {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                wrapper->setMonitorCameraThreshold(newThreshold);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set monitor camera threshold failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
+template<typename T>
+void ItemManager::ComputerVision::cvFgn_addRunRestrictedTrack(int id, const FaceTrack& track, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->addRunRestictedTrack(id, track);
         } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set monitor camera threshold.",
-                        ErrorCode::ITEM_NOT_FOUND);
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Add restricted track failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
         }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to add restricted track.",
+                    ErrorCode::ITEM_NOT_FOUND);
     }
+}
 
-     template<typename T>
-    void ItemManager::cvFwl_resetMonitorCameraThreshold(std::string& tag) {
-        auto it = items.find(tag);
-        if(it != items.end()){
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if(wrapper){
-                wrapper->resetMonitorCameraThreshold();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Reset monitor camera threshold failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
+template<typename T>
+void ItemManager::ComputerVision::cvFgn_removeRunRestrictedTrack(int id, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->removeRunRestrictedTrack(id);
         } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to reset monitor camera threshold.",
-                        ErrorCode::ITEM_NOT_FOUND);
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Remove restricted track failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
         }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to remove restricted track.",
+                    ErrorCode::ITEM_NOT_FOUND);
     }
+}
 
-    template<typename T>
-    std::string ItemManager::cvFwl_getMonitorCameraCascadePath(std::string& tag) const {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                return wrapper->getMonitorCameraCascadePath();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Get monitor camera cascade path failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
+template<typename T>
+void ItemManager::ComputerVision::cvFgn_resetRunRestrictedConfig(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            wrapper->restRunstrictedConfig();
         } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to get monitor camera cascade path.",
-                        ErrorCode::ITEM_NOT_FOUND);
-            return "";
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Reset restricted configuration failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                      "\n:::| Please check your item type.\n")));
         }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to reset restricted configuration.",
+                    ErrorCode::ITEM_NOT_FOUND);
     }
+}
 
-    template<typename T>
-    void ItemManager::cvFwl_setMonitorCameracascadePath(const std::string& path, std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->setMonitorCameraCascadePath(path);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set monitor camera cascade path failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
+template<typename T>
+void ItemManager::ComputerVision::cvFgn_setRunRestrictedScaleFactor(double scaleFactor, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            wrapper->setRunRestrictedScaleFactor(scaleFactor);
         } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set monitor camera cascade path.",
-                        ErrorCode::ITEM_NOT_FOUND);
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set restricted scale factor failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
         }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set restricted scale factor.",
+                    ErrorCode::ITEM_NOT_FOUND);
     }
+}
 
-    template<typename T>
-    void ItemManager::cvFwl_setMonitorCameraCascadePath(const std::string& path, std::string& tag) {    
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->setMonitorCameraCascadePath(path);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set monitor camera cascade path failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
+template<typename T>
+void ItemManager::ComputerVision::cvFgn_setRunRestrictedMinNeighbors(int minNeighbors, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            wrapper->setRunRestrictedMinNeighbors(minNeighbors);
         } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set monitor camera cascade path.",
-                        ErrorCode::ITEM_NOT_FOUND);
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set restricted min neighbors failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                      "\n:::| Please check your item type.\n")));
         }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set restricted min neighbors.",
+                    ErrorCode::ITEM_NOT_FOUND);
     }
+}
 
-    template<typename T>
-    void ItemManager::cvFwl_loadKnownFaces(const std::vector<std::string>& filePaths, std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->loadKnownFaces(filePaths);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Load known faces failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
+template<typename T>
+void ItemManager::ComputerVision::cvFgn_setRunRestrictedMinFaceSize(const cv::Size& size, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            wrapper->setRunRestrictedMinFaceSize(size);
         } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to load known faces.",
-                        ErrorCode::ITEM_NOT_FOUND);
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set restricted min face size failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                      "\n:::| Please check your item type.\n")));
         }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set restricted min face size.",
+                    ErrorCode::ITEM_NOT_FOUND);
     }
+}
 
-    template<typename T>
-    size_t ItemManager::cvFwl_getKnownFaceCount(std::string& tag) const {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                return wrapper->getKnownFaceCount();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Get known face count failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
+template<typename T>
+void ItemManager::ComputerVision::cvFgn_setIouMatchThreshold(double threshold, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            wrapper->setIouMatchThreshold(threshold);
         } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to get known face count.",
-                        ErrorCode::ITEM_NOT_FOUND);
-            return 0;
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set IOU match threshold failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                      "\n:::| Please check your item type.\n")));
         }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set IOU match threshold.",
+                    ErrorCode::ITEM_NOT_FOUND);
     }
+}
 
-    template<typename T>
-    void ItemManager::cvFwl_resetKnownFaces(std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->resetKnownFaces();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Reset known faces failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                          "\n:::| Please check your item type.\n")));
-            }
+template<typename T>
+double ItemManager::ComputerVision::cvFgn_getRunRestrictedScaleFactor( std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            return wrapper->getRunRestrictedScaleFactor();
         } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to reset known faces.",
-                        ErrorCode::ITEM_NOT_FOUND);
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get restricted scale factor failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                      "\n:::| Please check your item type.\n")));
         }
-    }
-
-
-
-
-
-
-
-
-
-    template<typename T>
-    void ItemManager::cvMdn_setMonitorDetectionDiffThreshold(double threshold, std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->setMonitorDetectionDiffThreshold(threshold);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set monitor detection diff threshold failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set diff threshold.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager::cvMdn_setMonitorDetectionLoiterSeconds(int loiterSeconds, std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->setMonitorDetectionLoiterSeconds(loiterSeconds);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set monitor detection loiter seconds failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set loiter seconds.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager::cvMdn_setMonitorDetectionConfig(double diffThreshold,
-                                                    int minArea,
-                                                    std::size_t crowdThreshold,
-                                                    int loiterSeconds,
-                                                    int leftBehindSeconds,
-                                                    bool enableTracking,
-                                                    std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->setMonitorDetectionConfig(diffThreshold,
-                                                minArea,
-                                                crowdThreshold,
-                                                loiterSeconds,
-                                                leftBehindSeconds,
-                                                enableTracking);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set monitor detection config failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set monitor detection config.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager::cvMdn_setMonitorDetectionAlertCallback(std::function<void(const std::string&)> cb,
-                                                            std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->setMonitorDetectionAlertCallback(cb);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Set monitor detection alert callback failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to set alert callback.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager::cvMdn_resetMonitorDetectionConfig(std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->resetMonitorDetectionConfig();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Reset monitor detection config failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to reset monitor detection config.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager::cvMdn_resetMonitorDetection(std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->resetMonitorDetection();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Reset monitor detection failed with tag '" + tag + "'.",
-                            std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to reset monitor detection.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    void ItemManager::cvMdn_clearMonitorDetectionZones(std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->clearMonitorDetectionZones();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Clear monitor detection zones failed with tag '" + tag + "'.",
-                            std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to clear detection zones.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    template<typename T>
-    bool ItemManager::cvMdn_isMonitorDetectionTrackingEnabled(std::string& tag) const {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                return wrapper->isMonitorDetectionTrackingEnabled();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Check tracking enabled failed with tag '" + tag + "'.",
-                            {});
-                return false;
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to check tracking enabled.",
-                        ErrorCode::ITEM_NOT_FOUND);
-            return false;
-        }
-    }
-
-    template<typename T>
-    bool ItemManager::cvMdn_hasMonitorDetectionCallback(std::string& tag) const {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                return wrapper->hasMonitorDetectionCallback();
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Check monitor detection callback failed with tag '" + tag + "'.",
-                            {});
-                return false;
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to check callback.",
-                        ErrorCode::ITEM_NOT_FOUND);
-            return false;
-        }
-    }
-
-    template<typename T>
-    double ItemManager::cvMdn_getMonitorDetectionDiffThreshold(std::string& tag) const {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) return wrapper->getMonitorDetectionDiffThreshold();
-        }
-        LOG_CONTEXT(LogLevel::ERR, "Failed to get diff threshold for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get restricted scale factor.",
+                    ErrorCode::ITEM_NOT_FOUND);
         return 0.0;
     }
+}
 
-    template<typename T>
-    int ItemManager::cvMdn_getMonitorDetectionMinArea(std::string& tag) const {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) return wrapper->getMonitorDetectionMinArea();
-        }
-        LOG_CONTEXT(LogLevel::ERR, "Failed to get min area for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
-        return 0;
-    }
-
-    template<typename T>
-    std::size_t ItemManager::cvMdn_getMonitorDetectionCrowdThreshold(std::string& tag) const {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) return wrapper->getMonitorDetectionCrowdThreshold();
-        }
-        LOG_CONTEXT(LogLevel::ERR, "Failed to get crowd threshold for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
-        return 0;
-    }
-
-    template<typename T>
-    int ItemManager::cvMdn_getMonitorDetectionLoiterSeconds(std::string& tag) const {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) return wrapper->getMonitorDetectionLoiterSeconds();
-        }
-        LOG_CONTEXT(LogLevel::ERR, "Failed to get loiter seconds for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
-        return 0;
-    }
-
-    template<typename T>
-    int ItemManager::cvMdn_getMonitorDetectionLeftBehindSeconds(std::string& tag) const {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) return wrapper->getMonitorDetectionLeftBehindSeconds();
-        }
-        LOG_CONTEXT(LogLevel::ERR, "Failed to get left-behind seconds for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
-        return 0;
-    }
-
-    // ItemManager.tpp
-    template<typename T>
-    void ItemManager::cvMdn_addMonitorDetectionZone(const Zone& zone, std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->addMonitorDetectionZone(zone);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Add monitor detection zone failed with tag '" + tag +
-                            "'. Requested type: " + demangleType(typeid(T).name()) +
-                            ", Actual type: " + demangleType(it->second->getTypeName()),
-                            std::make_exception_ptr(std::runtime_error(
-                                "\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to add monitor detection zone.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-    // ItemManager.h
-    template<typename T>
-    void ItemManager::cvMdn_runMonitorDetectionMonitorCamera(int cameraIndex, std::string& tag) {
-        auto it = items.find(tag);
-        if (it != items.end()) {
-            auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-            if (wrapper) {
-                wrapper->runMonitorDetectionMonitorCamera(cameraIndex);
-            } else {
-                LOG_CONTEXT(LogLevel::WARNING,
-                            "Run monitor detection camera failed with tag '" + tag + "'.",
-                            std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "No item found with tag '" + tag + "' to run monitor detection camera.",
-                        ErrorCode::ITEM_NOT_FOUND);
-        }
-    }
-
-
-
-
+template<typename T>
+int ItemManager::ComputerVision::cvFgn_getRunRestrictedMinNeighbors( std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
     
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            return wrapper->getRunRestrictedMinNeighbors();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get restricted min neighbors failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                      "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get restricted min neighbors.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return 0;
+    }
+}
+
+template<typename T>
+cv::Size ItemManager::ComputerVision::cvFgn_getRunRestrictedMinFaceSize( std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
     
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            return wrapper->getRunRestrictedMinFaceSize();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get restricted min face size failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                      "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get restricted min face size.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return cv::Size();
+    }
+}
+
+template<typename T>
+double ItemManager::ComputerVision::cvFgn_getIouMatchThreshold( std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            return wrapper->getIouMatchThreshold();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get IOU match threshold failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get IOU match threshold.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return 0.0;
+    }
+}
+    
+
+
+
+
+
+
+
+template<typename T>
+void ItemManager::ComputerVision::cvFwl_monitorCamera(const std::string& cascadePath, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            wrapper->monitorCamera(cascadePath);
+        }else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "monitor camera function failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));   
+        }    
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get monitor camera threshold.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+double ItemManager::ComputerVision::cvFwl_getMonitorCameraThreshold(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            return wrapper->getMonitorCameraThreshold();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get monitor camera threshold failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get monitor camera threshold.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return -1.0;
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvFwl_setMonitorCameraThreshold(double newThreshold, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            wrapper->setMonitorCameraThreshold(newThreshold);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set monitor camera threshold failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set monitor camera threshold.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvFwl_resetMonitorCameraThreshold(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if(it != parent.items.end()){
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if(wrapper){
+            wrapper->resetMonitorCameraThreshold();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Reset monitor camera threshold failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to reset monitor camera threshold.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+std::string ItemManager::ComputerVision::cvFwl_getMonitorCameraCascadePath(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->getMonitorCameraCascadePath();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get monitor camera cascade path failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get monitor camera cascade path.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return "";
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvFwl_setMonitorCameracascadePath(const std::string& path, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setMonitorCameraCascadePath(path);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set monitor camera cascade path failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set monitor camera cascade path.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvFwl_setMonitorCameraCascadePath(const std::string& path, std::string& tag) { 
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setMonitorCameraCascadePath(path);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set monitor camera cascade path failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set monitor camera cascade path.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvFwl_loadKnownFaces(const std::vector<std::string>& filePaths, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->loadKnownFaces(filePaths);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Load known faces failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to load known faces.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+size_t ItemManager::ComputerVision::cvFwl_getKnownFaceCount(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->getKnownFaceCount();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get known face count failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get known face count.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return 0;
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvFwl_resetKnownFaces(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->resetKnownFaces();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Reset known faces failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                                        "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to reset known faces.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+
+
+
+
+
+
+
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_setMonitorDetectionMinArea(int minArea, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setMonitorDetectionMinArea(minArea);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set monitor detection min area failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                            "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set min area.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_setMonitorDetectionDiffThreshold(double threshold, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setMonitorDetectionDiffThreshold(threshold);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set monitor detection diff threshold failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                            "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set diff threshold.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_setMonitorDetectionLoiterSeconds(int loiterSeconds, std::string& tag) {
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setMonitorDetectionLoiterSeconds(loiterSeconds);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set monitor detection loiter seconds failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                            "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set loiter seconds.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_setMonitorDetectionConfig(double diffThreshold,
+                                                int minArea,
+                                                std::size_t crowdThreshold,
+                                                int loiterSeconds,
+                                                int leftBehindSeconds,
+                                                bool enableTracking,
+                                                std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setMonitorDetectionConfig(diffThreshold,
+                                            minArea,
+                                            crowdThreshold,
+                                            loiterSeconds,
+                                            leftBehindSeconds,
+                                            enableTracking);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set monitor detection config failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                            "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set monitor detection config.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_setMonitorDetectionAlertCallback(std::function<void(const std::string&)> cb,
+                                                        std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setMonitorDetectionAlertCallback(cb);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set monitor detection alert callback failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                            "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set alert callback.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_resetMonitorDetectionConfig(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->resetMonitorDetectionConfig();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Reset monitor detection config failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                            "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to reset monitor detection config.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_resetMonitorDetection(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->resetMonitorDetection();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Reset monitor detection failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to reset monitor detection.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_clearMonitorDetectionZones(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->clearMonitorDetectionZones();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Clear monitor detection zones failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to clear detection zones.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+bool ItemManager::ComputerVision::cvMdn_isMonitorDetectionTrackingEnabled(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->isMonitorDetectionTrackingEnabled();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Check tracking enabled failed with tag '" + tag + "'.",
+                        {});
+            return false;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to check tracking enabled.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return false;
+    }
+}
+
+template<typename T>
+bool ItemManager::ComputerVision::cvMdn_hasMonitorDetectionCallback(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->hasMonitorDetectionCallback();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Check monitor detection callback failed with tag '" + tag + "'.",
+                        {});
+            return false;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to check callback.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return false;
+    }
+}
+
+template<typename T>
+double ItemManager::ComputerVision::cvMdn_getMonitorDetectionDiffThreshold(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) return wrapper->getMonitorDetectionDiffThreshold();
+    }
+    LOG_CONTEXT(LogLevel::ERR, "Failed to get diff threshold for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+    return 0.0;
+}
+
+template<typename T>
+int ItemManager::ComputerVision::cvMdn_getMonitorDetectionMinArea(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) return wrapper->getMonitorDetectionMinArea();
+    }
+    LOG_CONTEXT(LogLevel::ERR, "Failed to get min area for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+    return 0;
+}
+
+template<typename T>
+std::size_t ItemManager::ComputerVision::cvMdn_getMonitorDetectionCrowdThreshold(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) return wrapper->getMonitorDetectionCrowdThreshold();
+    }
+    LOG_CONTEXT(LogLevel::ERR, "Failed to get crowd threshold for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+    return 0;
+}
+
+template<typename T>
+int ItemManager::ComputerVision::cvMdn_getMonitorDetectionLoiterSeconds(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) return wrapper->getMonitorDetectionLoiterSeconds();
+    }
+    LOG_CONTEXT(LogLevel::ERR, "Failed to get loiter seconds for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+    return 0;
+}
+
+template<typename T>
+int ItemManager::ComputerVision::cvMdn_getMonitorDetectionLeftBehindSeconds(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) return wrapper->getMonitorDetectionLeftBehindSeconds();
+    }
+    LOG_CONTEXT(LogLevel::ERR, "Failed to get left-behind seconds for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
+    return 0;
+}
+
+// ItemManager.tpp
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_addMonitorDetectionZone(const Zone& zone, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->addMonitorDetectionZone(zone);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Add monitor detection zone failed with tag '" + tag +
+                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
+                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
+                        std::make_exception_ptr(std::runtime_error(
+                            "\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to add monitor detection zone.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+// ItemManager.h
+template<typename T>
+void ItemManager::ComputerVision::cvMdn_runMonitorDetectionMonitorCamera(int cameraIndex, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->runMonitorDetectionMonitorCamera(cameraIndex);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Run monitor detection camera failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to run monitor detection camera.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+
+
+
+
+
+
+template<typename T>
+std::string ItemManager::ComputerVision::cvQRC_scanFromCamera(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->scanFromCamera();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Scan from camera failed with tag '" + tag + "'.",
+                        {});
+                        return "";
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to scan from camera.",
+                    {});
+                    return "";
+    }
+}
+
+template<typename T>
+std::string ItemManager::ComputerVision::cvQRC_scanFromFile(const std::string& imagePath, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->scanFromFile(imagePath);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Scan from file failed with tag '" + tag + "'.",
+                        {});
+                        return "";
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to scan from file.",
+                    {});
+                    return "";
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvQRC_resetConfig(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->resetConfig();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Reset QR code scanner config failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to reset QR code scanner config.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+bool ItemManager::ComputerVision::cvQRC_isPreviewEnabled(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->isPreviewEnabled();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Check preview enabled failed with tag '" + tag + "'.",
+                        {});
+            return false;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to check preview enabled.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return false;
+    }
+}
+
+template<typename T>
+int ItemManager::ComputerVision::cvQRC_getCameraIndex(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->getCameraIndex();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get camera index failed with tag '" + tag + "'.",
+                        {});
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get camera index.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return -1;
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvQRC_setCameraIndex(int index, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setCameraIndex(index);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set camera index failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set camera index.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvQRC_setPreviewEnabled(bool enabled, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setPreviewEnabled(enabled);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set preview enabled failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set preview enabled.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+void ItemManager::AlarmManager::triggerAlarm(Event event, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            std::string eventStr = eventToString(event);
+            // Log with string 
+            LOG_CONTEXT(LogLevel::INFO, "Triggering alarm: " + eventStr + " for tag '" + tag + "'.", {});
+            wrapper->triggerAlarm(eventStr);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Trigger alarm failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to trigger alarm.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+inline std::string ItemManager::AlarmManager::eventToString(Event event) const {
+    switch (event) {
+        case Event::Intrusion:     return "Intrusion";
+        case Event::Door_open:     return "Door_open";
+        case Event::Fire:          return "Fire";
+        case Event::Access:        return "Access";
+        case Event::Warming:       return "Warming";
+        case Event::Confirmation:  return "Confirmation";
+        default:                   return "Unknown";
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     

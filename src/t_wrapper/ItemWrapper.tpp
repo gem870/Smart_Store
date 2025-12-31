@@ -164,14 +164,29 @@ nlohmann::json ItemWrapper<T>::toJson() const {
 
 
 
-   /*
-              MICROSERVEICE SECTION
-          *****************************
 
-          =============================
-          | Networking Agent Funtions |
-          =============================
-    */
+
+
+/*
+            MICROSERVEICE SECTION
+        *****************************
+
+        =======================================================================================
+        | Networking Agent Funtions                                                           |
+        =======================================================================================
+        |                                  Messaging API                                      |
+
+        | These functions provide a communication interface for Smart_Store microservices.    |
+        | They allow objects to send and receive messages across the network using the        |
+        | underlying net_curl/libcurl infrastructure.                                         |
+        |                                                                                     |
+        | Core responsibilities:                                                              |
+        |  - Enable distributed services to exchange data (payloads, commands, events).       |
+        |  - Abstract away low-level networking details, exposing a clean API.                |
+        |  - Support extensibility: any object inheriting BaseMicroservice can participate    |
+        |    in messaging without reimplementing transport logic.                             |
+        =======================================================================================
+*/
 
     template<typename T>
     void ItemWrapper<T>::sendMessage(const std::string& payload, const std::string& recipientID) {
@@ -207,14 +222,29 @@ nlohmann::json ItemWrapper<T>::toJson() const {
 
 
 
-     /*
-              MICROSERVEICE SECTION
-          *****************************
 
-          =============================
-          | Face Recognition Funtions |
-          =============================
-    */
+
+
+/*
+            MICROSERVEICE SECTION
+        *****************************
+
+        =========================================================================================
+        | Face Recognition Funtions                                                             |
+        =========================================================================================
+        |                           Restricted Area Monitoring API                              |
+                                    
+        | These functions provide a complete interface for managing face recognition            |
+        | within restricted zones. The design follows Smart_Store’s philosophy:                 |
+        | every object can inherit computer vision features and expose them when needed.        | 
+        |                                                                                       |
+        | Core responsibilities:                                                                |
+        |  - Start monitoring with a given cascade classifier.                                  |
+        |  - Manage tracked faces (add, remove, reset).                                         |
+        |  - Configure detection parameters (scale factor, neighbors, face size, IOU threshold).|
+        |  - Query current configuration and tracked state.                                     |
+        =========================================================================================
+*/
 
 template<typename T>
 void ItemWrapper<T>::runRestrictedAreaMonitor(int cameraIndex, const std::string& cascadePath) {
@@ -370,7 +400,6 @@ void ItemWrapper<T>::setIouMatchThreshold(double threshold) {
     }
 }
 
-
 template<typename T>
 double ItemWrapper<T>::getRunRestrictedScaleFactor() const {
     if (_faceRecognitionManager) {
@@ -433,14 +462,32 @@ double ItemWrapper<T>::getIouMatchThreshold() const {
 
 
 
-/*
-              MICROSERVEICE SECTION
-          *****************************
 
-          =============================
-          |  Face Watchlist Funtions  |
-          =============================
-    */
+
+
+
+
+
+/*
+            MICROSERVEICE SECTION
+        *****************************
+
+        =======================================================================================
+        | Face Watchlist Funtions                                                             |
+        =======================================================================================
+        |                           Watchlist Management API                                  |
+
+        | These functions provide a complete interface for managing face watchlists           |
+        | within the Smart_Store framework. They allow any object inheriting BaseMicroservice |
+        | to expose watchlist capabilities when needed.                                       |
+        |                                                                                     |
+        | Core responsibilities:                                                              |
+        |  - Load known faces into the watchlist.                                             |
+        |  - Check detected faces against the watchlist.                                      |
+        |  - Configure similarity thresholds and cascade paths.                               |
+        |  - Query current watchlist state.                                                   |
+        =======================================================================================
+*/
 
 template<typename T>
 void ItemWrapper<T>::monitorCamera(const std::string& cascadePath){
@@ -568,15 +615,31 @@ void ItemWrapper<T>::resetKnownFaces(){
 
 
 
-        /*
-                MICROSERVEICE SECTION
-            *****************************
-    
-            ============================
-            | Motion Detection Funtions |
-            ============================
-        */
 
+
+
+
+
+/*
+            MICROSERVEICE SECTION
+        *****************************
+
+        =======================================================================================
+        | Motion Detection Funtions                                                           |
+        =======================================================================================
+        |                           Unified Monitor API                                       |
+
+        | These functions provide a complete interface for managing motion detection          |
+        | within the Smart_Store framework. They allow any object inheriting BaseMicroservice |
+        | to expose motion detection capabilities when needed.                                |
+        |                                                                                     |
+        | Core responsibilities:                                                              |
+        |  - Start unified monitoring on a camera feed.                                       |
+        |  - Manage zones (add, clear).                                                       |
+        |  - Configure detection parameters (diff threshold, min area, crowd threshold, etc.).|
+        |  - Query current configuration and tracking state.                                  |
+        =======================================================================================
+*/
 
 template<typename T>
 void ItemWrapper<T>::setMonitorDetectionDiffThreshold(double threshold) {
@@ -838,6 +901,564 @@ void ItemWrapper<T>::addMonitorDetectionZone(const Zone& zone) {
                     {});
     }
 }
+
+
+
+
+
+
+
+
+
+/*
+            MICROSERVEICE SECTION
+        *****************************
+
+        =======================================================================================
+        | QR Code Scanner Funtions                                                            |
+        =======================================================================================
+        |                           Unified Monitor API                                       |
+
+        | These functions provide a complete interface for managing QR code scanning          |
+        | within the Smart_Store framework. They allow any object inheriting BaseMicroservice |
+        | to expose motion detection capabilities when needed.                                |
+        |                                                                                     |
+        | Core responsibilities:                                                              |
+        |  - Start unified monitoring on a camera feed.                                       |
+        |  - Manage zones (add, clear).                                                       |
+        |  - Configure detection parameters (threshold, min area, crowd threshold, etc.).     |
+        |  - Query current configuration and tracking state.                                  |
+        =======================================================================================
+*/
+
+
+template<typename T>
+std::string ItemWrapper<T>::scanFromCamera(){
+    if (_qrCodeScannerManager) {
+        if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
+            return cvVision->scanFromCamera();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Run QR scanner monitor camera failed.", {});
+            return "";
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Run QR scanner monitor camera not initialized.", {});
+        return "";
+    }
+}
+
+template<typename T>
+std::string ItemWrapper<T>::scanFromFile(const std::string& imagePath) {
+    if (_qrCodeScannerManager) {
+        if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
+            return cvVision->scanFromFile(imagePath);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Scan from file failed.", {});
+            return "";
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Scan from file not initialized.", {});
+        return "";
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::resetConfig() {
+    if (_qrCodeScannerManager) {
+        if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
+            cvVision->resetConfig();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Reset QR code scanner config failed.", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Reset QR code scanner config not initialized.", {});
+    }
+}
+
+template<typename T>
+bool ItemWrapper<T>::isPreviewEnabled() const {
+    if (_qrCodeScannerManager) {
+        if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
+            return cvVision->isPreviewEnabled();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Get preview enabled failed.", {});
+            return false;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Get preview enabled not initialized.", {});
+        return false;
+    }
+}
+
+template<typename T>
+int ItemWrapper<T>::getCameraIndex() const {
+    if (_qrCodeScannerManager) {
+        if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
+            return cvVision->getCameraIndex();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Get camera index failed.", {});
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Get camera index not initialized.", {});
+        return -1;
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::setCameraIndex(int index) {
+    if (_qrCodeScannerManager) {
+        if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
+            cvVision->setCameraIndex(index);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Set camera index failed.", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Set camera index not initialized.", {});
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::setPreviewEnabled(bool enabled) {
+    if (_qrCodeScannerManager) {
+        if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
+            cvVision->setPreviewEnabled(enabled);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Set preview enabled failed.", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Set preview enabled not initialized.", {});
+    }
+}
+
+
+
+
+
+
+
+
+
+/*
+            MICROSERVEICE SECTION
+        *****************************
+
+        =======================================================================================
+        | Document Scanner Functions                                                          |
+        =======================================================================================
+        |                           Unified Monitor API                                       |
+
+        | These functions provide a complete interface for managing document scanning         |
+        | within the Smart_Store framework. They allow any object inheriting BaseMicroservice |
+        | to expose document scanning capabilities when needed.                               |
+        |                                                                                     |
+        | Core responsibilities:                                                              |
+        |  - Start unified monitoring on a camera feed.                                       |
+        |  - Manage zones (add, clear).                                                       |
+        |  - Configure detection parameters (threshold, min area, crowd threshold, etc.).     |
+        |  - Query current configuration and tracking state.                                  |
+        =======================================================================================
+*/
+
+template<typename T>
+void ItemWrapper<T>::setEdgeThreshold(int lowerThreshold, int upperThreshold) {
+    if (_documentScanner) {
+        if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
+            cvVision->setEdgeThresholds(lowerThreshold, upperThreshold);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Set edge threshold failed.", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Set edge threshold not initialized.", {});
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::setContourMinArea(double area) {
+    if (_documentScanner) {
+        if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
+            cvVision->setContourMinArea(area);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Set contour min area failed.", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Set contour min area not initialized.", {});
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::setSharpening(double amount) {
+    if (_documentScanner) {
+        if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
+            cvVision->setSharpening(amount);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Set sharpening failed.", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Set sharpening not initialized.", {});
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::setOutputSize(int width, int height) {
+    if (_documentScanner) {
+        if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
+            cvVision->setOutputSize(width, height);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Set output size failed.", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Set output size not initialized.", {});
+    }
+}
+
+template<typename T>
+int ItemWrapper<T>::getCannyLow() const {
+    if (_documentScanner) {
+        if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
+            return cvVision->getCannyLow();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Get Canny low threshold failed.", {});
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Get Canny low threshold not initialized.", {});
+        return -1;
+    }
+}
+
+template<typename T>
+int ItemWrapper<T>::getCannyHigh() const {
+    if (_documentScanner) {
+        if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
+            return cvVision->getCannyHigh();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Get Canny high threshold failed.", {});
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Get Canny high threshold not initialized.", {});
+        return -1;
+    }
+}
+
+template<typename T>
+double ItemWrapper<T>::getMinContourArea() const {
+    if (_documentScanner) {
+        if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
+            return cvVision->getMinContourArea();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Get min contour area failed.", {});
+            return -1.0;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Get min contour area not initialized.", {});
+        return -1.0;
+    }
+}
+
+template<typename T>
+int ItemWrapper<T>::getOutputWidth() const {
+    if (!_documentScanner) {
+        LOG_CONTEXT(LogLevel::ERR, "Get output width failed: scanner not initialized.", {});
+        return -1;
+    }
+
+    auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get());
+    if (!cvVision) {
+        LOG_CONTEXT(LogLevel::ERR, "Get output width failed: invalid scanner type.", {});
+        return -1;
+    }
+
+    return cvVision->getOutputWidth();
+}
+
+template<typename T>
+int ItemWrapper<T>::getOutputHeight() const {
+    if (!_documentScanner) {
+        LOG_CONTEXT(LogLevel::ERR, "Get output height failed: scanner not initialized.", {});
+        return -1;
+    }
+
+    auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get());
+    if (!cvVision) {
+        LOG_CONTEXT(LogLevel::ERR, "Get output height failed: invalid scanner type.", {});
+        return -1;
+    }
+
+    return cvVision->getOutputHeight();
+}
+
+template<typename T>
+double ItemWrapper<T>::getSharpening() const {
+    if (!_documentScanner) {
+        LOG_CONTEXT(LogLevel::ERR, "Get sharpening failed: scanner not initialized.", {});
+        return -1.0;
+    }
+
+    auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get());
+    if (!cvVision) {
+        LOG_CONTEXT(LogLevel::ERR, "Get sharpening failed: invalid scanner type.", {});
+        return -1.0;
+    }
+
+    return cvVision->getSharpening();
+}
+
+template<typename T>
+void ItemWrapper<T>::run(const std::string& mode,
+                         const std::string& input,
+                         const std::string& output) {
+    if (!_documentScanner) {
+        LOG_CONTEXT(LogLevel::ERR, "Run failed: scanner not initialized.", {});
+        return;
+    }
+
+    auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get());
+    if (!cvVision) {
+        LOG_CONTEXT(LogLevel::ERR, "Run failed: invalid scanner type.", {});
+        return;
+    }
+
+    cvVision->run(mode, input, output);
+}
+
+
+
+
+
+
+
+
+/*
+            MICROSERVICE SECTION
+        *****************************
+
+        =======================================================================================
+        | Document Alarm System Functions                                                     |
+        =======================================================================================
+        |                           Unified Alarm System API                                  |
+
+        | The Alarm System microservice provides a standardized interface for monitoring and  |
+        | triggering alerts within the Smart_Store framework. It extends BaseMicroservice to  |
+        | ensure consistent integration with other services while offering specialized        |
+        | detection and alarm capabilities.                                                   |
+        |                                                                                     |
+        | Core responsibilities:                                                              |
+        |  - Trigger alarms and propagate notifications to other subsystems.                  |
+        |  - Query current configuration and alarm state for reporting and diagnostics.       |
+        =======================================================================================
+*/
+
+template<typename T>
+void ItemWrapper<T>::triggerAlarm(const std::string& message) {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            alarmSys->triggerAlarm(message);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to trigger alarm.")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for triggering alarm.")));
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::setVolume(int level) {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            alarmSys->setVolume(level);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to set alarm volume.")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for setting alarm volume.")));
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::setDuration(int seconds) {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            alarmSys->setDuration(seconds);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to set alarm duration.")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for setting alarm duration.")));
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::setDefaultTone(const std::string& tone) {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            alarmSys->setDefaultTone(tone);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to set default alarm tone.")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for setting default alarm tone.")));
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::setTone(const std::string& toneName, const std::string& filePath) {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            alarmSys->setTone(toneName, filePath);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to set alarm tone.")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for setting alarm tone.")));
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::assignTone(const std::string& event, const std::string& toneName) {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            alarmSys->assignTone(event, toneName);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to assign alarm tone.")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for assigning alarm tone.")));
+    }
+}
+
+template<typename T>
+int ItemWrapper<T>::getVolume() const {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            return alarmSys->getVolume();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to get alarm volume.")));
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for getting alarm volume.")));
+        return -1;
+    }
+}
+
+template<typename T>
+int ItemWrapper<T>::getDuration() const {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            return alarmSys->getDuration();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to get alarm duration.")));
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for getting alarm duration.")));
+        return -1;
+    }
+}
+
+template<typename T>
+std::string ItemWrapper<T>::getDefaultTone() const {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            return alarmSys->getDefaultTone();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to get default alarm tone.")));
+            return "";
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for getting default alarm tone.")));
+        return "";
+    }
+}
+
+template<typename T>
+std::string ItemWrapper<T>::getTone(const std::string& toneName) const {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            return alarmSys->getTone(toneName);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to get alarm tone.")));
+            return "";
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for getting alarm tone.")));
+        return "";
+    }
+}
+
+template<typename T>
+std::string ItemWrapper<T>::getAssignedTone(const std::string& event) const {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            return alarmSys->getAssignedTone(event);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to get assigned alarm tone.")));
+            return "";
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for getting assigned alarm tone.")));
+        return "";
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::resetAlarmConfig() {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            alarmSys->resetConfig();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to reset alarm config.")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for resetting alarm config.")));
+    }
+}
+
+template<typename T>
+void ItemWrapper<T>::playTone(const std::string& toneName) {
+    if (_alarmManager) {
+        if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
+            alarmSys->playTone(toneName);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "",
+                std::make_exception_ptr(std::runtime_error("Failed to play alarm tone.")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "",
+            std::make_exception_ptr(std::runtime_error("Error in operation for playing alarm tone.")));
+    }
+}
+
+
+
+
+
 
 
 

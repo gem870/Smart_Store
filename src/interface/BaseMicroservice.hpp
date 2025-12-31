@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include "message.hpp"
+
 
 class BaseMicroservice {
 public:

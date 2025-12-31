@@ -22,11 +22,13 @@ std::mutex mutex;
 TEST(ItemManagerTest, AddItem) {
     std::cout << "::: Debug: Starting test\n";
 
-    ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
+   ItemManager manager; 
+   ItemManager::StateManager sm{ manager };
+
+    sm.addItem(std::make_shared<int>(42), "item1");
     std::cout << "::: Debug: Added item\n";
 
-    manager.displayByTag("item1");  // Directly display the item
+   // manager.displayByTag("item1");  // Directly display the item
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
 
@@ -34,17 +36,19 @@ TEST(ItemManagerTest, RemoveItem) {
     std::cout << "::: Debug: Starting RemoveItem test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
+    ItemManager::StateManager sm{ manager };
+    
+    sm.addItem(std::make_shared<int>(42), "item1");
     std::cout << "::: Debug: Added item\n";
 
-    manager.removeByTag("item1");
+    sm.removeByTag("item1");
     std::cout << "::: Debug: Removed item\n";
 
     // Instead of checking for an exception, verify the item is gone
-    EXPECT_FALSE(manager.hasItem("item1"));
+    EXPECT_FALSE(sm.hasItem("item1"));
     
     // Optionally check that display doesn't crash or throw
-    EXPECT_THROW(manager.displayByTag("item1"), std::runtime_error);
+    EXPECT_THROW(sm.displayByTag("item1"), std::runtime_error);
 
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
@@ -53,13 +57,15 @@ TEST(ItemManagerTest, ModifyItem) {
     std::cout << "::: Debug: Starting ModifyItem test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
+    ItemManager::StateManager sm{ manager };
+
+    sm.addItem(std::make_shared<int>(42), "item1");
     std::cout << "::: Debug: Added item\n";
 
-    manager.modifyItem<int>("item1", [](int& value) { value = 84; });
+    sm.modifyItem<int>([](int& value) { value = 84; }, "item1");
     std::cout << "::: Debug: Modified item\n";
 
-    manager.displayByTag("item1");  // Directly display the item
+    sm.displayByTag("item1");  // Directly display the item
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
 
@@ -67,10 +73,11 @@ TEST(ItemManagerTest, GetItem) {
     std::cout << "::: Debug: Starting GetItem test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
+    ItemManager::StateManager sm{ manager };
+    sm.addItem(std::make_shared<int>(42), "item1");
     std::cout << "::: Debug: Added item\n";
 
-    auto item = manager.getItem<int>("item1");
+    auto item = sm.getItem<int>("item1");
     ASSERT_TRUE(item.has_value());
     EXPECT_EQ(item.value(), 42);
     std::cout << "::: Debug: Retrieved item with value: " << item.value() << "\n";
@@ -82,20 +89,21 @@ TEST(ItemManagerTest, Undo) {
     std::cout << "::: Debug: Starting Undo test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
+    ItemManager::StateManager sm{ manager };
+    sm.addItem(std::make_shared<int>(42), "item1");
     std::cout << "::: Debug: Added item\n";
 
-    manager.addItem(std::make_shared<int>(84), "item2");
+    sm.addItem(std::make_shared<int>(84), "item2");
     std::cout << "::: Debug: Added another item\n";
 
-    manager.undo();
+    sm.undo();
     std::cout << "::: Debug: Performed undo\n";
 
     // Instead of expecting an exception, confirm item2 is gone
-    EXPECT_FALSE(manager.hasItem("item2"));
+    EXPECT_FALSE(sm.hasItem("item2"));
     
     // Also verify displayByTag doesn't throw anymore
-    EXPECT_THROW(manager.displayByTag("item2"), std::runtime_error);
+    EXPECT_THROW(sm.displayByTag("item2"), std::runtime_error);
 
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
@@ -104,19 +112,21 @@ TEST(ItemManagerTest, Redo) {
     std::cout << "::: Debug: Starting Redo test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
+    ItemManager::StateManager sm{ manager };
+
+    sm.addItem(std::make_shared<int>(42), "item1");
     std::cout << "::: Debug: Added item\n";
 
-    manager.addItem(std::make_shared<int>(84), "item2");
+    sm.addItem(std::make_shared<int>(84), "item2");
     std::cout << "::: Debug: Added another item\n";
 
-    manager.undo();
+    sm.undo();
     std::cout << "::: Debug: Performed undo\n";
 
-    manager.redo();
+    sm.redo();
     std::cout << "::: Debug: Performed redo\n";
 
-    manager.displayByTag("item2");  // Directly display the item
+    sm.displayByTag("item2");  // Directly display the item
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
 
@@ -124,11 +134,13 @@ TEST(ItemManagerTest, DisplayAll) {
     std::cout << "::: Debug: Starting DisplayAll test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
-    manager.addItem(std::make_shared<std::string>("Hello"), "item2");
+    ItemManager::StateManager sm{ manager };
+
+    sm.addItem(std::make_shared<int>(42), "item1");
+    sm.addItem(std::make_shared<std::string>("Hello"), "item2");
     std::cout << "::: Debug: Added items\n";
 
-    manager.displayAll();  // Directly display all items
+    sm.displayAll();  // Directly display all items
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
 
@@ -136,11 +148,12 @@ TEST(ItemManagerTest, ListRegisteredTypes) {
     std::cout << "::: Debug: Starting ListRegisteredTypes test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
-    manager.addItem(std::make_shared<std::string>("Hello"), "item2");
+    ItemManager::StateManager sm{ manager };
+    sm.addItem(std::make_shared<int>(42), "item1");
+    sm.addItem(std::make_shared<std::string>("Hello"), "item2");
     std::cout << "::: Debug: Added items\n";
 
-    manager.listRegisteredTypes();  // Directly display the registered types
+    sm.listRegisteredTypes();  // Directly display the registered types
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
 
@@ -148,12 +161,14 @@ TEST(ItemManagerTest, FilterByTag) {
     std::cout << "::: Debug: Starting FilterByTag test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "apple");
-    manager.addItem(std::make_shared<std::string>("banana"), "banana");
+    ItemManager::StateManager sm{ manager };
+
+    sm.addItem(std::make_shared<int>(42), "apple");
+    sm.addItem(std::make_shared<std::string>("banana"), "banana");
     auto boy = std::make_shared<int>(12);
     auto girl = std::make_shared<std::string>("Alice");
-    manager.addItem(boy, "Boy1");
-    manager.addItem(girl, "Girl1");
+    sm.addItem(boy, "Boy1");
+    sm.addItem(girl, "Girl1");
 
     std::vector<std::string> tags;
     tags.push_back("apple");
@@ -161,7 +176,7 @@ TEST(ItemManagerTest, FilterByTag) {
     tags.push_back("Boy1");
     tags.push_back("Girl1");
     tags.push_back("nonexistent");  // This tag doesn't exist
-    manager.filterByTag(tags);
+    sm.filterByTag(tags);
 
     std::cout << "::: Debug: FilterByTag test completed successfully\n";
 }
@@ -170,11 +185,13 @@ TEST(ItemManagerTest, SortItemsByTag) {
     std::cout << "::: Debug: Starting SortItemsByTag test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "b_item");
-    manager.addItem(std::make_shared<std::string>("Hello"), "a_item");
+    ItemManager::StateManager sm{ manager };
+
+    sm.addItem(std::make_shared<int>(42), "b_item");
+    sm.addItem(std::make_shared<std::string>("Hello"), "a_item");
     std::cout << "::: Debug: Added items\n";
 
-    manager.sortItemsByTag();  // Directly display the sorted items
+    sm.sortItemsByTag();  // Directly display the sorted items
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
 
@@ -182,12 +199,14 @@ TEST(ItemManagerTest, DisplayAllClasses) {
     std::cout << "::: Debug: Starting DisplayAllClasses test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
-    manager.addItem(std::make_shared<int>(84), "item2");
-    manager.addItem(std::make_shared<std::string>("Hello"), "item3");
+    ItemManager::StateManager sm{ manager };
+
+    sm.addItem(std::make_shared<int>(42), "item1");
+    sm.addItem(std::make_shared<int>(84), "item2");
+    sm.addItem(std::make_shared<std::string>("Hello"), "item3");
     std::cout << "::: Debug: Added items\n";
 
-    manager.displayAllClasses();  // Directly display the unique item classes
+    sm.displayAllClasses();  // Directly display the unique item classes
     std::cout << "::: Debug: Test Completed Successfully\n";
 }
 
@@ -195,23 +214,25 @@ TEST(ItemManagerTest, GetItemRaw) {
     std::cout << "::: Debug: Starting GetItemRaw test\n";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
-    manager.addItem(std::make_shared<std::string>("Hello"), "item2");
+    ItemManager::StateManager sm{ manager };
+
+    sm.addItem(std::make_shared<int>(42), "item1");
+    sm.addItem(std::make_shared<std::string>("Hello"), "item2");
     std::cout << "::: Debug: Added items\n";
 
     // Test non-const version
-    int& intRef = manager.getItemRaw<int>("item1");
+    int& intRef = sm.getItemRaw<int>("item1");
     EXPECT_EQ(intRef, 42);
     intRef = 100;  // Modify the value
-    EXPECT_EQ(manager.getItemRaw<int>("item1"), 100);
+    EXPECT_EQ(sm.getItemRaw<int>("item1"), 100);
 
     // Test const version
-    const std::string& strRef = manager.getItemRaw<std::string>("item2");
+    const std::string& strRef = sm.getItemRaw<std::string>("item2");
     EXPECT_EQ(strRef, "Hello");
 
     // Test type mismatch
     try {
-        manager.getItemRaw<double>("item1");
+        sm.getItemRaw<double>("item1");
         FAIL() << "Expected std::runtime_error due to type mismatch.";
     } catch (const std::runtime_error& e) {
         EXPECT_STREQ(e.what(), "\n:::| Type mismatch for item with tag 'item1'.\n");
@@ -219,7 +240,7 @@ TEST(ItemManagerTest, GetItemRaw) {
 
     // Test tag not found
     try {
-        manager.getItemRaw<int>("nonexistent");
+        sm.getItemRaw<int>("nonexistent");
         FAIL() << "Expected std::runtime_error due to missing tag.";
     } catch (const std::runtime_error& e) {
         EXPECT_STREQ(e.what(), "\n:::| Item with tag 'nonexistent' not found.\n");
@@ -246,15 +267,18 @@ void from_json(const json& j, Dummy& d) {
 class ItemManagerTest : public ::testing::Test {
 protected:
     ItemManager manager;
+    ItemManager::StateManager sm{ manager };
 };
 
 TEST(ItemManagerTest, AddAndRetrieveDummy) {
     ItemManager manager;
+    ItemManager::StateManager sm{ manager };
+
     auto dummy = std::make_shared<Dummy>();
     dummy->value = 77;
 
-    manager.addItem(dummy, "d1");  // 🔄 Automatically registers Dummy type
-    auto result = manager.getItem<Dummy>("d1");
+    sm.addItem(dummy, "d1");  // 🔄 Automatically registers Dummy type
+    auto result = sm.getItem<Dummy>("d1");
 
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result->value, 77);
@@ -262,11 +286,13 @@ TEST(ItemManagerTest, AddAndRetrieveDummy) {
 
 TEST(ItemManagerTest, AddAndGetItem) {
     ItemManager manager;
+    ItemManager::StateManager sm{ manager };
+
     auto dummy = std::make_shared<Dummy>();
     dummy->value = 42;
 
-    manager.addItem(dummy, "testDummy");
-    auto result = manager.getItem<Dummy>("testDummy");
+    sm.addItem(dummy, "testDummy");
+    auto result = sm.getItem<Dummy>("testDummy");
 
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result->value, 42);
@@ -276,12 +302,14 @@ TEST(ItemManagerTest, TypeMismatchReturnsNullopt) {
     std::cout << "::: Debug: Starting TypeMismatchReturnsNullopt test\n";
 
     ItemManager manager;
+    ItemManager::StateManager sm{ manager };
+
     auto dummy = std::make_shared<Dummy>();
-    manager.addItem(dummy, "wrongTypeTag");
+    sm.addItem(dummy, "wrongTypeTag");
 
     // Attempt to get wrong type: should fail and return nullopt
     std::optional<std::string> result;
-    EXPECT_THROW(result = manager.getItem<std::string>("wrongTypeTag"),
+    EXPECT_THROW(result = sm.getItem<std::string>("wrongTypeTag"),
           std::runtime_error) << "Expected std::runtime_error due to type mismatch.";
     EXPECT_FALSE(result.has_value()) << "Expected std::nullopt due to type mismatch.";
 
@@ -290,8 +318,10 @@ TEST(ItemManagerTest, TypeMismatchReturnsNullopt) {
 
 TEST(ItemManagerTest, UnknownTagReturnsNullopt) {
     ItemManager manager;
+    ItemManager::StateManager sm{ manager };
+
     std::optional<std::string> result;
-    EXPECT_THROW(result = manager.getItem<std::string>("nonexistentTag"),
+    EXPECT_THROW(result = sm.getItem<std::string>("nonexistentTag"),
           std::runtime_error) << "Expected std::runtime_error due to unknown tag.";
     EXPECT_FALSE(result.has_value());
 }
@@ -299,8 +329,8 @@ TEST(ItemManagerTest, UnknownTagReturnsNullopt) {
 
     
 
-// :::::::: GlobalItemManager Tests ::::::::
-// *****************************************
+// // :::::::: GlobalItemManager Tests ::::::::
+// // *****************************************
 
 
 // Test singleton behavior
@@ -315,12 +345,15 @@ TEST(GlobalItemManagerTest, SingletonBehavior) {
 TEST(GlobalItemManagerTest, AccessItemManager) {
     GlobalItemManager& globalManager = GlobalItemManager::getInstance();
     ItemManager& itemManager = globalManager.getItemManager();
+    ItemManager::StateManager sm{ itemManager };
+
+    
 
     // Add an item to the ItemManager
-    itemManager.addItem(std::make_shared<int>(42), "testItem");
+    sm.addItem(std::make_shared<int>(42), "testItem");
 
     // Verify that the item was added
-    EXPECT_NO_THROW(itemManager.displayByTag("testItem"));
+    EXPECT_NO_THROW(sm.displayByTag("testItem"));
 }
 
 TEST(GlobalItemManagerTest, ResetItemManager) {
@@ -328,19 +361,21 @@ TEST(GlobalItemManagerTest, ResetItemManager) {
     globalManager.resetItemManager();  // Ensure clean state
 
     ItemManager& itemManager = globalManager.getItemManager();
-    itemManager.addItem(std::make_shared<int>(42), "testItem");
+    ItemManager::StateManager sm{ itemManager };
+    sm.addItem(std::make_shared<int>(42), "testItem");
 
     globalManager.resetItemManager();  // Reset again
 
     ItemManager& newItemManager = globalManager.getItemManager();
-    EXPECT_FALSE(newItemManager.hasItem("testItem"));
-    EXPECT_THROW(newItemManager.displayByTag("testItem"), std::runtime_error);
+    ItemManager::StateManager sm2{ newItemManager };
+    EXPECT_FALSE(sm2.hasItem("testItem"));
+    EXPECT_THROW(sm2.displayByTag("testItem"), std::runtime_error);
 }
 
 
 
-// ::::: Test suite for export and import of files (different file formats) :::::
-// ******************************************************************************
+// // ::::: Test suite for export and import of files (different file formats) :::::
+// // ******************************************************************************
 
 struct Dummy2 {
     int value = 0;
@@ -442,20 +477,27 @@ TEST(ItemManagerTest, ExportImport_RestoresDummy2Correctly) {
 
     // 1. Create and add the item
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+    
     auto dummy = std::make_shared<Dummy2>();
     dummy->value = 99;
-    manager.addItem(dummy, "dummy2_1");
+    sm.addItem(dummy, "dummy2_1");
 
     // 2. Export to file
-    manager.exportToFile_Json(filename);
+    io.exportToFile_Json(filename);
 
     // 3. Create a new manager and import
     ItemManager imported;
-    imported.addItem(std::make_shared<Dummy2>(Dummy2{0}), "dummy2_reg"); // Register type
-    imported.importFromFile_Json(filename);
+    ItemManager::StateManager smImport{imported};
+    ItemManager::IO_ToFileManager ioImport{imported};
+    
+
+    smImport.addItem(std::make_shared<Dummy2>(Dummy2{0}), "dummy2_reg"); // Register type
+    ioImport.importFromFile_Json(filename);
 
     // 4. Check the imported item
-    auto dummyOpt = imported.getItem<Dummy2>("dummy2_1");
+    auto dummyOpt = smImport.getItem<Dummy2>("dummy2_1");
     ASSERT_TRUE(dummyOpt.has_value());
     EXPECT_EQ(dummyOpt->value, 99);
 
@@ -467,20 +509,25 @@ TEST(ItemManagerTest, ExportImport_RestoresAlternativeDummy2Correctly) {
 
     // 1. Create and add the item
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
     auto dummy = std::make_shared<Dummy2>();
     dummy->value = 123;
-    manager.addItem(dummy, "dummy2_X");
+    sm.addItem(dummy, "dummy2_X");
 
     // 2. Export to file
-    manager.exportToFile_Json(filename);
+    io.exportToFile_Json(filename);
 
     // 3. Create a new manager and import
     ItemManager imported;
-    imported.addItem(std::make_shared<Dummy2>(Dummy2{0}), "dummy2_reg"); // Register type
-    imported.importFromFile_Json(filename);
+    ItemManager::StateManager smImport{imported};
+    ItemManager::IO_ToFileManager ioImport{imported};
+    smImport.addItem(std::make_shared<Dummy2>(Dummy2{0}), "dummy2_reg"); // Register type
+    ioImport.importFromFile_Json(filename);
 
     // 4. Check the imported item
-    auto dummyOpt = imported.getItem<Dummy2>("dummy2_X");
+    auto dummyOpt = smImport.getItem<Dummy2>("dummy2_X");
     ASSERT_TRUE(dummyOpt.has_value());
     EXPECT_EQ(dummyOpt->value, 123);
 
@@ -508,11 +555,14 @@ struct DummyCSV {
 class CSVExportTest : public ::testing::Test {
 protected:
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
     std::string filename = "test_csv_output.csv";
 
     void SetUp() override {
         auto dummy = std::make_shared<DummyCSV>(DummyCSV{"Echo", 88});
-        manager.addItem(dummy, "csv_test");
+        sm.addItem(dummy, "csv_test");
     }
 
     void TearDown() override {
@@ -521,7 +571,7 @@ protected:
 };
 
 TEST_F(CSVExportTest, ExportCreatesValidCSVFile) {
-    ASSERT_TRUE(manager.exportToFile_CSV(filename));
+    ASSERT_TRUE(io.exportToFile_CSV(filename));
 
     std::ifstream file(filename);
     ASSERT_TRUE(file.is_open());
@@ -572,15 +622,18 @@ TEST(CSVImportExportTest, ExportThenImportItemMatchesOriginal) {
     const std::string tag = "csv_test_tag";
 
     ItemManager importer;
-    auto dummy = std::make_shared<DummyCSV2>(DummyCSV2{"Echo", 88});
-    importer.addItem(dummy, tag);
-    ASSERT_TRUE(importer.exportToFile_CSV("test_csv_output.csv"));
+    ItemManager::StateManager smImport{importer};
+    ItemManager::IO_ToFileManager ioImport{importer};
 
-    importer.addItem(std::make_shared<DummyCSV2>(DummyCSV2{"", 0}), "dummy_reg");  // register type
-    ASSERT_TRUE(importer.importFromFile_CSV("test_csv_output.csv"));
+    auto dummy = std::make_shared<DummyCSV2>(DummyCSV2{"Echo", 88});
+    smImport.addItem(dummy, tag);
+    ASSERT_TRUE(ioImport.exportToFile_CSV("test_csv_output.csv"));
+
+    smImport.addItem(std::make_shared<DummyCSV2>(DummyCSV2{"", 0}), "dummy_reg");  // register type
+    ASSERT_TRUE(ioImport.importFromFile_CSV("test_csv_output.csv"));
 
     // Verify roundtrip
-    auto imported = importer.getItem<DummyCSV2>(tag);
+    auto imported = smImport.getItem<DummyCSV2>(tag);
     ASSERT_TRUE(imported.has_value());
     EXPECT_EQ(imported->name, "Echo");
     EXPECT_EQ(imported->score, 88);
@@ -613,16 +666,18 @@ TEST(CSVSingleImportTest, ImportOneObjectByTagAndType) {
 
     // Step 1: Setup manager and register type
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
 
     // Add one item to export
-    manager.addItem(std::make_shared<DummyCSV3>(DummyCSV3{"Solo", 33}), tag);
+    sm.addItem(std::make_shared<DummyCSV3>(DummyCSV3{"Solo", 33}), tag);
 
-    ASSERT_TRUE(manager.exportToFile_CSV(filename));
+    ASSERT_TRUE(io.exportToFile_CSV(filename));
 
     // Step 2: Import item
     std::shared_ptr<BaseItem> item;
     try {
-        item = manager.importSingleObject_CSV(filename, typeKey, tag);
+        item = io.importSingleObject_CSV(filename, typeKey, tag);
     } catch (const std::exception& ex) {
         FAIL() << "Import failed with exception: " << ex.what();
     }
@@ -667,12 +722,14 @@ struct WithoutSchema {
 TEST(ItemManagerTest, ExportIncludesSchemaOnlyForTypesWithSchema) {
     const std::string filename = "test_schemas.json";
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
 
     // Add items — triggers schema registration automatically
-    manager.addItem(std::make_shared<WithSchema>(WithSchema{"Ada", 30}), "with-schema");
-    manager.addItem(std::make_shared<WithoutSchema>(WithoutSchema{101}), "no-schema");
+    sm.addItem(std::make_shared<WithSchema>(WithSchema{"Ada", 30}), "with-schema");
+    sm.addItem(std::make_shared<WithoutSchema>(WithoutSchema{101}), "no-schema");
 
-    manager.exportToFile_Json(filename);
+    io.exportToFile_Json(filename);
 
     // Read export
     std::ifstream file(filename);
@@ -703,19 +760,21 @@ TEST(ItemManagerTest, ExportIncludesSchemaOnlyForTypesWithSchema) {
 TEST(ItemManagerTest, ImportFromFile_JSON_RestoresItemsCorrectly) {
     const std::string filename = "test_import.json";
     ItemManager original;
+    ItemManager::StateManager sm{original};
+    ItemManager::IO_ToFileManager io{original};
     // Add test data
-    original.addItem(std::make_shared<WithSchema>(WithSchema{"Ada", 30}), "ada");
-    original.addItem(std::make_shared<WithoutSchema>(WithoutSchema{99}), "anon");
+    sm.addItem(std::make_shared<WithSchema>(WithSchema{"Ada", 30}), "ada");
+    sm.addItem(std::make_shared<WithoutSchema>(WithoutSchema{99}), "anon");
 
     // Export to file
-    original.exportToFile_Json(filename);
+    io.exportToFile_Json(filename);
 
     // Import into a new manager instance
-    original.importFromFile_Json(filename);
+    io.importFromFile_Json(filename);
 
     // Check contents
-    auto ada = original.getItem<WithSchema>("ada");
-    auto anon = original.getItem<WithoutSchema>("anon");
+    auto ada = sm.getItem<WithSchema>("ada");
+    auto anon = sm.getItem<WithoutSchema>("anon");
 
     ASSERT_TRUE(ada.has_value());
     ASSERT_TRUE(anon.has_value());
@@ -730,17 +789,19 @@ TEST(ItemManagerTest, ImportFromFile_JSON_RestoresItemsCorrectly) {
 TEST(ItemManagerTest, ImportSingleObject_JSON_WorksForBothTypes) {
     const std::string filename = "test_import_single.json";
     ItemManager restored;
+    ItemManager::StateManager sm{restored};
+    ItemManager::IO_ToFileManager io{restored};
 
     // Add test data
-    restored.addItem(std::make_shared<WithSchema>(WithSchema{"Ada", 30}), "ada");
-    restored.addItem(std::make_shared<WithoutSchema>(WithoutSchema{99}), "anon");
+    sm.addItem(std::make_shared<WithSchema>(WithSchema{"Ada", 30}), "ada");
+    sm.addItem(std::make_shared<WithoutSchema>(WithoutSchema{99}), "anon");
 
     // Export to file
-    restored.exportToFile_Json(filename);
+    io.exportToFile_Json(filename);
 
 
     // Import single object with schema
-    auto adaItem = restored.importSingleObject_Json(filename, typeid(WithSchema).name(), "ada");
+    auto adaItem = io.importSingleObject_Json(filename, typeid(WithSchema).name(), "ada");
     ASSERT_NE(adaItem, nullptr);
     EXPECT_EQ(adaItem->getTag(), "ada");
     EXPECT_EQ(adaItem->getTypeName(), typeid(WithSchema).name());
@@ -751,7 +812,7 @@ TEST(ItemManagerTest, ImportSingleObject_JSON_WorksForBothTypes) {
     EXPECT_EQ(ada->getData().age, 30);
 
     // Import single object without schema
-    auto anonItem = restored.importSingleObject_Json(filename, typeid(WithoutSchema).name(), "anon");
+    auto anonItem = io.importSingleObject_Json(filename, typeid(WithoutSchema).name(), "anon");
     ASSERT_NE(anonItem, nullptr);
     EXPECT_EQ(anonItem->getTag(), "anon");
     EXPECT_EQ(anonItem->getTypeName(), typeid(WithoutSchema).name());
@@ -765,11 +826,14 @@ TEST(ItemManagerTest, ImportSingleObject_JSON_WorksForBothTypes) {
 
 TEST(ItemManagerTest, ExportToFileJson_WritesCorrectStructureAndIds) {
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
-    manager.addItem(std::make_shared<std::string>("hello"), "item2");
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<int>(42), "item1");
+    sm.addItem(std::make_shared<std::string>("hello"), "item2");
 
     std::string filename = "test_export_only.json";
-    manager.exportToFile_Json(filename);
+    io.exportToFile_Json(filename);
 
     // Check exported file exists and is readable      
     std::ifstream ifs(filename);
@@ -831,12 +895,15 @@ TEST(ItemManagerTest, ImportSingleObjectJson_FindsAndRestoresObject) {
     ofs.close();
 
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
     // Use addItem to ensure automatic type registration
-    manager.addItem(std::make_shared<int>(0), "dummy_int");
-    manager.addItem(std::make_shared<std::string>(""), "dummy_str");
+    sm.addItem(std::make_shared<int>(0), "dummy_int");
+    sm.addItem(std::make_shared<std::string>(""), "dummy_str");
 
     // Import item1 (int)
-    auto item1 = manager.importSingleObject_Json(filename, typeid(int).name(), "item1");
+    auto item1 = io.importSingleObject_Json(filename, typeid(int).name(), "item1");
     ASSERT_TRUE(item1 != nullptr);
     auto wrapper1 = dynamic_cast<ItemWrapper<int>*>(item1.get());
     ASSERT_TRUE(wrapper1 != nullptr);
@@ -844,7 +911,7 @@ TEST(ItemManagerTest, ImportSingleObjectJson_FindsAndRestoresObject) {
     EXPECT_EQ(wrapper1->getId(), "obj_101");
 
     // Import item2 (string)
-    auto item2 = manager.importSingleObject_Json(filename, typeid(std::string).name(), "item2");
+    auto item2 = io.importSingleObject_Json(filename, typeid(std::string).name(), "item2");
     ASSERT_TRUE(item2 != nullptr);
     auto wrapper2 = dynamic_cast<ItemWrapper<std::string>*>(item2.get());
     ASSERT_TRUE(wrapper2 != nullptr);
@@ -852,7 +919,7 @@ TEST(ItemManagerTest, ImportSingleObjectJson_FindsAndRestoresObject) {
     EXPECT_EQ(wrapper2->getId(), "obj_102");
 
     // Try importing a non-existent object
-    auto notFound = manager.importSingleObject_Json(filename, typeid(double).name(), "item3");
+    auto notFound = io.importSingleObject_Json(filename, typeid(double).name(), "item3");
     EXPECT_EQ(notFound, nullptr);
 
     // Clean up
@@ -892,24 +959,27 @@ TEST(ItemManagerTest, ImportFromFileJson_RestoresAllItemsWithCorrectIdAndValue) 
     ofs.close();
 
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
     // Use addItem to ensure automatic type registration
-    manager.addItem(std::make_shared<int>(0), "dummy_int");
-    manager.addItem(std::make_shared<std::string>(""), "dummy_str");
+    sm.addItem(std::make_shared<int>(0), "dummy_int");
+    sm.addItem(std::make_shared<std::string>(""), "dummy_str");
 
     // Now import from file
-    manager.importFromFile_Json(filename);
+    io.importFromFile_Json(filename);
 
     // Check that both items exist and have correct values
-    auto intOpt = manager.getItem<int>("item1");
+    auto intOpt = sm.getItem<int>("item1");
     ASSERT_TRUE(intOpt.has_value());
     EXPECT_EQ(intOpt.value(), 42);
 
-    auto strOpt = manager.getItem<std::string>("item2");
+    auto strOpt = sm.getItem<std::string>("item2");
     ASSERT_TRUE(strOpt.has_value());
     EXPECT_EQ(strOpt.value(), "hello");
 
     // Check that the ids are restored
-    auto& items = manager.getItemMapStore();
+    auto& items = sm.getItemMapStore();
     EXPECT_EQ(items.at("item1")->getId(), "obj_101");
     EXPECT_EQ(items.at("item2")->getId(), "obj_102");
 
@@ -920,30 +990,36 @@ TEST(ItemManagerTest, ImportFromFileJson_RestoresAllItemsWithCorrectIdAndValue) 
 TEST(ItemManagerTest, ExportImport_Binary_RestoresAllItemsWithCorrectIdAndValue) {
     // Setup: Add two items and export to binary
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
-    manager.addItem(std::make_shared<std::string>("hello"), "item2");
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+    
+    sm.addItem(std::make_shared<int>(42), "item1");
+    sm.addItem(std::make_shared<std::string>("hello"), "item2");
 
     std::string filename = "test_export_import.bin";
-    ASSERT_TRUE(manager.exportToFile_Binary(filename));
+    ASSERT_TRUE(io.exportToFile_Binary(filename));
 
     // Clear and import from binary
     ItemManager imported;
+    ItemManager::StateManager smImport{imported};
+    ItemManager::IO_ToFileManager ioImport{imported};
+
     // Use addItem to ensure automatic type registration
-    imported.addItem(std::make_shared<int>(0), "dummy_int");
-    imported.addItem(std::make_shared<std::string>(""), "dummy_str");
-    ASSERT_TRUE(imported.importFromFile_Binary(filename));
+    smImport.addItem(std::make_shared<int>(0), "dummy_int");
+    smImport.addItem(std::make_shared<std::string>(""), "dummy_str");
+    ASSERT_TRUE(ioImport.importFromFile_Binary(filename));
 
     // Check that both items exist and have correct values
-    auto intOpt = imported.getItem<int>("item1");
+    auto intOpt = smImport.getItem<int>("item1");
     ASSERT_TRUE(intOpt.has_value());
     EXPECT_EQ(intOpt.value(), 42);
 
-    auto strOpt = imported.getItem<std::string>("item2");
+    auto strOpt = smImport.getItem<std::string>("item2");
     ASSERT_TRUE(strOpt.has_value());
     EXPECT_EQ(strOpt.value(), "hello");
 
     // Check that the ids are restored and not empty
-    auto& items = imported.getItemMapStore();
+    auto& items = smImport.getItemMapStore();
     EXPECT_FALSE(items.at("item1")->getId().empty());
     EXPECT_FALSE(items.at("item2")->getId().empty());
 
@@ -954,33 +1030,39 @@ TEST(ItemManagerTest, ExportImport_Binary_RestoresAllItemsWithCorrectIdAndValue)
 TEST(ItemManagerTest, ImportSingleObject_Binary_FindsAndRestoresObject) {
     // Setup: Add two items and export to binary
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(42), "item1");
-    manager.addItem(std::make_shared<std::string>("hello"), "item2");
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<int>(42), "item1");
+    sm.addItem(std::make_shared<std::string>("hello"), "item2");
 
     std::string filename = "test_import_single.bin";
-    ASSERT_TRUE(manager.exportToFile_Binary(filename));
+    ASSERT_TRUE(io.exportToFile_Binary(filename));
 
     // Use addItem to ensure automatic type registration
     ItemManager imported;
-    imported.addItem(std::make_shared<int>(0), "dummy_int");
-    imported.addItem(std::make_shared<std::string>(""), "dummy_str");
+    ItemManager::StateManager smImport{imported};
+    ItemManager::IO_ToFileManager ioImport{imported};
+
+    smImport.addItem(std::make_shared<int>(0), "dummy_int");
+    smImport.addItem(std::make_shared<std::string>(""), "dummy_str");
 
     // Import item1 (int)
-    auto item1 = imported.importSingleObject_Binary(filename, typeid(int).name(), "item1");
+    auto item1 = ioImport.importSingleObject_Binary(filename, typeid(int).name(), "item1");
     ASSERT_TRUE(item1 != nullptr);
     auto wrapper1 = dynamic_cast<ItemWrapper<int>*>(item1.get());
     ASSERT_TRUE(wrapper1 != nullptr);
     EXPECT_EQ(wrapper1->getData(), 42);
 
     // Import item2 (string)
-    auto item2 = imported.importSingleObject_Binary(filename, typeid(std::string).name(), "item2");
+    auto item2 = ioImport.importSingleObject_Binary(filename, typeid(std::string).name(), "item2");
     ASSERT_TRUE(item2 != nullptr);
     auto wrapper2 = dynamic_cast<ItemWrapper<std::string>*>(item2.get());
     ASSERT_TRUE(wrapper2 != nullptr);
     EXPECT_EQ(wrapper2->getData(), "hello");
 
     // Try importing a non-existent object
-    auto notFound = imported.importSingleObject_Binary(filename, typeid(double).name(), "item3");
+    auto notFound = ioImport.importSingleObject_Binary(filename, typeid(double).name(), "item3");
     EXPECT_EQ(notFound, nullptr);
 
     // Clean up
@@ -993,40 +1075,43 @@ TEST(ItemManagerTest, ImportFromFile_XML_RestoresAllItemsWithCorrectIdAndValue) 
     {
         std::ofstream ofs(filename);
         ofs << R"(
-<SmartStore>
-  <Item>
-    <Tag>item1</Tag>
-    <Type>)" << typeid(int).name() << R"(</Type>
-    <Data>{"id":"obj_101","tag":"item1","type":")" << typeid(int).name() << R"(","data":42}</Data>
-  </Item>
-  <Item>
-    <Tag>item2</Tag>
-    <Type>)" << typeid(std::string).name() << R"(</Type>
-    <Data>{"id":"obj_102","tag":"item2","type":")" << typeid(std::string).name() << R"(","data":"hello"}</Data>
-  </Item>
-</SmartStore>
-)";
+            <SmartStore>
+            <Item>
+                <Tag>item1</Tag>
+                <Type>)" << typeid(int).name() << R"(</Type>
+                <Data>{"id":"obj_101","tag":"item1","type":")" << typeid(int).name() << R"(","data":42}</Data>
+            </Item>
+            <Item>
+                <Tag>item2</Tag>
+                <Type>)" << typeid(std::string).name() << R"(</Type>
+                <Data>{"id":"obj_102","tag":"item2","type":")" << typeid(std::string).name() << R"(","data":"hello"}</Data>
+            </Item>
+            </SmartStore>
+        )";
         ofs.close();
     }
 
     ItemManager manager;
-    // Use addItem to ensure automatic type registration
-    manager.addItem(std::make_shared<int>(0), "dummy_int");
-    manager.addItem(std::make_shared<std::string>(""), "dummy_str");
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
 
-    ASSERT_TRUE(manager.importFromFile_XML(filename));
+    // Use addItem to ensure automatic type registration
+    sm.addItem(std::make_shared<int>(0), "dummy_int");
+    sm.addItem(std::make_shared<std::string>(""), "dummy_str");
+
+    ASSERT_TRUE(io.importFromFile_XML(filename));
 
     // Check that both items exist and have correct values
-    auto intOpt = manager.getItem<int>("item1");
+    auto intOpt = sm.getItem<int>("item1");
     ASSERT_TRUE(intOpt.has_value());
     EXPECT_EQ(intOpt.value(), 42);
 
-    auto strOpt = manager.getItem<std::string>("item2");
+    auto strOpt = sm.getItem<std::string>("item2");
     ASSERT_TRUE(strOpt.has_value());
     EXPECT_EQ(strOpt.value(), "hello");
 
     // Check that the ids are restored and not empty
-    auto& items = manager.getItemMapStore();
+    auto& items = sm.getItemMapStore();
     EXPECT_EQ(items.at("item1")->getId(), "obj_101");
     EXPECT_EQ(items.at("item2")->getId(), "obj_102");
 
@@ -1036,7 +1121,9 @@ TEST(ItemManagerTest, ImportFromFile_XML_RestoresAllItemsWithCorrectIdAndValue) 
 
 TEST(ItemManagerTest, ImportFromFile_XML_MissingFileReturnsFalse) {
     ItemManager manager;
-    EXPECT_FALSE(manager.importFromFile_XML("nonexistent_file.xml")); 
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+    EXPECT_FALSE(io.importFromFile_XML("nonexistent_file.xml")); 
 }
 
 TEST(ItemManagerTest, ImportFromFile_XML_InvalidXMLReturnsFalse) {
@@ -1046,8 +1133,10 @@ TEST(ItemManagerTest, ImportFromFile_XML_InvalidXMLReturnsFalse) {
     ofs.close();
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(0), "dummy_int");
-    EXPECT_TRUE(manager.importFromFile_XML(filename)); // Should skip the invalid item, but not crash
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+    sm.addItem(std::make_shared<int>(0), "dummy_int");
+    EXPECT_TRUE(io.importFromFile_XML(filename)); // Should skip the invalid item, but not crash
 
     // Clean up
     std::remove(filename.c_str());
@@ -1069,17 +1158,19 @@ TEST(ItemManagerTest, ImportFromFile_XML_UnknownTypeIsSkipped) {
     out.close();
 
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
     
-    EXPECT_FALSE(manager.hasItem("unknown_item"));     // Item should be skipped
-    EXPECT_TRUE(manager.importFromFile_XML(filename)); // Import continues
+    EXPECT_FALSE(sm.hasItem("unknown_item"));     // Item should be skipped
+    EXPECT_TRUE(io.importFromFile_XML(filename)); // Import continues
 
     std::remove(filename.c_str());
 }
 
 
 
-  // ::::::::::: Concurrency test for all the functions (thread calls on functions) :::::::::::
-  // ******************************************************************************************
+//   // ::::::::::: Concurrency test for all the functions (thread calls on functions) :::::::::::
+//   // ******************************************************************************************
 
 void simulateFileLoad(const std::string& filename) {
     std::cout << "\033[1;33m📂 File load of: " << filename << "\033[0m" << std::endl;
@@ -1107,32 +1198,34 @@ void simulateFileExport(const std::string& filename) {
 
 TEST(ThreadSafetyTest, ConcurrentAddItemIsSafe) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     std::thread t1([&](){
         for (int i = 0; i < 3; ++i)
-            manager.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
+            sm.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
     });
 
     std::thread t2([&](){
         for (int i = 100; i < 3; ++i)
-            manager.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
+            sm.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
     });
 
     t1.join();
     t2.join();
 
     for (int i = 0; i < 3; ++i) {
-        auto item = manager.getItem<int>("item" + std::to_string(i));
+        auto item = sm.getItem<int>("item" + std::to_string(i));
         ASSERT_TRUE(item.has_value());
     }
 }
 
 TEST(ThreadSafetyTest, ConcurrentGetItemIsSafe) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     // Populate shared state
     for (int i = 0; i < 3; ++i) {
-        manager.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
+        sm.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
     }
 
     std::vector<std::thread> threads;
@@ -1141,7 +1234,7 @@ TEST(ThreadSafetyTest, ConcurrentGetItemIsSafe) {
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 3; ++i) {
-                auto val = manager.getItem<int>("item" + std::to_string(i));
+                auto val = sm.getItem<int>("item" + std::to_string(i));
                 if (val.has_value() && val.value() == i) {
                     successCount++;
                 }
@@ -1155,10 +1248,11 @@ TEST(ThreadSafetyTest, ConcurrentGetItemIsSafe) {
 
 TEST(ThreadSafetyTest, ConcurrentRemoveByTagIsSafe) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     // Add 3 items
     for (int i = 0; i < 3; ++i) {
-        manager.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
+        sm.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
     }
 
     std::vector<std::thread> threads;
@@ -1166,7 +1260,7 @@ TEST(ThreadSafetyTest, ConcurrentRemoveByTagIsSafe) {
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 3; ++i) {
-                manager.removeByTag("item" + std::to_string(i)); // multiple threads may race to remove
+                sm.removeByTag("item" + std::to_string(i)); // multiple threads may race to remove
             }
         });
     }
@@ -1175,15 +1269,16 @@ TEST(ThreadSafetyTest, ConcurrentRemoveByTagIsSafe) {
 
     // All items should be gone
     for (int i = 0; i < 3; ++i) {
-        EXPECT_THROW(manager.getItem<int>("item" + std::to_string(i)), std::runtime_error);
+        EXPECT_THROW(sm.getItem<int>("item" + std::to_string(i)), std::runtime_error);
     }
 }
 
 TEST(ThreadSafetyTest, UndoRaceConditionTest) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     for (int i = 0; i < 2; ++i) {
-        manager.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
+        sm.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
     }
 
     std::vector<std::thread> threads;
@@ -1192,7 +1287,7 @@ TEST(ThreadSafetyTest, UndoRaceConditionTest) {
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 3; ++i) {
-                manager.undo();  // just call it, don't test return
+                sm.undo();  // just call it, don't test return
             }
         });
     }
@@ -1201,21 +1296,22 @@ TEST(ThreadSafetyTest, UndoRaceConditionTest) {
 
     // Final consistency check (state shouldn't be corrupted)
     for (int i = 0; i < 2; ++i) {
-        EXPECT_THROW(manager.getItem<int>("item" + std::to_string(i)), std::runtime_error);
+        EXPECT_THROW(sm.getItem<int>("item" + std::to_string(i)), std::runtime_error);
     }
 }
 
 TEST(ThreadSafetyTest, RedoRaceConditionTest) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     // Add 2 items (auto-snapshot assumed)
     for (int i = 0; i < 2; ++i) {
-        manager.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
+        sm.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
     }
 
     // Undo more steps than added items
     for (int i = 0; i < 3; ++i) {
-        manager.undo();
+        sm.undo();
     }
 
     // Redo from multiple threads
@@ -1223,7 +1319,7 @@ TEST(ThreadSafetyTest, RedoRaceConditionTest) {
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                manager.redo();
+                sm.redo();
             }
         });
     }
@@ -1234,13 +1330,13 @@ TEST(ThreadSafetyTest, RedoRaceConditionTest) {
     int restored = 0;
     for (int i = 0; i < 2; ++i) {
         const std::string key = "item" + std::to_string(i);
-        std::cout << "Item '" << key << "' exists: " << manager.hasItem(key) << std::endl;
-        if (manager.hasItem(key)) {
+        std::cout << "Item '" << key << "' exists: " << sm.hasItem(key) << std::endl;
+        if (sm.hasItem(key)) {
             ++restored;
             // Optional: validate item content
-            EXPECT_NO_THROW(manager.getItem<int>(key));
+            EXPECT_NO_THROW(sm.getItem<int>(key));
         } else {
-            EXPECT_THROW(manager.getItem<int>(key), std::runtime_error);
+            EXPECT_THROW(sm.getItem<int>(key), std::runtime_error);
         }
     }
 
@@ -1250,30 +1346,34 @@ TEST(ThreadSafetyTest, RedoRaceConditionTest) {
 
 TEST(ThreadSafetyTest, ModifyItemInParallelWithTemplateIsSafe) {
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(0), "counter");
+    ItemManager::StateManager sm{manager};
+
+    sm.addItem(std::make_shared<int>(0), "counter");
 
     std::vector<std::thread> threads;
 
     for (int t = 0; t < 5; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 10; ++i) {
-                manager.modifyItem<int>("counter", [](int& val) {
+                sm.modifyItem<int>([](int& val) {
                     val += 1;
-                });
+                }, "counter");
             }
         });
     }
 
     for (auto& th : threads) th.join();
 
-    auto result = manager.getItem<int>("counter");
+    auto result = sm.getItem<int>("counter");
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result.value(), 50);  // 5 threads × 10 modifications
 }
 
 TEST(ThreadSafetyTest, GetItemRawReturnsCorrectReferenceConcurrently) {
     ItemManager manager;
-    manager.addItem(std::make_shared<std::string>("raw-access"), "raw");
+    ItemManager::StateManager sm{manager};
+
+    sm.addItem(std::make_shared<std::string>("raw-access"), "raw");
 
     std::atomic<int> successCount{0};
     std::vector<std::thread> threads;
@@ -1282,7 +1382,7 @@ TEST(ThreadSafetyTest, GetItemRawReturnsCorrectReferenceConcurrently) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 20; ++i) {
                 try {
-                    const std::string& ref = manager.getItemRaw<std::string>("raw");
+                    const std::string& ref = sm.getItemRaw<std::string>("raw");
                     if (ref == "raw-access") {
                         successCount++;
                     }
@@ -1300,15 +1400,16 @@ TEST(ThreadSafetyTest, GetItemRawReturnsCorrectReferenceConcurrently) {
 
 TEST(ThreadSafetyTest, DisplayAllRunsConcurrently) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     for (int i = 0; i < 3; ++i) {
-        manager.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
+        sm.addItem(std::make_shared<int>(i), "item" + std::to_string(i));
     }
 
     std::vector<std::thread> threads;
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
-            manager.displayAll();  // just verify no crashes
+            sm.displayAll();  // just verify no crashes
         });
     }
 
@@ -1319,13 +1420,16 @@ TEST(ThreadSafetyTest, DisplayAllRunsConcurrently) {
 
 TEST(ThreadSafetyTest, DisplayByTagIsSafeWhenCalledConcurrently) {
     ItemManager manager;
-    manager.addItem(std::make_shared<double>(3.14159), "pi");
+    ItemManager::StateManager sm{manager};
+    
+
+    sm.addItem(std::make_shared<double>(3.14159), "pi");
 
     std::vector<std::thread> threads;
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                manager.displayByTag("pi");  // safe parallel reads
+                sm.displayByTag("pi");  // safe parallel reads
             }
         });
     }
@@ -1337,11 +1441,12 @@ TEST(ThreadSafetyTest, DisplayByTagIsSafeWhenCalledConcurrently) {
 
 TEST(ThreadSafetyTest, ListRegisteredTypesIsSafeUnderLoad) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     // Add different types, which automatically register
-    manager.addItem(std::make_shared<int>(42), "intItem");
-    manager.addItem(std::make_shared<std::string>("hello"), "stringItem");
-    manager.addItem(std::make_shared<double>(3.14), "piItem");
+    sm.addItem(std::make_shared<int>(42), "intItem");
+    sm.addItem(std::make_shared<std::string>("hello"), "stringItem");
+    sm.addItem(std::make_shared<double>(3.14), "piItem");
 
     std::vector<std::thread> threads;
 
@@ -1349,7 +1454,7 @@ TEST(ThreadSafetyTest, ListRegisteredTypesIsSafeUnderLoad) {
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                manager.listRegisteredTypes();
+                sm.listRegisteredTypes();
             }
         });
     }
@@ -1368,6 +1473,7 @@ class IntItem{
 
 TEST(ThreadSafetyTest, FilterByTagDisplaysMatchingItemsSafely) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     
     auto item1 = std::make_shared<IntItem>(10);
@@ -1376,10 +1482,10 @@ TEST(ThreadSafetyTest, FilterByTagDisplaysMatchingItemsSafely) {
     auto item4 = std::make_shared<IntItem>(40);
     auto item5 = std::make_shared<IntItem>(50);
 
-    manager.addItem<IntItem>(item2, "banana");
-    manager.addItem<IntItem>(item3, "apple");   // Duplicate tag
-    manager.addItem<IntItem>(item4, "orange");
-    manager.addItem<IntItem>(item5, "grape");
+    sm.addItem<IntItem>(item2, "banana");
+    sm.addItem<IntItem>(item3, "apple");   // Duplicate tag
+    sm.addItem<IntItem>(item4, "orange");
+    sm.addItem<IntItem>(item5, "grape");
 
     std::vector<std::string> fruitTags = {"apple", "banana", "orange", "grape", "mango"};
 
@@ -1388,7 +1494,7 @@ TEST(ThreadSafetyTest, FilterByTagDisplaysMatchingItemsSafely) {
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                manager.filterByTag(fruitTags);  // Use vector of fruit tags
+                sm.filterByTag(fruitTags);  // Use vector of fruit tags
             }
         });
     }
@@ -1400,17 +1506,18 @@ TEST(ThreadSafetyTest, FilterByTagDisplaysMatchingItemsSafely) {
 
 TEST(ThreadSafetyTest, SortItemsByTagRunsConcurrentlyWithoutRace) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
-    manager.addItem(std::make_shared<std::string>("pear"), "b");
-    manager.addItem(std::make_shared<std::string>("apple"), "a");
-    manager.addItem(std::make_shared<std::string>("cherry"), "c");
+    sm.addItem(std::make_shared<std::string>("pear"), "b");
+    sm.addItem(std::make_shared<std::string>("apple"), "a");
+    sm.addItem(std::make_shared<std::string>("cherry"), "c");
 
     std::vector<std::thread> threads;
 
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                manager.sortItemsByTag();
+                sm.sortItemsByTag();
             }
         });
     }
@@ -1422,18 +1529,19 @@ TEST(ThreadSafetyTest, SortItemsByTagRunsConcurrentlyWithoutRace) {
 
 TEST(ThreadSafetyTest, DisplayAllClassesConcurrentAccessIsSafe) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     // Add items to auto-register types
-    manager.addItem(std::make_shared<int>(1), "one");
-    manager.addItem(std::make_shared<std::string>("hello"), "two");
-    manager.addItem(std::make_shared<double>(3.14), "three");
+    sm.addItem(std::make_shared<int>(1), "one");
+    sm.addItem(std::make_shared<std::string>("hello"), "two");
+    sm.addItem(std::make_shared<double>(3.14), "three");
 
     std::vector<std::thread> threads;
 
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                manager.displayAllClasses();
+                sm.displayAllClasses();
             }
         });
     }
@@ -1445,10 +1553,11 @@ TEST(ThreadSafetyTest, DisplayAllClassesConcurrentAccessIsSafe) {
 
 TEST(ThreadSafetyTest, GetItemMapStoreReturnsConsistentView) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
-    manager.addItem(std::make_shared<int>(10), "a");
-    manager.addItem(std::make_shared<int>(20), "b");
-    manager.addItem(std::make_shared<int>(30), "c");
+    sm.addItem(std::make_shared<int>(10), "a");
+    sm.addItem(std::make_shared<int>(20), "b");
+    sm.addItem(std::make_shared<int>(30), "c");
 
     std::vector<std::thread> threads;
     std::atomic<int> totalFound{0};
@@ -1456,7 +1565,7 @@ TEST(ThreadSafetyTest, GetItemMapStoreReturnsConsistentView) {
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                auto snapshot = manager.getItemMapStore();
+                auto snapshot = sm.getItemMapStore();
                 for (const auto& [tag, item] : snapshot) {
                     if (item) totalFound++;
                 }
@@ -1472,16 +1581,17 @@ TEST(ThreadSafetyTest, GetItemMapStoreReturnsConsistentView) {
 
 TEST(ThreadSafetyTest, DisplayRegisteredDeserializersRunsWithoutRace) {
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
 
     // Deserializers registered automatically via addItem
-    manager.addItem(std::make_shared<int>(7), "int_val");
-    manager.addItem(std::make_shared<std::string>("ok"), "str_val");
+    sm.addItem(std::make_shared<int>(7), "int_val");
+    sm.addItem(std::make_shared<std::string>("ok"), "str_val");
 
     std::vector<std::thread> threads;
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                manager.displayRegisteredDeserializers();  // safe read
+                sm.displayRegisteredDeserializers();  // safe read
             }
         });
     }
@@ -1493,7 +1603,9 @@ TEST(ThreadSafetyTest, DisplayRegisteredDeserializersRunsWithoutRace) {
 
 TEST(ThreadSafetyTest, HasItemHandlesConcurrentQueries) {
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(123), "exists");
+    ItemManager::StateManager sm{manager};
+    
+    sm.addItem(std::make_shared<int>(123), "exists");
 
     std::atomic<int> foundCount{0};
     std::atomic<int> notFoundCount{0};
@@ -1502,13 +1614,13 @@ TEST(ThreadSafetyTest, HasItemHandlesConcurrentQueries) {
     for (int t = 0; t < 2; ++t) {
         threads.emplace_back([&]() {
             for (int i = 0; i < 2; ++i) {
-                if (manager.hasItem("exists")) {
+                if (sm.hasItem("exists")) {
                     foundCount++;
                 } else {
                     notFoundCount++;
                 }
 
-                if (manager.hasItem("ghost")) {
+                if (sm.hasItem("ghost")) {
                     foundCount++;
                 } else {
                     notFoundCount++;
@@ -1526,11 +1638,13 @@ TEST(ThreadSafetyTest, HasItemHandlesConcurrentQueries) {
 TEST(ThreadSafetyTest, AsyncImportFromFileIsSafeAndCorrect) {
     const std::string testFile = "threaded_import_test.json";
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
 
     // Create sample data and export to file
-    manager.addItem(std::make_shared<int>(42), "alpha");
-    manager.addItem(std::make_shared<std::string>("thread-test"), "beta");
-    manager.exportToFile_Json(testFile);
+    sm.addItem(std::make_shared<int>(42), "alpha");
+    sm.addItem(std::make_shared<std::string>("thread-test"), "beta");
+    io.exportToFile_Json(testFile);
 
     std::atomic<int> importCount{0};
     std::vector<std::thread> threads;
@@ -1538,7 +1652,7 @@ TEST(ThreadSafetyTest, AsyncImportFromFileIsSafeAndCorrect) {
     // Call asyncImportFromFile_Json() multiple times concurrently
     for (int i = 0; i < 2; ++i) {
         threads.emplace_back([&]() {
-            manager.asyncImportFromFile_Json(testFile);
+            io.asyncImportFromFile_Json(testFile);
             importCount++;
         });
     }
@@ -1549,22 +1663,25 @@ TEST(ThreadSafetyTest, AsyncImportFromFileIsSafeAndCorrect) {
     simulateFileLoad(testFile);
 
     // Final check for data presence
-    EXPECT_TRUE(manager.hasItem("alpha"));
-    EXPECT_TRUE(manager.hasItem("beta"));
+    EXPECT_TRUE(sm.hasItem("alpha"));
+    EXPECT_TRUE(sm.hasItem("beta"));
     EXPECT_GE(importCount.load(), 2);  // All imports attempted
 }
 
 TEST(ThreadSafetyTest, AsyncExportToFileIsSafeAndWritesCorrectly) {
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(99), "export_tag");
-    manager.addItem(std::make_shared<std::string>("save_me"), "text_tag");
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<int>(99), "export_tag");
+    sm.addItem(std::make_shared<std::string>("save_me"), "text_tag");
 
     const std::string testFile = "threaded_export_test.json";
 
     std::atomic<bool> exportDone{false};
 
     std::thread([&]() {
-        manager.asyncExportToFile_Json(testFile);
+        io.asyncExportToFile_Json(testFile);
         exportDone = true;
     }).join();  // Wait for async thread to finish
 
@@ -1599,19 +1716,22 @@ TEST(ThreadSafetyTest, AsyncImportSingleObjectWorksSafely) {
 
     // Step 1: Create exporter and save one item to file
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(777), tag);
-    manager.exportToFile_Json(testFile);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<int>(777), tag);
+    io.exportToFile_Json(testFile);
 
 
     // Step 3: Async import of the saved object
-    manager.asyncImportSingleObject_Json(testFile, typeName, tag);
+    io.asyncImportSingleObject_Json(testFile, typeName, tag);
 
     // Step 4: Wait for async thread to complete
     simulateFileLoad(testFile);
 
     // Step 5: Verify that the item was correctly imported
-    EXPECT_TRUE(manager.hasItem(tag));
-    auto snapshot = manager.getItemMapStore();
+    EXPECT_TRUE(sm.hasItem(tag));
+    auto snapshot = sm.getItemMapStore();
     auto it = snapshot.find(tag);
     ASSERT_NE(it, snapshot.end());
 
@@ -1627,10 +1747,13 @@ TEST(ThreadSafetyTest, AsyncExportToFile_BinaryWorksSafely) {
 
     // Step 1: Set up ItemManager and add one item
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(value), tag);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<int>(value), tag);
 
     // Step 2: Run async binary export
-    manager.asyncExportToFile_Binary(testFile);
+    io.asyncExportToFile_Binary(testFile);
 
     // Step 3: Wait briefly to allow background export to complete
     simulateFileExport(testFile);
@@ -1648,19 +1771,22 @@ TEST(ThreadSafetyTest, AsyncImportFromFile_BinaryWorksSafely) {
 
     // Step 1: Export a valid item using one manager
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(value), tag);
-    manager.exportToFile_Binary(testFile);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<int>(value), tag);
+    io.exportToFile_Binary(testFile);
 
     // Step 3: Perform asynchronous binary import
-    manager.asyncImportFromFile_Binary(testFile);
+    io.asyncImportFromFile_Binary(testFile);
 
     // Step 4: Wait for background thread to complete
     simulateFileLoad(testFile);
 
     // Step 5: Validate that the item was successfully imported
-    EXPECT_TRUE(manager.hasItem(tag));
+    EXPECT_TRUE(sm.hasItem(tag));
 
-    auto snapshot = manager.getItemMapStore();
+    auto snapshot = sm.getItemMapStore();
     auto it = snapshot.find(tag);
     ASSERT_NE(it, snapshot.end());
 
@@ -1677,19 +1803,22 @@ TEST(ThreadSafetyTest, AsyncImportSingleObject_BinaryWorksSafely) {
 
     // Step 1: Export one item from a fresh instance
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(value), tag);
-    manager.exportToFile_Binary(testFile);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<int>(value), tag);
+    io.exportToFile_Binary(testFile);
 
     // Step 3: Trigger async binary import for specific object
-    manager.asyncImportSingleObject_Binary(testFile, typeName, tag);
+    io.asyncImportSingleObject_Binary(testFile, typeName, tag);
 
     // Step 4: Wait for background thread to complete
     simulateFileLoad(testFile);
 
     // Step 5: Validate item presence and correctness
-    EXPECT_TRUE(manager.hasItem(tag));
+    EXPECT_TRUE(sm.hasItem(tag));
 
-    auto snapshot = manager.getItemMapStore();
+    auto snapshot = sm.getItemMapStore();
     auto it = snapshot.find(tag);
     ASSERT_NE(it, snapshot.end());
 
@@ -1705,10 +1834,13 @@ TEST(ThreadSafetyTest, AsyncExportToFile_XMLWorksSafely) {
 
     // Step 1: Create manager and add item
     ItemManager manager;
-    manager.addItem(std::make_shared<std::string>(text), tag);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<std::string>(text), tag);
 
     // Step 2: Run async XML export
-    manager.asyncExportToFile_XML(testFile);
+    io.asyncExportToFile_XML(testFile);
 
     // Step 3: Wait briefly to allow background export to finish
     simulateFileExport(testFile);
@@ -1733,17 +1865,20 @@ TEST(ThreadSafetyTest, AsyncImportFromFile_XMLWorksSafely) {
 
     // Step 1: Export a sample file using the normal method
     ItemManager manager;
-    manager.addItem(std::make_shared<std::string>(text), tag);
-    manager.exportToFile_XML(testFile);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
 
-    manager.asyncImportFromFile_XML(testFile);
+    sm.addItem(std::make_shared<std::string>(text), tag);
+    io.exportToFile_XML(testFile);
+
+    io.asyncImportFromFile_XML(testFile);
 
     // Step 3: Wait for async thread to complete
     simulateFileLoad(testFile);
 
     // Step 4: Check that the item is present
-    EXPECT_TRUE(manager.hasItem(tag));
-    auto snapshot = manager.getItemMapStore();
+    EXPECT_TRUE(sm.hasItem(tag));
+    auto snapshot = sm.getItemMapStore();
     auto it = snapshot.find(tag);
     ASSERT_NE(it, snapshot.end());
 
@@ -1760,16 +1895,19 @@ TEST(ThreadSafetyTest, AsyncImportSingleObject_XMLWorksSafely) {
 
     // Step 1: Export single item
     ItemManager manager;
-    manager.addItem(std::make_shared<std::string>(value), tag);
-    manager.exportToFile_XML(file);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
 
-    manager.asyncImportSingleObject_XML(file, typeName, tag);
+    sm.addItem(std::make_shared<std::string>(value), tag);
+    io.exportToFile_XML(file);
+
+    io.asyncImportSingleObject_XML(file, typeName, tag);
 
     simulateFileLoad(file);  // Allow async to complete
 
     // Step 3: Validate result
-    EXPECT_TRUE(manager.hasItem(tag));
-    auto snapshot = manager.getItemMapStore();
+    EXPECT_TRUE(sm.hasItem(tag));
+    auto snapshot = sm.getItemMapStore();
     auto it = snapshot.find(tag);
     ASSERT_NE(it, snapshot.end());
 
@@ -1784,10 +1922,13 @@ TEST(ThreadSafetyTest, AsyncExportToFile_CSVWorksSafely) {
     const std::string tag2 = "csv_text";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(456), tag1);
-    manager.addItem(std::make_shared<std::string>("Async_CSV"), tag2);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
 
-    manager.asyncExportToFile_CSV(testFile);
+    sm.addItem(std::make_shared<int>(456), tag1);
+    sm.addItem(std::make_shared<std::string>("Async_CSV"), tag2);
+
+    io.asyncExportToFile_CSV(testFile);
 
     // Allow time for export thread to complete
     simulateFileExport(testFile);
@@ -1813,18 +1954,21 @@ TEST(ThreadSafetyTest, AsyncImportFromFile_CSVWorksSafely) {
 
     // Step 1: Export a sample item to CSV
     ItemManager manager;
-    manager.addItem(std::make_shared<std::string>(value), tag);
-    manager.exportToFile_CSV(testFile);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<std::string>(value), tag);
+    io.exportToFile_CSV(testFile);
 
     // Step 2: Perform async import
-    manager.asyncImportFromFile_CSV(testFile);
+    io.asyncImportFromFile_CSV(testFile);
 
     // Step 3: Wait for async thread to complete
     simulateFileLoad(testFile);
 
     // Step 4: Validate that the item was imported correctly
-    EXPECT_TRUE(manager.hasItem(tag));
-    auto snapshot = manager.getItemMapStore();
+    EXPECT_TRUE(sm.hasItem(tag));
+    auto snapshot = sm.getItemMapStore();
     auto it = snapshot.find(tag);
     ASSERT_NE(it, snapshot.end());
 
@@ -1839,18 +1983,21 @@ TEST(ThreadSafetyTest, AsyncImportSingleObject_CSVWorksSafely) {
     const std::string typeName = "i";
 
     ItemManager manager;
-    manager.addItem(std::make_shared<int>(1234), tag);
-    manager.exportToFile_CSV(file);
+    ItemManager::StateManager sm{manager};
+    ItemManager::IO_ToFileManager io{manager};
+
+    sm.addItem(std::make_shared<int>(1234), tag);
+    io.exportToFile_CSV(file);
     
-    manager.asyncImportSingleObject_CSV(file, typeName, tag);
+    io.asyncImportSingleObject_CSV(file, typeName, tag);
 
     // Step 3: Wait for background import to complete
     simulateFileLoad(file);
 
-    manager.displayRegisteredDeserializers(); // Ensure deserializers are registered
+    sm.displayRegisteredDeserializers(); // Ensure deserializers are registered
     // Step 4: Validate the item
-    EXPECT_TRUE(manager.hasItem(tag));
-    auto result = manager.getItem<int>(tag);
+    EXPECT_TRUE(sm.hasItem(tag));
+    auto result = sm.getItem<int>(tag);
     ASSERT_TRUE(result.has_value());
     EXPECT_EQ(result.value(), 1234);
 }
@@ -1858,14 +2005,23 @@ TEST(ThreadSafetyTest, AsyncImportSingleObject_CSVWorksSafely) {
 TEST(ItemManagerTest, SendMessage_Success) {
     auto wrapper = std::make_shared<int>(20);
     ItemManager manager;
+    ItemManager::StateManager sm{manager};
+    ItemManager::NetworkManager nt{manager};
     std::string tag = "msg_tag";
-    manager.addItem(wrapper, tag);
+    sm.addItem(wrapper, tag);
     
 
     std::string msg = "sender123 Hello, Network!";
 
-    bool result = manager.networkMessage_Send<int>(msg, tag);
-    manager.cvMdn_runMonitorDetectionMonitorCamera<int>(0, tag);
+    bool result = nt.networkMessage_Send<int>(msg, tag);
+
+    //ItemManager::ComputerVision cv{manager};
+    //cv.cvQRC_scanFromCamera<int>(tag);
+   //cv.cvMdn_runMonitorDetectionMonitorCamera<int>(0, tag);
+   //cv.cvFgn_runRestrictedAreaMonitor<int>(0, "", tag);
+
+   //ItemManager::AlarmManager am{manager};
+   //am.triggerAlarm<int>(ItemManager::AlarmManager::Event::Intrusion, tag);
 
     EXPECT_TRUE(result);
 }

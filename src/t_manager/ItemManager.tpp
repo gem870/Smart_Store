@@ -475,7 +475,7 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
     if (!in) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot open file for reading: " + filename, ErrorCode::FILE_LOAD_FAILED);
     }
-    std::lock_guard<std::mutex> lock(mutex_) // Segmentation Fix
+    std::lock_guard<std::mutex> lock(mutex_); // Segmentation Fix
     json parsedJson;
     in >> parsedJson;
 
@@ -775,7 +775,7 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot open binary file '" + filename + "' for reading.", false);
         return false;
     }
-   std::lock_guard<std::mutex> lock(mutex_)
+   std::lock_guard<std::mutex> lock(mutex_);
     undoHistory.push_back(cloneCurrentState());
     redoQueue = {};
     items.clear();

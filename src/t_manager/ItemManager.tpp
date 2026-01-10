@@ -775,7 +775,7 @@ bool ItemManager::importFromFile_Binary(const std::string& filename) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot open binary file '" + filename + "' for reading.", false);
         return false;
     }
-
+    std::lock_guard<std::mutex> lock(mutex_);
     undoHistory.push_back(cloneCurrentState());
     redoQueue = {};
     items.clear();

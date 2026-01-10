@@ -475,7 +475,7 @@ void ItemManager::importFromFile_Json(const std::string& filename) {
     if (!in) {
         LOG_CONTEXT(LogLevel::ERR, "Cannot open file for reading: " + filename, ErrorCode::FILE_LOAD_FAILED);
     }
-
+    std::lock_guard<std::mutex> lock(mutex_);
     json parsedJson;
     in >> parsedJson;
 

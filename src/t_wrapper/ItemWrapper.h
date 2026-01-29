@@ -16,7 +16,13 @@
 #include <string>
 #include <type_traits> 
 #include <nlohmann/json.hpp>
-#include <cxxabi.h>
+//#include <cxxabi.h>
+#ifdef __has_include
+#  if __has_include(<cxxabi.h>)
+#    include <cxxabi.h>
+#  endif
+#endif
+
 #include <random>
 #include <chrono>
 #include <iomanip>

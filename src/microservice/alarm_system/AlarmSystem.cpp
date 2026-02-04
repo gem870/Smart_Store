@@ -47,9 +47,9 @@ AlarmSystem::AlarmSystem() {
         for (int i = 0; i < numDrivers; ++i) {
           //  std::cout << "Available driver: " << SDL_GetAudioDriver(i) << std::endl;
         }
-        std::cout << "Active audio driver: "
-                  << (SDL_GetCurrentAudioDriver() ? SDL_GetCurrentAudioDriver() : "none")
-                  << std::endl;
+        // std::cout << "Active audio driver: "
+        //           << (SDL_GetCurrentAudioDriver() ? SDL_GetCurrentAudioDriver() : "none")
+        //           << std::endl;
     }
 }
 

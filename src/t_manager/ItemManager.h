@@ -1,6 +1,7 @@
 #pragma once
 
 #include "t_wrapper/ItemWrapper.h"
+#include "gpu_manager/gpu_manager.hpp"
 #include <unordered_map>
 #include <functional>
 #include <stack>
@@ -141,8 +142,18 @@ private:
     *
     * Initializes an empty ItemManager instance with no items, types, or history.
     * All internal containers start in their default state.
+    *
+    * Additionally, this constructor initializes GPU support by invoking
+    * GPUManager::init() to detect compatible hardware and sets GPU usage
+    * to enabled via GPUManager::setUseGPU(true). This ensures that, if
+    * available, GPU acceleration will be leveraged for compute‑intensive
+    * operations such as OpenCV DNN inference or other microservice tasks.
     */
-    ItemManager() = default;
+    ItemManager() {
+        GPUManager::init();        ///< Detect GPU availability
+        GPUManager::setUseGPU(true); ///< Enable GPU acceleration by 
+    }
+
 
     /**
     * @brief Destructor for ItemManager.
@@ -174,6 +185,37 @@ private:
     * @brief Display the signature of the ItemManager class.
     */
     void showSignature();
+
+    /**
+    * @brief Enable GPU usage globally.
+    *
+    * Convenience method equivalent to calling setUseGPU(true).
+    * This ensures that all services in the framework will attempt to use GPU acceleration,
+    * provided a CUDA-capable GPU is available. If no GPU is detected, services will
+    * automatically fall back to CPU.
+    *
+    * Typical usage:
+    *   GPUManager::setUseGPU_On();
+    *
+    * After calling this, GPUManager::useGPU() will return true if a GPU is available,
+    * and services should configure themselves to run on GPU.
+    */
+    void setUseGPU_On();
+   
+    /**
+    * @brief Disable GPU usage globally.
+    *
+    * Convenience method equivalent to calling setUseGPU(false).
+    * This ensures that all services in the framework will fall back to CPU,
+    * regardless of whether a CUDA-capable GPU is available.
+    *
+    * Typical usage:
+    *   GPUManager::setUseGPU_Off();
+    *
+    * After calling this, GPUManager::useGPU() will always return false,
+    * and all dependent services should configure themselves to run on CPU.
+    */
+    void setUseGPU_Off();
 
 
 

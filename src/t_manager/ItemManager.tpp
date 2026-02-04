@@ -130,6 +130,14 @@ void ItemManager::showSignature() {
     Author::getSignature();
 }
 
+void ItemManager::setUseGPU_On() {
+    GPUManager::setUseGPU(true);
+}
+
+void ItemManager::setUseGPU_Off() {
+    GPUManager::setUseGPU(false);
+}
+
 
 
 

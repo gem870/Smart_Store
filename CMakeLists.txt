@@ -71,6 +71,7 @@ add_subdirectory(src/microservice/net_curl)
 # -----------------------------------
 add_library(t_manager STATIC
     src/versionForMigration/MigrationRegistry.cpp
+    src/gpu_manager/gpu_manager.cpp
 )
 
 target_include_directories(t_manager
@@ -78,6 +79,7 @@ target_include_directories(t_manager
         ${PROJECT_SOURCE_DIR}/src/t_manager
         ${PROJECT_SOURCE_DIR}/src/interface
         ${PROJECT_SOURCE_DIR}/src/versionForMigration
+        ${PROJECT_SOURCE_DIR}/lib/opencv/include
 )
 
 target_link_libraries(t_manager

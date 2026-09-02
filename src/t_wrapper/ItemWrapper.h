@@ -1,6 +1,6 @@
-
+﻿
 //     ::::::::::::::::::::::::::::::::::::::::::::
-//     :: *  © 2025 Victor. All rights reserved. ::
+//     :: *  Â© 2025 Victor. All rights reserved. ::
 //     :: *  Smart_Store Framework               ::
 //     :: *  Licensed under the MIT License      ::
 //     ::::::::::::::::::::::::::::::::::::::::::::
@@ -13,8 +13,10 @@
 #include <iostream>
 #include <memory>
 #include <atomic>
+#include <cstdint>
 #include <string>
-#include <type_traits> 
+#include <optional>
+#include <type_traits>
 #include <nlohmann/json.hpp>
 #include <cxxabi.h>
 #include <random>
@@ -24,6 +26,7 @@
 #include "err_log/Logger.hpp"
 #include "utils/Json_traits.hpp"
 #include <cstdlib>    // for free()
+#include <vector>
 #include "microservice_interface/MicroserviceManager.hpp"
 
 
@@ -156,6 +159,7 @@ ItemWrapper(const nlohmann::json& j) {
     }
 }
 
+
     
 /**
 * @brief Get the unique identifier string for this item.
@@ -169,7 +173,7 @@ std::string getId() const override {
 }
 
 /**
-* @brief Log the current item’s ID and tag to the console.
+* @brief Log the current itemâ€™s ID and tag to the console.
 * 
 * Provides human-readable output for debugging and monitoring.
 */
@@ -180,7 +184,7 @@ void logId() const override {
 }
 
 /**
-* @brief Display the item’s details in a human-readable format.
+* @brief Display the itemâ€™s details in a human-readable format.
 * 
 * Typically overridden to show custom attributes.
 */
@@ -270,466 +274,365 @@ nlohmann::json toJson() const override;
         *****************************
 
         =======================================================================================
-        | Networking Agent Funtions                                                           |
+        | Surveillance Funtions                                                               |
         =======================================================================================
-        |                                  Messaging API                                      |
-
-        | These functions provide a communication interface for Smart_Store microservices.    |
-        | They allow objects to send and receive messages across the network using the        |
-        | underlying net_curl/libcurl infrastructure.                                         |
-        |                                                                                     |
-        | Core responsibilities:                                                              |
-        |  - Enable distributed services to exchange data (payloads, commands, events).       |
-        |  - Abstract away low-level networking details, exposing a clean API.                |
-        |  - Support extensibility: any object inheriting BaseMicroservice can participate    |
-        |    in messaging without reimplementing transport logic.                             |
+        | Thin handle onto the standalone surveillance system -- start/stop/status only, via  |
+        | a sentinel file the surveillance app's own frontend watches. See Surveillance.hpp    |
+        | for why this stays thin rather than owning that app's FeatureConfigManager state.    |
         =======================================================================================
 */
 private:
-    std::unique_ptr<BaseMicroservice> _networkManager = 
-                  MicroserviceManager::createMicroObjects("Network Agent");   
+    std::unique_ptr<BaseMicroservice> _surveillanceManager =
+                MicroserviceManager::createMicroObjects("Surveillance");
 public:
 
 /**
-* @brief Send a message to another service or client.
-* 
-* Encapsulates the networking call, ensuring delivery across nodes.
-* 
-* @param payload     Serialized data to transmit (e.g., JSON, XML).
-* @param recipientID Identifier of the target service or client.
+* @brief Mark surveillance as started (writes the sentinel file).
 */
-void sendMessage(const std::string& payload, const std::string& recipientID);
+void startSurveillance();
 
 /**
-* @brief Receive an incoming message from the network.
-* 
-* Acts as the entry point for handling requests, events, or commands sent by other services.
-* Can be overridden or extended to implement custom logic.
-* 
-* @param msg Structured Message object containing sender info, payload, and metadata.
+* @brief Mark surveillance as stopped (removes the sentinel file).
 */
-void receiveMessage(const Message& msg);
-
-
-
-
-
-
-
-
-
-/*
-            MICROSERVEICE SECTION
-        *****************************
-
-        =========================================================================================
-        | Face Recognition Funtions                                                             |
-        =========================================================================================
-        |                           Restricted Area Monitoring API                              |
-                                    
-        | These functions provide a complete interface for managing face recognition            |
-        | within restricted zones. The design follows Smart_Store’s philosophy:                 |
-        | every object can inherit computer vision features and expose them when needed.        | 
-        |                                                                                       |
-        | Core responsibilities:                                                                |
-        |  - Start monitoring with a given cascade classifier.                                  |
-        |  - Manage tracked faces (add, remove, reset).                                         |
-        |  - Configure detection parameters (scale factor, neighbors, face size, IOU threshold).|
-        |  - Query current configuration and tracked state.                                     |
-        =========================================================================================
-*/
-private:
-    std::unique_ptr<BaseMicroservice> _faceRecognitionManager = 
-                  MicroserviceManager::createMicroObjects("Face Recognition");   
-public:
+void stopSurveillance();
 
 /**
-* @brief Launch the restricted area monitoring process using a Haar cascade or other detector.
-* 
-* If no cascadePath is provided, default detection models are used.
-* 
-* @param cameraIndex Index of the camera to monitor (e.g., 0 for default webcam).
-* @param cascadePath Path to Haar cascade XML or other detector model file.
+* @brief Check whether surveillance is currently marked as running.
+*
+* @return true if running, false otherwise.
 */
-void runRestrictedAreaMonitor(int cameraIndex, const std::string& cascadePath);
+bool isSurveillanceRunning() const;
 
 /**
-* @brief Get the current set of restricted tracks.
-* 
-* Each track is keyed by an integer ID and contains face tracking data.
-* 
-* @return const std::unordered_map<int, FaceTrack>& Reference to restricted tracks.
+* @brief Queue a cloud-sync enable/disable command.
 */
-const std::unordered_map<int, FaceTrack>& getRunRestrictedTracks() const;
+void setSurveillanceCloudEnabled(bool enabled);
 
 /**
-* @brief Add a new restricted track by associating an ID with a detected face.
-* 
-* Useful for registering individuals in restricted zones.
-* 
-* @param id    Unique identifier for the track.
-* @param track FaceTrack object containing tracking data.
+* @brief Queue the rest of the cloud settings (base URL, station name,
+* hardware token, poll interval).
 */
-void addRunRestictedTrack(int id, const FaceTrack& track);
+void setSurveillanceCloudSettings(const std::string& baseUrl,
+                                  const std::string& stationName,
+                                  const std::string& hardwareToken,
+                                  int pollIntervalSec);
 
 /**
-* @brief Reset all restricted tracks currently being monitored.
-* 
-* Clears state and prepares for fresh tracking.
+* @brief Queue a new-camera command.
 */
-void restRunRestrictedTracks();
+void addSurveillanceCamera(const std::string& name,
+                           const std::string& id,
+                           const std::string& source,
+                           bool enableFaceRecognition);
 
 /**
-* @brief Remove a specific restricted track by ID.
-* 
-* Allows selective cleanup of tracked individuals.
-* 
-* @param id Unique identifier of the track to remove.
+* @brief Queue a per-camera feature toggle command.
 */
-void removeRunRestrictedTrack(int id);
+void setSurveillanceCameraFeature(const std::string& cameraId, const std::string& featureKey, bool value);
 
 /**
-* @brief Reset the configuration parameters for restricted monitoring to defaults.
-* 
-* Ensures a clean baseline for detection.
+* @brief Queue an edit to an existing camera's identity/connection fields.
 */
-void resetRunRestrictedConfig();
+void updateSurveillanceCamera(const std::string& camId,
+                              const std::string& name,
+                              const std::string& source);
 
 /**
-* @brief Set the scale factor for face detection (image pyramid scaling).
-* 
-* Higher values speed up detection but may reduce accuracy.
-* 
-* @param scaleFactor Scale factor for detection.
+* @brief Queue a camera-removal command.
 */
-void setRunRestrictedScaleFactor(double scaleFactor);
+void removeSurveillanceCamera(const std::string& camId);
 
 /**
-* @brief Set the minimum number of neighbor rectangles required for a valid detection.
-* 
-* Controls sensitivity to false positives.
-* 
-* @param minNeighbors Minimum number of neighbors.
+* @brief Queue a pending-camera-plug-in command.
 */
-void setRunRestrictedMinNeighbors(int minNeighbors);
+void plugInSurveillancePendingCamera(const std::string& camName, const std::string& camId);
 
 /**
-* @brief Set the minimum face size to detect.
-* 
-* Prevents small, noisy detections from being considered valid.
-* 
-* @param size Minimum face size (cv::Size).
+* @brief Queue a plug-out (to pending, or delete) command.
 */
-void setRunRestrictedMinFaceSize(const cv::Size& size);
+void plugOutSurveillancePendingCamera(bool isDelete, const std::string& camName, const std::string& camId);
 
 /**
-* @brief Set the Intersection-over-Union (IoU) threshold for track matching.
-* 
-* Higher thresholds enforce stricter overlap requirements between detections and tracks.
-* 
-* @param threshold IoU threshold value.
+* @brief Queue a feature toggle applied to every configured camera.
 */
-void setIouMatchThreshold(double threshold);
+void setSurveillanceFeatureForAllCameras(const std::string& featureKey, bool value);
 
 /**
-* @brief Get the current scale factor used in restricted monitoring.
-* 
-* @return double Current scale factor.
+* @brief Queue a model upload/replace command.
 */
-double getRunRestrictedScaleFactor() const;
+void upLoadSurveillanceModel(const std::string& modelType, const std::string& modelPath);
 
 /**
-* @brief Get the current minimum neighbors setting.
-* 
-* @return int Current minimum neighbors value.
+* @brief Queue a model-settings reset command.
 */
-int getRunRestrictedMinNeighbors() const;
+void resetSurveillanceModelSettings();
 
 /**
-* @brief Get the current minimum face size setting.
-* 
-* @return cv::Size Current minimum face size.
+* @brief Queue a beep-channel enable/disable command.
 */
-cv::Size getRunRestrictedMinFaceSize() const;
+void setSurveillanceBeepEnabled(bool enabled);
 
 /**
-* @brief Get the current IoU threshold for track matching.
-* 
-* @return double Current IoU threshold value.
+* @brief Queue a voice-channel enable/disable command.
 */
-double getIouMatchThreshold() const;
-
-
-
-
-
-
-/*
-            MICROSERVEICE SECTION
-        *****************************
-
-        =======================================================================================
-        | Face Watchlist Funtions                                                             |
-        =======================================================================================
-        |                           Watchlist Management API                                  |
-
-        | These functions provide a complete interface for managing face watchlists           |
-        | within the Smart_Store framework. They allow any object inheriting BaseMicroservice |
-        | to expose watchlist capabilities when needed.                                       |
-        |                                                                                     |
-        | Core responsibilities:                                                              |
-        |  - Load known faces into the watchlist.                                             |
-        |  - Check detected faces against the watchlist.                                      |
-        |  - Configure similarity thresholds and cascade paths.                               |
-        |  - Query current watchlist state.                                                   |
-        =======================================================================================
-*/
-private:
-    std::unique_ptr<BaseMicroservice> _faceWatchlistManager = 
-                  MicroserviceManager::createMicroObjects("Face Watchlist");    
-public:
+void setSurveillanceVoiceEnabled(bool enabled);
 
 /**
-* @brief Start monitoring the camera feed using a Haar cascade or DNN model.
-* 
-* If a cascadePath is provided, it loads that specific face/feature detector.
-* If left empty, a default detector is used.
-* 
-* @param cascadePath Path to Haar cascade XML or DNN model file (optional).
+* @brief Queue a voice-gender command.
 */
-void monitorCamera(const std::string& cascadePath = "");
+void setSurveillanceVoiceGender(const std::string& gender);
 
 /**
-* @brief Get the current detection threshold used in monitorCamera.
-* 
-* Typically represents the confidence level required for detection.
-* 
-* @return double Current detection threshold value.
+* @brief Queue a station-location command.
 */
-double getmonitorCamerathreshold() const;
+void setSurveillanceStationLocation(double latitude, double longitude);
 
 /**
-* @brief Set a new detection threshold for monitorCamera.
-* 
-* Controls sensitivity: lower values make detection more sensitive, higher values less sensitive.
-* 
-* @param newThreshold New detection threshold value.
+* @brief Queue a face-settings reset command for one camera.
 */
-void setmonitorCamerathreshold(double newThreshold);
+void resetSurveillanceFaceSettings(const std::string& camId);
 
 /**
-* @brief Reset the detection threshold back to its default value.
+* @brief Queue a motion-settings reset command for one camera.
 */
-void resetmonitorCamerathreshold();
+void resetSurveillanceMotionSettings(const std::string& camId);
 
 /**
-* @brief Get the currently configured cascade file path.
-* 
-* This path points to the Haar cascade XML or DNN model file used for face/object detection.
-* 
-* @return std::string Current cascade file path.
+* @brief Queue an add-motion-zone command for one camera.
 */
-std::string getmonitorCameracascadePath() const;
+void addSurveillanceMotionZone(const std::string& camId,
+                               const std::string& regionName,
+                               int x, int y, int width, int height,
+                               bool restricted);
 
 /**
-* @brief Set a new cascade file path for face/object detection.
-* 
-* @param path Path to Haar cascade XML or DNN model file.
+* @brief Queue a clear-motion-zones command for one camera.
 */
-void setmonitorCameracascadePath(const std::string& path);
+void clearSurveillanceMotionZones(const std::string& camId);
 
 /**
-* @brief Load a set of known face images from file paths into memory for recognition.
-* 
-* Each file should represent one known individual. Used for face recognition tasks.
-* 
-* @param filePaths Vector of file paths to known face images.
+* @brief Queue an add-plate-to-watchlist command.
 */
-void loadKnownFaces(const std::vector<std::string>& filePaths);
+void addSurveillancePlateToWatchlist(const std::string& plate);
 
 /**
-* @brief Get the number of known faces currently loaded into memory.
-* 
-* @return size_t Number of known faces.
+* @brief Queue a remove-plate-from-watchlist command.
 */
-size_t getKnownFaceCount() const;
+void removeSurveillancePlateFromWatchlist(const std::string& plate);
 
 /**
-* @brief Clear all loaded known faces from memory.
-* 
-* Resets the recognition database to an empty state.
+* @brief Queue a clear-plate-watchlist command.
 */
-void resetKnownFaces();
-
-
-
-
-
-
-/*
-            MICROSERVEICE SECTION
-        *****************************
-
-        =======================================================================================
-        | Motion Detection Funtions                                                           |
-        =======================================================================================
-        |                           Unified Monitor API                                       |
-
-        | These functions provide a complete interface for managing motion detection          |
-        | within the Smart_Store framework. They allow any object inheriting BaseMicroservice |
-        | to expose motion detection capabilities when needed.                                |
-        |                                                                                     |
-        | Core responsibilities:                                                              |
-        |  - Start unified monitoring on a camera feed.                                       |
-        |  - Manage zones (add, clear).                                                       |
-        |  - Configure detection parameters (diff threshold, min area, crowd threshold, etc.).|
-        |  - Query current configuration and tracking state.                                  |
-        =======================================================================================
-*/
-private:
-    std::unique_ptr<BaseMicroservice> _motionDetectionManager = 
-                MicroserviceManager::createMicroObjects("Motion Detection");
-public:                  
+void clearSurveillancePlateWatchlist();
 
 /**
-* @brief Set the pixel intensity difference threshold used for motion detection.
- * 
-* Higher values make detection less sensitive to small changes in pixel intensity.
-* 
-* @param threshold Difference threshold value.
+* @brief Queue a set-account-id command.
 */
-void setMonitorDetectionDiffThreshold(double threshold);
+void setSurveillanceAccountId(const std::string& accountId);
 
 /**
-* @brief Set the minimum contour area required to count as motion.
-* 
-* Filters out small noise or irrelevant movements by ignoring contours smaller than this area.
-* 
-* @param area Minimum contour area in pixels.
+* @brief Queue a set-kafka-broker-address command.
 */
-void setMonitorDetectionMinArea(int area);
+void setSurveillanceKafkaBrokerAddress(const std::string& brokerAddress);
 
 /**
-* @brief Set the crowd threshold required to trigger a crowd alert.
-* 
-* Defines the number of people/objects that must be detected simultaneously to raise an alert.
-* 
-* @param threshold Crowd threshold (number of objects).
+* @brief Queue a set-face-settings command for one camera.
 */
-void setMonitorDetectionCrowdThreshold(std::size_t threshold);
+void setSurveillanceFaceSettings(const std::string& camId,
+                                 double scaleFactor,
+                                 int minNeighbors,
+                                 int minFaceSizeWidth,
+                                 int minFaceSizeHeight,
+                                 double scoreThreshold,
+                                 double nmsThreshold,
+                                 int topK,
+                                 bool useEqualizeHist,
+                                 int maxDetections,
+                                 uint64_t maxTrackAgeMs,
+                                 double iouThreshold,
+                                 bool debugLogging);
 
 /**
-* @brief Set the loitering threshold in seconds.
-* 
-* Specifies how long an object/person must remain in the same place to trigger a loitering alert.
-* 
-* @param loiterSeconds Time threshold in seconds.
+* @brief Queue a set-motion-settings command for one camera.
 */
-void setMonitorDetectionLoiterSeconds(int loiterSeconds);
+void setSurveillanceMotionSettings(const std::string& camId,
+                                   double diffThreshold,
+                                   int minArea,
+                                   std::size_t crowdThreshold,
+                                   int loiterSeconds,
+                                   int leftBehindSeconds,
+                                   bool enableTracking,
+                                   bool debugLogging);
 
 /**
-* @brief Bulk update of all motion detection configuration parameters at once.
-* 
-* @param diffThreshold   Pixel intensity difference threshold.
-* @param minArea         Minimum contour area in pixels.
-* @param crowdThreshold  Crowd threshold (number of objects).
-* @param loiterSeconds   Loitering threshold in seconds.
-* @param leftBehindSeconds Left-behind object threshold in seconds.
-* @param enableTracking  Enable or disable object/person tracking.
+* @brief Queue a set-night-vision-settings command for one camera.
 */
-void setMonitorDetectionConfig(double diffThreshold,
-                               int minArea,
-                               std::size_t crowdThreshold,
-                               int loiterSeconds,
-                               int leftBehindSeconds,
-                               bool enableTracking);
+void setSurveillanceNightVisionSettings(const std::string& camId,
+                                        double gamma,
+                                        bool adaptiveMode,
+                                        int contrastMode,
+                                        double clipLimit,
+                                        int tileSize,
+                                        int denoisingStrength);
 
 /**
-* @brief Register a callback function to be invoked when an alert is triggered.
-* 
-* The callback receives the alert message string.
-* 
-* @param cb Callback function taking a std::string message.
+* @brief Queue a set-object-detection-settings command for one camera.
 */
-void setMonitorDetectionAlertCallback(std::function<void(const std::string&)> cb);
+void setSurveillanceObjectDetectionSettings(const std::string& camId,
+                                            int inputSize,
+                                            int backend,
+                                            int target,
+                                            bool trackingEnabled,
+                                            float minConfForDraw);
 
 /**
-* @brief Reset motion detection configuration back to default values.
+* @brief Queue a set-vehicle-settings command for one camera.
 */
-void resetMonitorDetectionConfig();
+void setSurveillanceVehicleSettings(const std::string& camId,
+                                    const std::string& lang,
+                                    int minPlateConfidence,
+                                    bool enableAlerts,
+                                    bool saveImages);
 
 /**
-* @brief Reset the entire motion detection system (configuration + state).
+* @brief Queue a set-recorder-settings command for one camera.
 */
-void resetMonitorDetection();
+void setSurveillanceRecorderSettings(const std::string& camId,
+                                     int codec,
+                                     int bitrate,
+                                     int maxDuration,
+                                     uint64_t maxFileSize,
+                                     const std::string& eventType);
 
-/**
-* @brief Clear all defined detection zones (restricted areas).
-*/
-void clearMonitorDetectionZones();
+// --- DataBaseManager passthroughs -- same fire-and-forget command queue.
+// Read/query methods (get*/getAll*/getById-style, plus
+// validateSurveillanceUserPassword) return a requestId string -- call
+// drainSurveillanceResponses() below later to retrieve results and match
+// them back up by requestId (see Surveillance::drainResponses()'s own doc
+// comment). Every other (mutating) method here stays void/fire-and-forget,
+// unchanged. ---
 
-/**
-* @brief Check if object/person tracking is currently enabled.
-* 
-* @return true if tracking is enabled, false otherwise.
-*/
-bool isMonitorDetectionTrackingEnabled() const;
+// Tracked Faces
+std::string getSurveillanceAllTrackedFaces();
+std::string getSurveillanceUnknownTrackedFaces();
+std::string getSurveillanceAuthorizedTrackedFaces();
+std::string getSurveillanceWatchlistTrackedFaces();
+std::string getSurveillanceTrackedFaceById(const std::string& faceId);
+void deleteSurveillanceTrackedFace(const std::string& id);
+void deleteSurveillanceAllTrackedFaces();
+void deleteSurveillanceAllAuthorizedFaces();
+void deleteSurveillanceAllWatchlistFaces();
+void registerSurveillanceFaceFromImage(const std::string& imagePath,
+                                       const std::string& name,
+                                       const std::string& status,
+                                       const std::string& description,
+                                       const std::string& externalId,
+                                       bool broadcastToCloud);
+std::string getSurveillanceFaceRegionHistory(const std::string& faceId);
 
-/**
-* @brief Check if an alert callback has been registered.
-* 
-* @return true if a callback is registered, false otherwise.
-*/
-bool hasMonitorDetectionCallback() const;
+// Tracked Plates
+void logSurveillanceTrackedPlate(const std::string& plateNumber, const std::string& status, const std::string& description);
+std::string getSurveillanceAllTrackedPlates();
+std::string getSurveillanceUnknownTrackedPlates();
+std::string getSurveillanceAuthorizedTrackedPlates();
+std::string getSurveillanceWatchlistTrackedPlates();
+std::string getSurveillanceTrackedPlateById(const std::string& plateId);
+void deleteSurveillanceTrackedPlate(const std::string& id);
+void deleteSurveillanceAllTrackedPlates();
+void deleteSurveillanceAllAuthorizedPlates();
+void deleteSurveillanceAllWatchlistPlates();
+void registerSurveillancePlateFromImage(const std::string& imagePath,
+                                        const std::string& plateNumber,
+                                        const std::string& status,
+                                        const std::string& externalId);
+std::string getSurveillancePlateRegionHistory(const std::string& plateId);
 
-/**
-* @brief Get the current pixel intensity difference threshold.
-* 
-* @return double Current difference threshold value.
-*/
-double getMonitorDetectionDiffThreshold() const;
+// Tracked Objects
+std::string getSurveillanceObjectRegionHistory(const std::string& objectId);
 
-/**
-* @brief Get the current minimum contour area threshold.
-* 
-* @return int Current minimum contour area in pixels.
-*/
-int getMonitorDetectionMinArea() const;
+// Tracked Weapons
+std::string getSurveillanceAllTrackedWeapons();
+std::string getSurveillanceUnknownTrackedWeapons();
+std::string getSurveillanceAuthorizedTrackedWeapons();
+std::string getSurveillanceWatchlistTrackedWeapons();
+std::string getSurveillanceTrackedWeaponById(const std::string& weaponId);
+void deleteSurveillanceTrackedWeapon(const std::string& id);
+void deleteSurveillanceAllTrackedWeapons();
+void deleteSurveillanceAllAuthorizedWeapons();
+void deleteSurveillanceAllWatchlistWeapons();
+void registerSurveillanceWeaponFromImage(const std::string& imagePath,
+                                         const std::string& name,
+                                         const std::string& status,
+                                         const std::string& description,
+                                         const std::string& externalId);
+std::string getSurveillanceWeaponRegionHistory(const std::string& weaponId);
 
-/**
-* @brief Get the current crowd threshold.
-* 
-* @return std::size_t Current crowd threshold (number of objects).
-*/
-std::size_t getMonitorDetectionCrowdThreshold() const;
+// User Management
+void registerSurveillanceUser(const std::string& username,
+                              const std::string& passwordHash,
+                              const std::string& role,
+                              const std::string& name,
+                              const std::string& imagePath,
+                              const std::string& phoneNumber,
+                              const std::string& email,
+                              int isActive);
+std::string validateSurveillanceUserPassword(const std::string& username, const std::string& inputPlaintextPassword);
+void updateSurveillanceUserProfile(const std::string& username,
+                                   const std::string& passwordHash,
+                                   const std::string& role,
+                                   const std::string& name,
+                                   const std::string& imagePath,
+                                   const std::string& phoneNumber,
+                                   const std::string& email,
+                                   int isActive);
+void updateSurveillanceUserStatus(const std::string& userId, int activeState);
+void deleteSurveillanceUserById(const std::string& userId);
+void updateSurveillanceLastLogin(const std::string& userId, const std::string& timestamp);
+void changeSurveillanceUserPassword(const std::string& userId, const std::string& newPasswordHash);
 
-/**
-* @brief Get the current loitering threshold in seconds.
-* 
-* @return int Current loitering threshold in seconds.
-*/
-int getMonitorDetectionLoiterSeconds() const;
+// Events
+std::string getSurveillanceAllEvents();
+std::string getSurveillanceEventById(const std::string& eventId);
+void deleteSurveillanceAllEvents();
+void deleteSurveillanceEventById(const std::string& eventId);
 
-/**
-* @brief Get the current left-behind object threshold in seconds.
-* 
-* @return int Current left-behind threshold in seconds.
-*/
-int getMonitorDetectionLeftBehindSeconds() const;
+// Recordings
+std::string getSurveillanceAllRecordings();
+std::string getSurveillanceRecordingsByCameraId(const std::string& cameraId);
+std::string getSurveillanceRecordingById(const std::string& id);
+void deleteSurveillanceAllRecordings();
+void deleteSurveillanceRecordingById(const std::string& id);
 
-/**
-* @brief Start monitoring a camera feed by index.
-* 
-* @param cameraIndex Index of the camera (e.g., 0 for default webcam).
-*/
-void runMonitorDetectionMonitorCamera(int cameraIndex);
+// Telemetry
+void logSurveillanceTelemetry(const std::string& metricType,
+                              const std::string& nodeIp,
+                              std::optional<float> cpuUsage,
+                              std::optional<float> ramUsageMb,
+                              std::optional<float> diskUsagePercent,
+                              std::optional<float> temperatureC,
+                              int numberOfCameras,
+                              int numberOfActiveCameras,
+                              int numberOfNonActiveCameras,
+                              std::optional<float> fps,
+                              std::optional<int> latencyMs);
+void pruneSurveillanceTelemetryBefore(long long beforeTimestamp);
 
-/**
-* @brief Add a new detection zone (region of interest) to be monitored for motion events.
-* 
-* @param zone Zone object defining the region of interest.
-*/
-void addMonitorDetectionZone(const Zone& zone);
+// Daily Face Metrics
+void insertSurveillanceDailyFaceMetrics(const std::string& detectionDate, int totalDetections, const std::string& timestamp);
+std::string getSurveillanceAllDailyFaceMetrics();
+std::string getSurveillanceDailyFaceMetricsByDate(const std::string& detectionDate);
+void deleteSurveillanceAllDailyFaceMetrics();
+void deleteSurveillanceDailyFaceMetricsByDate(const std::string& detectionDate);
+
+// Chat
+void insertSurveillanceChatMessage(const std::string& id, const std::string& content, const std::string& senderName, const std::string& createdAt);
+std::string getSurveillanceRecentChatMessages(int limit);
+
+// Retrieves whatever query results have arrived since the last call --
+// see Surveillance::drainResponses()'s own doc comment. A poll, not a
+// blocking wait; there is no synchronous round trip across the process
+// boundary.
+std::vector<json> drainSurveillanceResponses();
 
 
 
@@ -756,10 +659,14 @@ void addMonitorDetectionZone(const Zone& zone);
         |  - Query current configuration and tracking state.                                  |
         =======================================================================================
 */
+
+class QRCodeScannerWrapper {
 private:
+ItemWrapper<T>& parent; 
 std::unique_ptr<BaseMicroservice> _qrCodeScannerManager = 
                 MicroserviceManager::createMicroObjects("QR Code Scanner");
-public:              
+public:        
+QRCodeScannerWrapper(ItemWrapper<T>& wrapper) : parent(wrapper) {}   
 
 /**
 * @brief Scan a QR code from the camera feed.
@@ -803,7 +710,7 @@ void setCameraIndex(int index);
 */
 void setPreviewEnabled(bool enabled);
 
-
+};
 
 
 
@@ -829,8 +736,11 @@ void setPreviewEnabled(bool enabled);
     =======================================================================================
 */
 
+
+class DocumentScannerWrapper {
 private:
-    std::unique_ptr<BaseMicroservice> _documentScanner = 
+ItemWrapper<T>& parent;
+std::unique_ptr<BaseMicroservice> _documentScanner = 
                   MicroserviceManager::createMicroObjects("Document Scanner");   
 public:
 
@@ -915,7 +825,7 @@ double getSharpening() const;
 */
 void run(const std::string& mode, const std::string& input, const std::string& output);
 
-
+};
 
 
 
@@ -926,7 +836,7 @@ void run(const std::string& mode, const std::string& input, const std::string& o
     *****************************
 
     =======================================================================================
-    | Alarm System Functions                                                     |
+    | Alarm System Functions                                                              |
     =======================================================================================
     |                           Unified Alarm System API                                  |
 
@@ -941,98 +851,101 @@ void run(const std::string& mode, const std::string& input, const std::string& o
     =======================================================================================
 */
 
-private:
-std::unique_ptr<BaseMicroservice> _alarmManager = 
-                MicroserviceManager::createMicroObjects("Alarm System");
-public:
-
-/**
-* @brief Trigger an alarm with the specified message.
-* 
-* This function activates the alarm system and propagates the alert to other subsystems.
-* @param message The alarm message to be sent.
-*/
-void triggerAlarm(const std::string& event);
-
-/**
-* @brief Set the volume level for the alarm.
-* 
-* @param level Volume level (0-100).
-*/
-void setVolume(int level);
-
-/**
-* @brief Set the duration for which the alarm should sound.
-* 
-* @param seconds Duration in seconds.
-*/
-void setDuration(int seconds);
-
-/**
-* @brief Set the default tone for alarms.
-* 
-* @param tone The name of the default tone to set.
-*/
-void setDefaultTone(const std::string& tone);
-
-/**
-* @brief Set a specific tone for alarms.
-* 
-* @param toneName The name of the tone to set.
-* @param filePath The file path to the tone audio file.
-*/
-void setTone(const std::string& toneName, const std::string& filePath);
-
-/**
-* @brief Assign a specific tone to an event.
-* 
-* @param event The event name to associate with the tone.
-* @param toneName The name of the tone to assign.
-*/
-void assignTone(const std::string& event, const std::string& toneName);
-
-/**
-* @brief Get the current volume level of the alarm.
-* @return int Current volume level (0-100).
-*/
-int getVolume() const;
-
-/**
-* @brief Get the current duration for which the alarm sounds.
-* @return int Current duration in seconds.
-*/
-int getDuration() const;
-
-/**
-* @brief Get the name of the default tone for alarms.
-* @return std::string Name of the default tone.
-*/
-std::string getDefaultTone() const;
-
-/**
-* @brief Get the file path of a specific tone by name.
-* @param toneName The name of the tone.
-* @return std::string File path of the tone.
-*/
-std::string getTone(const std::string& toneName) const;
-
-/**
-* @brief Get the tone assigned to a specific event.
-* @param event The event name.
-* @return std::string Name of the tone assigned to the event.
-*/
-std::string getAssignedTone(const std::string& event) const;
-
-/**
-* @brief Reset the alarm system configuration to default values.
-*/
-void resetAlarmConfig();
-
-/**
-* @brief Play a specific tone by name.
-* @param toneName The name of the tone to play.
-*/
-void playTone(const std::string& toneName);
+class AlarmSystemWrapper {
+   private:
+   ItemWrapper<T>& parent;
+   std::unique_ptr<BaseMicroservice> _alarmManager = 
+                   MicroserviceManager::createMicroObjects("Alarm System");
+   public:
+   AlarmSystemWrapper(ItemWrapper<T>& wrapper) : parent(wrapper) {}
+   /**
+   * @brief Trigger an alarm with the specified message.
+   * 
+   * This function activates the alarm system and propagates the alert to other subsystems.
+   * @param message The alarm message to be sent.
+   */
+   void triggerAlarm(const std::string& event);
+   
+   /**
+   * @brief Set the volume level for the alarm.
+   * 
+   * @param level Volume level (0-100).
+   */
+   void setVolume(int level);
+   
+   /**
+   * @brief Set the duration for which the alarm should sound.
+   * 
+   * @param seconds Duration in seconds.
+   */
+   void setDuration(int seconds);
+   
+   /**
+   * @brief Set the default tone for alarms.
+   * 
+   * @param tone The name of the default tone to set.
+   */
+   void setDefaultTone(const std::string& tone);
+   
+   /**
+   * @brief Set a specific tone for alarms.
+   * 
+   * @param toneName The name of the tone to set.
+   * @param filePath The file path to the tone audio file.
+   */
+   void setTone(const std::string& toneName, const std::string& filePath);
+   
+   /**
+   * @brief Assign a specific tone to an event.
+   * 
+   * @param event The event name to associate with the tone.
+   * @param toneName The name of the tone to assign.
+   */
+   void assignTone(const std::string& event, const std::string& toneName);
+   
+   /**
+   * @brief Get the current volume level of the alarm.
+   * @return int Current volume level (0-100).
+   */
+   int getVolume() const;
+   
+   /**
+   * @brief Get the current duration for which the alarm sounds.
+   * @return int Current duration in seconds.
+   */
+   int getDuration() const;
+   
+   /**
+   * @brief Get the name of the default tone for alarms.
+   * @return std::string Name of the default tone.
+   */
+   std::string getDefaultTone() const;
+   
+   /**
+   * @brief Get the file path of a specific tone by name.
+   * @param toneName The name of the tone.
+   * @return std::string File path of the tone.
+   */
+   std::string getTone(const std::string& toneName) const;
+   
+   /**
+   * @brief Get the tone assigned to a specific event.
+   * @param event The event name.
+   * @return std::string Name of the tone assigned to the event.
+   */
+   std::string getAssignedTone(const std::string& event) const;
+   
+   /**
+   * @brief Reset the alarm system configuration to default values.
+   */
+   void resetAlarmConfig();
+   
+   /**
+   * @brief Play a specific tone by name.
+   * @param toneName The name of the tone to play.
+   */
+   void playTone(const std::string& toneName);
+};
     
 };
 

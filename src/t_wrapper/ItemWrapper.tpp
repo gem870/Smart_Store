@@ -1,6 +1,6 @@
-
+﻿
 //     ::::::::::::::::::::::::::::::::::::::::::::
-//     :: *  © 2025 Victor. All rights reserved. ::
+//     :: *  Â© 2025 Victor. All rights reserved. ::
 //     :: *  Smart_Store Framework               ::
 //     :: *  Licensed under the MIT License      ::
 //     ::::::::::::::::::::::::::::::::::::::::::::
@@ -172,743 +172,668 @@ nlohmann::json ItemWrapper<T>::toJson() const {
         *****************************
 
         =======================================================================================
-        | Networking Agent Funtions                                                           |
+        | Surveillance Funtions                                                               |
         =======================================================================================
-        |                                  Messaging API                                      |
-
-        | These functions provide a communication interface for Smart_Store microservices.    |
-        | They allow objects to send and receive messages across the network using the        |
-        | underlying net_curl/libcurl infrastructure.                                         |
-        |                                                                                     |
-        | Core responsibilities:                                                              |
-        |  - Enable distributed services to exchange data (payloads, commands, events).       |
-        |  - Abstract away low-level networking details, exposing a clean API.                |
-        |  - Support extensibility: any object inheriting BaseMicroservice can participate    |
-        |    in messaging without reimplementing transport logic.                             |
-        =======================================================================================
-*/
-
-    template<typename T>
-    void ItemWrapper<T>::sendMessage(const std::string& payload, const std::string& recipientID) {
-        std::string actualRecipient = recipientID.empty() ? getId() : recipientID;
-
-        if (_networkManager) {
-            if (auto* networkAgent = dynamic_cast<NetworkAgent*>(_networkManager.get())) {
-                networkAgent->sendMessage(payload, actualRecipient);
-            } else {
-                LOG_CONTEXT(LogLevel::ERR,
-                            "sendMessage not supported by this Network Agent.",
-                            {});
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "NetworkManager not initialized.", {});
-        }
-    }
-
-    template<typename T>
-    void ItemWrapper<T>::receiveMessage(const Message& msg)  {
-        if(_networkManager){
-          if(auto* networkAgent = dynamic_cast<NetworkAgent*>(_networkManager.get())){
-            networkAgent->receiveMessage(msg);
-          } else {
-            LOG_CONTEXT(LogLevel::ERR, "ReceivingMessage not supported by Network Agent.", {});
-          }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "NetworkManager not initialized.", {});
-        }
-    }
-
-
-
-
-
-
-
-
-/*
-            MICROSERVEICE SECTION
-        *****************************
-
-        =========================================================================================
-        | Face Recognition Funtions                                                             |
-        =========================================================================================
-        |                           Restricted Area Monitoring API                              |
-                                    
-        | These functions provide a complete interface for managing face recognition            |
-        | within restricted zones. The design follows Smart_Store’s philosophy:                 |
-        | every object can inherit computer vision features and expose them when needed.        | 
-        |                                                                                       |
-        | Core responsibilities:                                                                |
-        |  - Start monitoring with a given cascade classifier.                                  |
-        |  - Manage tracked faces (add, remove, reset).                                         |
-        |  - Configure detection parameters (scale factor, neighbors, face size, IOU threshold).|
-        |  - Query current configuration and tracked state.                                     |
-        =========================================================================================
-*/
-
-template<typename T>
-void ItemWrapper<T>::runRestrictedAreaMonitor(int cameraIndex, const std::string& cascadePath) {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            cvVision->runRestrictedAreaMonitor(cameraIndex, cascadePath);
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Run restricted area monitor failed.", {});
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Run restricted area monitor not initialized.", {});
-    }
-}
-
-template<typename T>
-const std::unordered_map<int, FaceTrack>& ItemWrapper<T>::getRunRestrictedTracks() const {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            return cvVision->getTracks();
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get tracks failed.", {});
-            static const std::unordered_map<int, FaceTrack> emptyMap;
-            return emptyMap;
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get tracks not initialized.", {});
-        static const std::unordered_map<int, FaceTrack> emptyMap;
-        return emptyMap;
-    }
-}
-
-template<typename T>
-void ItemWrapper<T>::addRunRestictedTrack(int id, const FaceTrack& track) {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            cvVision->addTrack(id, track);
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "",
-                std::make_exception_ptr(std::runtime_error("Failed to add ID and face for recognition.")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "",
-            std::make_exception_ptr(std::runtime_error("Error in operation for adding faces and IDs")));
-    }
-}
-
-template<typename T>
-void ItemWrapper<T>::restRunRestrictedTracks() {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            cvVision->resetTracking();
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "",
-                std::make_exception_ptr(std::runtime_error("Failed to reset face recognition tracking.")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "",
-            std::make_exception_ptr(std::runtime_error("Error in operation for resetting face recognition tracking.")));
-    }
-}
-
-template<typename T>
-void ItemWrapper<T>::removeRunRestrictedTrack(int id) {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            cvVision->removeTrack(id);
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "",
-                std::make_exception_ptr(std::runtime_error("Failed to remove ID and face for recognition.")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "",
-            std::make_exception_ptr(std::runtime_error("Error in operation for removing faces and IDs")));
-    }
-}
-
-template<typename T>
-void ItemWrapper<T>::resetRunRestrictedConfig() {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            cvVision->resetConfig();
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "",
-                std::make_exception_ptr(std::runtime_error("Failed to reset face recognition configuration.")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "",
-            std::make_exception_ptr(std::runtime_error("Error in operation for resetting face recognition configuration.")));
-    }
-}
-
-template<typename T>
-void ItemWrapper<T>::setRunRestrictedScaleFactor(double scaleFactor) {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            FaceError err = cvVision->setScaleFactor(scaleFactor);
-            if (err != FaceError::None) {
-                LOG_CONTEXT(LogLevel::ERR, "Failed to set scale factor.", {});
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set scale factor failed.", {});
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set scale factor not initialized.", {});
-    }
-}
-
-template<typename T>
-void ItemWrapper<T>::setRunRestrictedMinNeighbors(int minNeighbors) {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            FaceError err = cvVision->setMinNeighbors(minNeighbors);
-            if (err != FaceError::None) {
-                LOG_CONTEXT(LogLevel::ERR, "Failed to set minimum neighbors.", {});
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set minimum neighbors failed.", {});
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set minimum neighbors not initialized.", {});
-    }
-}
-
-template<typename T>
-void ItemWrapper<T>::setRunRestrictedMinFaceSize(const cv::Size& size) {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            FaceError err = cvVision->setMinFaceSize(size);
-            if (err != FaceError::None) {
-                LOG_CONTEXT(LogLevel::ERR, "Failed to set minimum face size.", {});
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set minimum face size failed.", {});
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set minimum face size not initialized.", {});
-    }
-}
- 
-template<typename T>
-void ItemWrapper<T>::setIouMatchThreshold(double threshold) {   
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            FaceError err = cvVision->setIouMatchThreshold(threshold);
-            if (err != FaceError::None) {
-                LOG_CONTEXT(LogLevel::ERR, "Failed to set IOU match threshold.", {});
-            }
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set IOU match threshold failed.", {});
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set IOU match threshold not initialized.", {});
-    }
-}
-
-template<typename T>
-double ItemWrapper<T>::getRunRestrictedScaleFactor() const {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            return cvVision->getScaleFactor();
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get scale factor failed.", {});
-            return 0.0;
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get scale factor not initialized.", {});
-        return 0.0;
-    }
-}
-
-template<typename T>
-int ItemWrapper<T>::getRunRestrictedMinNeighbors() const {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            return cvVision->getMinNeighbors();
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get minimum neighbors failed.", {});
-            return 0;
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get minimum neighbors not initialized.", {});
-        return 0;
-    }
-}
-
-template<typename T>
-cv::Size ItemWrapper<T>::getRunRestrictedMinFaceSize() const {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            return cvVision->getMinFaceSize();
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get minimum face size failed.", {});
-            return cv::Size();
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get minimum face size not initialized.", {});
-        return cv::Size();
-    }
-}
-
-template<typename T>
-double ItemWrapper<T>::getIouMatchThreshold() const {
-    if (_faceRecognitionManager) {
-        if (auto* cvVision = dynamic_cast<FaceRecognition*>(_faceRecognitionManager.get())) {
-            return cvVision->getIouMatchThreshold();
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get IOU match threshold failed.", {});
-            return 0.0;
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get IOU match threshold not initialized.", {});
-        return 0.0;
-    }
-}
-
-
-
-
-
-
-
-
-
-/*
-            MICROSERVEICE SECTION
-        *****************************
-
-        =======================================================================================
-        | Face Watchlist Funtions                                                             |
-        =======================================================================================
-        |                           Watchlist Management API                                  |
-
-        | These functions provide a complete interface for managing face watchlists           |
-        | within the Smart_Store framework. They allow any object inheriting BaseMicroservice |
-        | to expose watchlist capabilities when needed.                                       |
-        |                                                                                     |
-        | Core responsibilities:                                                              |
-        |  - Load known faces into the watchlist.                                             |
-        |  - Check detected faces against the watchlist.                                      |
-        |  - Configure similarity thresholds and cascade paths.                               |
-        |  - Query current watchlist state.                                                   |
+        | Thin handle onto the standalone surveillance system -- start/stop/status only, via  |
+        | a sentinel file the surveillance app's own frontend watches. See Surveillance.hpp    |
+        | for why this stays thin rather than owning that app's FeatureConfigManager state.    |
         =======================================================================================
 */
 
 template<typename T>
-void ItemWrapper<T>::monitorCamera(const std::string& cascadePath){
-    if (_faceWatchlistManager) {
-        if (auto* cvVision = dynamic_cast<FaceWatchlist*>(_faceWatchlistManager.get())) {
-            cvVision->monitorCamera(cascadePath);
+void ItemWrapper<T>::startSurveillance() {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->start();
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Monitor camera failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Start surveillance failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Monitor camera not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when starting.", {});
     }
 }
 
 template<typename T>
-double ItemWrapper<T>::getmonitorCamerathreshold() const {
-    if (_faceWatchlistManager) {
-        if (auto* cvVision = dynamic_cast<FaceWatchlist*>(_faceWatchlistManager.get())) {
-            return cvVision->getThreshold();
+void ItemWrapper<T>::stopSurveillance() {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->stop();
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get monitor camera threshold failed.", {});
-            return 0.0;
+            LOG_CONTEXT(LogLevel::ERR, "Stop surveillance failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get monitor camera threshold not initialized.", {});
-        return 0.0;
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when stopping.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::setmonitorCamerathreshold(double newThreshold){
-    if (_faceWatchlistManager) {
-        if (auto* cvVision = dynamic_cast<FaceWatchlist*>(_faceWatchlistManager.get())) {
-            cvVision->setThreshold(newThreshold);
+bool ItemWrapper<T>::isSurveillanceRunning() const {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            return surveillance->isRunning();
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set monitor camera threshold failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Check surveillance running failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set monitor camera threshold not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when checking running state.", {});
+    }
+    return false;
+}
+
+#define SURV_W_FORWARD0(WrapperName, Call, LogText) \
+template<typename T> \
+void ItemWrapper<T>::WrapperName() { \
+    if (_surveillanceManager) { \
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) { \
+            surveillance->Call(); \
+        } else { \
+            LOG_CONTEXT(LogLevel::ERR, LogText " failed (type mismatch).", {}); \
+        } \
+    } else { \
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when " LogText ".", {}); \
+    } \
+}
+
+// Same shape as SURV_W_FORWARD0, for the read/query methods that return a
+// requestId instead of being fire-and-forget -- see Surveillance.hpp's
+// DataBaseManager section doc comment.
+#define SURV_W_FORWARD0_R(WrapperName, Call, LogText) \
+template<typename T> \
+std::string ItemWrapper<T>::WrapperName() { \
+    if (_surveillanceManager) { \
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) { \
+            return surveillance->Call(); \
+        } else { \
+            LOG_CONTEXT(LogLevel::ERR, LogText " failed (type mismatch).", {}); \
+        } \
+    } else { \
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when " LogText ".", {}); \
+    } \
+    return ""; \
+}
+
+SURV_W_FORWARD0(resetSurveillanceModelSettings, resetModelSettings, "resetting surveillance model settings")
+SURV_W_FORWARD0(clearSurveillancePlateWatchlist, clearPlateNumberFromWatchList, "clearing surveillance plate watchlist")
+SURV_W_FORWARD0_R(getSurveillanceAllTrackedFaces, getAllTrackedFaces, "getting all tracked faces")
+SURV_W_FORWARD0_R(getSurveillanceUnknownTrackedFaces, getUnknownTrackedFaces, "getting unknown tracked faces")
+SURV_W_FORWARD0_R(getSurveillanceAuthorizedTrackedFaces, getAuthorizedTrackedFaces, "getting authorized tracked faces")
+SURV_W_FORWARD0_R(getSurveillanceWatchlistTrackedFaces, getWatchlistTrackedFaces, "getting watchlist tracked faces")
+SURV_W_FORWARD0(deleteSurveillanceAllTrackedFaces, deleteAllTrackedFaces, "deleting all tracked faces")
+SURV_W_FORWARD0(deleteSurveillanceAllAuthorizedFaces, deleteAllAuthorizedFaces, "deleting all authorized faces")
+SURV_W_FORWARD0(deleteSurveillanceAllWatchlistFaces, deleteAllWatchlistFaces, "deleting all watchlist faces")
+SURV_W_FORWARD0_R(getSurveillanceAllTrackedPlates, getAllTrackedPlates, "getting all tracked plates")
+SURV_W_FORWARD0_R(getSurveillanceUnknownTrackedPlates, getUnknownTrackedPlates, "getting unknown tracked plates")
+SURV_W_FORWARD0_R(getSurveillanceAuthorizedTrackedPlates, getAuthorizedTrackedPlates, "getting authorized tracked plates")
+SURV_W_FORWARD0_R(getSurveillanceWatchlistTrackedPlates, getWatchlistTrackedPlates, "getting watchlist tracked plates")
+SURV_W_FORWARD0(deleteSurveillanceAllTrackedPlates, deleteAllTrackedPlates, "deleting all tracked plates")
+SURV_W_FORWARD0(deleteSurveillanceAllAuthorizedPlates, deleteAllAuthorizedPlates, "deleting all authorized plates")
+SURV_W_FORWARD0(deleteSurveillanceAllWatchlistPlates, deleteAllWatchlistPlates, "deleting all watchlist plates")
+SURV_W_FORWARD0_R(getSurveillanceAllTrackedWeapons, getAllTrackedWeapons, "getting all tracked weapons")
+SURV_W_FORWARD0_R(getSurveillanceUnknownTrackedWeapons, getUnknownTrackedWeapons, "getting unknown tracked weapons")
+SURV_W_FORWARD0_R(getSurveillanceAuthorizedTrackedWeapons, getAuthorizedTrackedWeapons, "getting authorized tracked weapons")
+SURV_W_FORWARD0_R(getSurveillanceWatchlistTrackedWeapons, getWatchlistTrackedWeapons, "getting watchlist tracked weapons")
+SURV_W_FORWARD0(deleteSurveillanceAllTrackedWeapons, deleteAllTrackedWeapons, "deleting all tracked weapons")
+SURV_W_FORWARD0(deleteSurveillanceAllAuthorizedWeapons, deleteAllAuthorizedWeapons, "deleting all authorized weapons")
+SURV_W_FORWARD0(deleteSurveillanceAllWatchlistWeapons, deleteAllWatchlistWeapons, "deleting all watchlist weapons")
+SURV_W_FORWARD0_R(getSurveillanceAllEvents, getAllEvents, "getting all events")
+SURV_W_FORWARD0(deleteSurveillanceAllEvents, deleteAllEvents, "deleting all events")
+SURV_W_FORWARD0_R(getSurveillanceAllRecordings, getAllRecordings, "getting all recordings")
+SURV_W_FORWARD0(deleteSurveillanceAllRecordings, deleteAllRecordings, "deleting all recordings")
+SURV_W_FORWARD0_R(getSurveillanceAllDailyFaceMetrics, getAllDailyFaceMetrics, "getting all daily face metrics")
+SURV_W_FORWARD0(deleteSurveillanceAllDailyFaceMetrics, deleteAllDailyFaceMetrics, "deleting all daily face metrics")
+
+#undef SURV_W_FORWARD0
+#undef SURV_W_FORWARD0_R
+
+#define SURV_W_FORWARD1(WrapperName, ArgType, ArgName, Call, LogText) \
+template<typename T> \
+void ItemWrapper<T>::WrapperName(ArgType ArgName) { \
+    if (_surveillanceManager) { \
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) { \
+            surveillance->Call(ArgName); \
+        } else { \
+            LOG_CONTEXT(LogLevel::ERR, LogText " failed (type mismatch).", {}); \
+        } \
+    } else { \
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when " LogText ".", {}); \
+    } \
+}
+
+// Same shape as SURV_W_FORWARD1, for the read/query methods that return a
+// requestId instead of being fire-and-forget.
+#define SURV_W_FORWARD1_R(WrapperName, ArgType, ArgName, Call, LogText) \
+template<typename T> \
+std::string ItemWrapper<T>::WrapperName(ArgType ArgName) { \
+    if (_surveillanceManager) { \
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) { \
+            return surveillance->Call(ArgName); \
+        } else { \
+            LOG_CONTEXT(LogLevel::ERR, LogText " failed (type mismatch).", {}); \
+        } \
+    } else { \
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when " LogText ".", {}); \
+    } \
+    return ""; \
+}
+
+SURV_W_FORWARD1(setSurveillanceCloudEnabled, bool, enabled, setCloudEnabled, "setting surveillance cloud enabled")
+SURV_W_FORWARD1(removeSurveillanceCamera, const std::string&, camId, removeCamera, "removing surveillance camera")
+SURV_W_FORWARD1(setSurveillanceBeepEnabled, bool, enabled, setBeepEnabled, "setting surveillance beep enabled")
+SURV_W_FORWARD1(setSurveillanceVoiceEnabled, bool, enabled, setVoiceEnabled, "setting surveillance voice enabled")
+SURV_W_FORWARD1(setSurveillanceVoiceGender, const std::string&, gender, setVoiceGender, "setting surveillance voice gender")
+SURV_W_FORWARD1(resetSurveillanceFaceSettings, const std::string&, camId, resetFaceSettings, "resetting surveillance face settings")
+SURV_W_FORWARD1(resetSurveillanceMotionSettings, const std::string&, camId, resetMotionSettings, "resetting surveillance motion settings")
+SURV_W_FORWARD1(clearSurveillanceMotionZones, const std::string&, camId, clearMotionZones, "clearing surveillance motion zones")
+SURV_W_FORWARD1(addSurveillancePlateToWatchlist, const std::string&, plate, addPlateNumberToWatchlist, "adding surveillance plate to watchlist")
+SURV_W_FORWARD1(removeSurveillancePlateFromWatchlist, const std::string&, plate, removePlateNumberFromWatchlist, "removing surveillance plate from watchlist")
+SURV_W_FORWARD1(setSurveillanceAccountId, const std::string&, accountId, setAccountId, "setting surveillance account id")
+SURV_W_FORWARD1(setSurveillanceKafkaBrokerAddress, const std::string&, brokerAddress, setKafkaBrokerAddress, "setting surveillance kafka broker address")
+SURV_W_FORWARD1_R(getSurveillanceTrackedFaceById, const std::string&, faceId, getTrackedFaceById, "getting tracked face by id")
+SURV_W_FORWARD1(deleteSurveillanceTrackedFace, const std::string&, id, deleteTrackedFace, "deleting tracked face")
+SURV_W_FORWARD1_R(getSurveillanceFaceRegionHistory, const std::string&, faceId, getFaceRegionHistory, "getting face region history")
+SURV_W_FORWARD1_R(getSurveillanceTrackedPlateById, const std::string&, plateId, getTrackedPlateById, "getting tracked plate by id")
+SURV_W_FORWARD1(deleteSurveillanceTrackedPlate, const std::string&, id, deleteTrackedPlate, "deleting tracked plate")
+SURV_W_FORWARD1_R(getSurveillancePlateRegionHistory, const std::string&, plateId, getPlateRegionHistory, "getting plate region history")
+SURV_W_FORWARD1_R(getSurveillanceObjectRegionHistory, const std::string&, objectId, getObjectRegionHistory, "getting object region history")
+SURV_W_FORWARD1_R(getSurveillanceTrackedWeaponById, const std::string&, weaponId, getTrackedWeaponById, "getting tracked weapon by id")
+SURV_W_FORWARD1(deleteSurveillanceTrackedWeapon, const std::string&, id, deleteTrackedWeapon, "deleting tracked weapon")
+SURV_W_FORWARD1_R(getSurveillanceWeaponRegionHistory, const std::string&, weaponId, getWeaponRegionHistory, "getting weapon region history")
+SURV_W_FORWARD1(deleteSurveillanceUserById, const std::string&, userId, deleteUserById, "deleting surveillance user by id")
+SURV_W_FORWARD1_R(getSurveillanceEventById, const std::string&, eventId, getEventById, "getting event by id")
+SURV_W_FORWARD1(deleteSurveillanceEventById, const std::string&, eventId, deleteEventById, "deleting event by id")
+SURV_W_FORWARD1_R(getSurveillanceRecordingsByCameraId, const std::string&, cameraId, getRecordingsByCameraId, "getting recordings by camera id")
+SURV_W_FORWARD1_R(getSurveillanceRecordingById, const std::string&, id, getRecordingById, "getting recording by id")
+SURV_W_FORWARD1(deleteSurveillanceRecordingById, const std::string&, id, deleteRecordingById, "deleting recording by id")
+SURV_W_FORWARD1(pruneSurveillanceTelemetryBefore, long long, beforeTimestamp, pruneTelemetryBefore, "pruning surveillance telemetry")
+SURV_W_FORWARD1_R(getSurveillanceDailyFaceMetricsByDate, const std::string&, detectionDate, getDailyFaceMetricsByDate, "getting daily face metrics by date")
+SURV_W_FORWARD1(deleteSurveillanceDailyFaceMetricsByDate, const std::string&, detectionDate, deleteDailyFaceMetricsByDate, "deleting daily face metrics by date")
+SURV_W_FORWARD1_R(getSurveillanceRecentChatMessages, int, limit, getRecentChatMessages, "getting recent chat messages")
+
+#undef SURV_W_FORWARD1
+#undef SURV_W_FORWARD1_R
+
+template<typename T>
+void ItemWrapper<T>::setSurveillanceCloudSettings(const std::string& baseUrl,
+                                                  const std::string& stationName,
+                                                  const std::string& hardwareToken,
+                                                  int pollIntervalSec) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setCloudSettings(baseUrl, stationName, hardwareToken, pollIntervalSec);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance cloud settings failed (type mismatch).", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting cloud settings.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::resetmonitorCamerathreshold(){
-    if (_faceWatchlistManager) {
-        if (auto* cvVision = dynamic_cast<FaceWatchlist*>(_faceWatchlistManager.get())) {
-            cvVision->resetThreshold();
+void ItemWrapper<T>::addSurveillanceCamera(const std::string& name,
+                                           const std::string& id,
+                                           const std::string& source,
+                                           bool enableFaceRecognition) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->addCamera(name, id, source, enableFaceRecognition);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Reset monitor camera threshold failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Add surveillance camera failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Reset monitor camera threshold not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when adding camera.", {});
     }
 }
 
 template<typename T>
-std::string ItemWrapper<T>::getmonitorCameracascadePath() const {
-    if (_faceWatchlistManager) {
-        if (auto* cvVision = dynamic_cast<FaceWatchlist*>(_faceWatchlistManager.get())) {
-            return cvVision->getCascadePath();
+void ItemWrapper<T>::setSurveillanceCameraFeature(const std::string& cameraId, const std::string& featureKey, bool value) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setCameraFeature(cameraId, featureKey, value);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get monitor camera cascade path failed.", {});
-            return "";
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance camera feature failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get monitor camera cascade path not initialized.", {});
-        return "";
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting camera feature.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::setmonitorCameracascadePath(const std::string& path){
-    if (_faceWatchlistManager) {
-        if (auto* cvVision = dynamic_cast<FaceWatchlist*>(_faceWatchlistManager.get())) {
-            cvVision->setCascadePath(path);
+void ItemWrapper<T>::updateSurveillanceCamera(const std::string& camId,
+                                              const std::string& name,
+                                              const std::string& source) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->updateCamera(camId, name, source);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set monitor camera cascade path failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Update surveillance camera failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set monitor camera cascade path not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when updating camera.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::loadKnownFaces(const std::vector<std::string>& filePaths){
-    if (_faceWatchlistManager) {
-        if (auto* cvVision = dynamic_cast<FaceWatchlist*>(_faceWatchlistManager.get())) {
-            cvVision->loadKnownFaces(filePaths);
+void ItemWrapper<T>::plugInSurveillancePendingCamera(const std::string& camName, const std::string& camId) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->plugInPendingCamera(camName, camId);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Load known faces failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Plug in surveillance pending camera failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Load known faces not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when plugging in pending camera.", {});
     }
 }
 
 template<typename T>
-size_t ItemWrapper<T>::getKnownFaceCount() const {
-    if (_faceWatchlistManager) {
-        if (auto* cvVision = dynamic_cast<FaceWatchlist*>(_faceWatchlistManager.get())) {
-            return cvVision->getKnownFaceCount();
+void ItemWrapper<T>::plugOutSurveillancePendingCamera(bool isDelete, const std::string& camName, const std::string& camId) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->plugOutPendingCamera(isDelete, camName, camId);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get known face count failed.", {});
-            return 0;
+            LOG_CONTEXT(LogLevel::ERR, "Plug out surveillance pending camera failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get known face count not initialized.", {});
-        return 0;
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when plugging out pending camera.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::resetKnownFaces(){
-    if (_faceWatchlistManager) {
-        if (auto* cvVision = dynamic_cast<FaceWatchlist*>(_faceWatchlistManager.get())) {
-            cvVision->resetKnownFaces();
+void ItemWrapper<T>::setSurveillanceFeatureForAllCameras(const std::string& featureKey, bool value) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setFeatureForAllCameras(featureKey, value);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Reset known faces failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance feature for all cameras failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Reset known faces not initialized.", {});
-    }
-}
-
-
-
-
-
-
-
-
-
-/*
-            MICROSERVEICE SECTION
-        *****************************
-
-        =======================================================================================
-        | Motion Detection Funtions                                                           |
-        =======================================================================================
-        |                           Unified Monitor API                                       |
-
-        | These functions provide a complete interface for managing motion detection          |
-        | within the Smart_Store framework. They allow any object inheriting BaseMicroservice |
-        | to expose motion detection capabilities when needed.                                |
-        |                                                                                     |
-        | Core responsibilities:                                                              |
-        |  - Start unified monitoring on a camera feed.                                       |
-        |  - Manage zones (add, clear).                                                       |
-        |  - Configure detection parameters (diff threshold, min area, crowd threshold, etc.).|
-        |  - Query current configuration and tracking state.                                  |
-        =======================================================================================
-*/
-
-template<typename T>
-void ItemWrapper<T>::setMonitorDetectionDiffThreshold(double threshold) {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->setDiffThreshold(threshold);
-        } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set monitor detection diff threshold failed.", {});
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set monitor detection diff threshold not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting feature for all cameras.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::setMonitorDetectionMinArea(int minArea) {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->setMinArea(minArea);
+void ItemWrapper<T>::upLoadSurveillanceModel(const std::string& modelType, const std::string& modelPath) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->upLoadModel(modelType, modelPath);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set monitor detection min area failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Upload surveillance model failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set monitor detection min area not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when uploading model.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::setMonitorDetectionCrowdThreshold(std::size_t crowdThreshold) {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->setCrowdThreshold(crowdThreshold);
+void ItemWrapper<T>::setSurveillanceStationLocation(double latitude, double longitude) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setStationLocation(latitude, longitude);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set monitor detection crowd threshold failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance station location failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set monitor detection crowd threshold not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting station location.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::setMonitorDetectionLoiterSeconds(int loiterSeconds) {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->setLoiterSeconds(loiterSeconds);
+void ItemWrapper<T>::addSurveillanceMotionZone(const std::string& camId,
+                                               const std::string& regionName,
+                                               int x, int y, int width, int height,
+                                               bool restricted) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->addMotionZone(camId, regionName, x, y, width, height, restricted);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set monitor detection loiter seconds failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Add surveillance motion zone failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set monitor detection loiter seconds not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when adding motion zone.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::setMonitorDetectionAlertCallback(std::function<void(const std::string&)> cb) {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->setAlertCallback(cb);
+void ItemWrapper<T>::setSurveillanceFaceSettings(const std::string& camId,
+                                                 double scaleFactor,
+                                                 int minNeighbors,
+                                                 int minFaceSizeWidth,
+                                                 int minFaceSizeHeight,
+                                                 double scoreThreshold,
+                                                 double nmsThreshold,
+                                                 int topK,
+                                                 bool useEqualizeHist,
+                                                 int maxDetections,
+                                                 uint64_t maxTrackAgeMs,
+                                                 double iouThreshold,
+                                                 bool debugLogging) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setFaceSettings(camId, scaleFactor, minNeighbors, minFaceSizeWidth, minFaceSizeHeight,
+                                          scoreThreshold, nmsThreshold, topK, useEqualizeHist, maxDetections,
+                                          maxTrackAgeMs, iouThreshold, debugLogging);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set monitor detection alert callback failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance face settings failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set monitor detection alert callback not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting face settings.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::resetMonitorDetectionConfig(){
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->resetConfig();
+void ItemWrapper<T>::setSurveillanceMotionSettings(const std::string& camId,
+                                                   double diffThreshold,
+                                                   int minArea,
+                                                   std::size_t crowdThreshold,
+                                                   int loiterSeconds,
+                                                   int leftBehindSeconds,
+                                                   bool enableTracking,
+                                                   bool debugLogging) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setMotionSettings(camId, diffThreshold, minArea, crowdThreshold, loiterSeconds,
+                                            leftBehindSeconds, enableTracking, debugLogging);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Reset monitor camera config failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance motion settings failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Reset monitor camera config not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting motion settings.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::resetMonitorDetection() {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->reset();
+void ItemWrapper<T>::setSurveillanceNightVisionSettings(const std::string& camId,
+                                                        double gamma,
+                                                        bool adaptiveMode,
+                                                        int contrastMode,
+                                                        double clipLimit,
+                                                        int tileSize,
+                                                        int denoisingStrength) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setNightVisionSettings(camId, gamma, adaptiveMode, contrastMode, clipLimit,
+                                                 tileSize, denoisingStrength);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Reset monitor detection failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance night vision settings failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Reset monitor detection not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting night vision settings.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::clearMonitorDetectionZones() {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->clearZones();
+void ItemWrapper<T>::setSurveillanceObjectDetectionSettings(const std::string& camId,
+                                                             int inputSize,
+                                                             int backend,
+                                                             int target,
+                                                             bool trackingEnabled,
+                                                             float minConfForDraw) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setObjectDetectionSettings(camId, inputSize, backend, target, trackingEnabled, minConfForDraw);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Clear monitor detection zones failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance object detection settings failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Clear monitor detection zones not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting object detection settings.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::setMonitorDetectionConfig(double diffThreshold,
-                                               int minArea,
-                                               std::size_t crowdThreshold,
-                                               int loiterSeconds,
-                                               int leftBehindSeconds,
-                                               bool enableTracking){
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->setConfig(diffThreshold,
-                                minArea,
-                                crowdThreshold,
-                                loiterSeconds,
-                                leftBehindSeconds,
-                                enableTracking);
+void ItemWrapper<T>::setSurveillanceVehicleSettings(const std::string& camId,
+                                                    const std::string& lang,
+                                                    int minPlateConfidence,
+                                                    bool enableAlerts,
+                                                    bool saveImages) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setVehicleSettings(camId, lang, minPlateConfidence, enableAlerts, saveImages);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Set monitor camera config failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance vehicle settings failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Set monitor camera config not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting vehicle settings.", {});
     }
 }
 
 template<typename T>
-bool ItemWrapper<T>::isMonitorDetectionTrackingEnabled() const {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            return cvVision->isTrackingEnabled();
+void ItemWrapper<T>::setSurveillanceRecorderSettings(const std::string& camId,
+                                                     int codec,
+                                                     int bitrate,
+                                                     int maxDuration,
+                                                     uint64_t maxFileSize,
+                                                     const std::string& eventType) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->setRecorderSettings(camId, codec, bitrate, maxDuration, maxFileSize, eventType);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get monitor detection tracking enabled failed.", {});
-            return false;
+            LOG_CONTEXT(LogLevel::ERR, "Set surveillance recorder settings failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get monitor detection tracking enabled not initialized.", {});
-        return false;
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when setting recorder settings.", {});
     }
 }
 
 template<typename T>
-bool ItemWrapper<T>::hasMonitorDetectionCallback() const {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            return cvVision->hasMotionCallback();
+void ItemWrapper<T>::registerSurveillanceFaceFromImage(const std::string& imagePath,
+                                                        const std::string& name,
+                                                        const std::string& status,
+                                                        const std::string& description,
+                                                        const std::string& externalId,
+                                                        bool broadcastToCloud) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->registerFaceFromImage(imagePath, name, status, description, externalId, broadcastToCloud);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Check monitor detection callback failed.", {});
-            return false;
+            LOG_CONTEXT(LogLevel::ERR, "Register surveillance face from image failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Check monitor detection callback not initialized.", {});
-        return false;
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when registering face from image.", {});
     }
 }
 
 template<typename T>
-double ItemWrapper<T>::getMonitorDetectionDiffThreshold() const {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            return cvVision->getDiffThreshold();
+void ItemWrapper<T>::logSurveillanceTrackedPlate(const std::string& plateNumber, const std::string& status, const std::string& description) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->logTrackedPlate(plateNumber, status, description);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get monitor detection diff threshold failed.", {});
-            return 0.0;
+            LOG_CONTEXT(LogLevel::ERR, "Log surveillance tracked plate failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get monitor detection diff threshold not initialized.", {});
-        return 0.0;
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when logging tracked plate.", {});
     }
 }
 
 template<typename T>
-int ItemWrapper<T>::getMonitorDetectionMinArea() const {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            return cvVision->getMinArea();
+void ItemWrapper<T>::registerSurveillancePlateFromImage(const std::string& imagePath,
+                                                         const std::string& plateNumber,
+                                                         const std::string& status,
+                                                         const std::string& externalId) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->registerPlateFromImage(imagePath, plateNumber, status, externalId);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get monitor detection min area failed.", {});
-            return 0;
+            LOG_CONTEXT(LogLevel::ERR, "Register surveillance plate from image failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get monitor detection min area not initialized.", {});
-        return 0;
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when registering plate from image.", {});
     }
 }
 
 template<typename T>
-std::size_t ItemWrapper<T>::getMonitorDetectionCrowdThreshold() const {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            return cvVision->getCrowdThreshold();
+void ItemWrapper<T>::registerSurveillanceWeaponFromImage(const std::string& imagePath,
+                                                          const std::string& name,
+                                                          const std::string& status,
+                                                          const std::string& description,
+                                                          const std::string& externalId) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->registerWeaponFromImage(imagePath, name, status, description, externalId);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get monitor detection crowd threshold failed.", {});
-            return 0;
+            LOG_CONTEXT(LogLevel::ERR, "Register surveillance weapon from image failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get monitor detection crowd threshold not initialized.", {});
-        return 0;
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when registering weapon from image.", {});
     }
 }
 
 template<typename T>
-int ItemWrapper<T>::getMonitorDetectionLoiterSeconds() const {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            return cvVision->getLoiterSeconds();
+void ItemWrapper<T>::registerSurveillanceUser(const std::string& username,
+                                              const std::string& passwordHash,
+                                              const std::string& role,
+                                              const std::string& name,
+                                              const std::string& imagePath,
+                                              const std::string& phoneNumber,
+                                              const std::string& email,
+                                              int isActive) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->registerUser(username, passwordHash, role, name, imagePath, phoneNumber, email, isActive);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get monitor detection loiter seconds failed.", {});
-            return 0;
+            LOG_CONTEXT(LogLevel::ERR, "Register surveillance user failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get monitor detection loiter seconds not initialized.", {});
-        return 0;
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when registering user.", {});
     }
 }
 
 template<typename T>
-int ItemWrapper<T>::getMonitorDetectionLeftBehindSeconds() const {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            return cvVision->getLeftBehindSeconds();
+std::string ItemWrapper<T>::validateSurveillanceUserPassword(const std::string& username, const std::string& inputPlaintextPassword) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            return surveillance->validateUserPassword(username, inputPlaintextPassword);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Get monitor detection left behind seconds failed.", {});
-            return 0;
+            LOG_CONTEXT(LogLevel::ERR, "Validate surveillance user password failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Get monitor detection left behind seconds not initialized.", {});
-        return 0;
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when validating user password.", {});
+    }
+    return "";
+}
+
+template<typename T>
+std::vector<json> ItemWrapper<T>::drainSurveillanceResponses() {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            return surveillance->drainResponses();
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Drain surveillance responses failed (type mismatch).", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when draining responses.", {});
+    }
+    return {};
+}
+
+template<typename T>
+void ItemWrapper<T>::updateSurveillanceUserProfile(const std::string& username,
+                                                    const std::string& passwordHash,
+                                                    const std::string& role,
+                                                    const std::string& name,
+                                                    const std::string& imagePath,
+                                                    const std::string& phoneNumber,
+                                                    const std::string& email,
+                                                    int isActive) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->updateUserProfile(username, passwordHash, role, name, imagePath, phoneNumber, email, isActive);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Update surveillance user profile failed (type mismatch).", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when updating user profile.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::runMonitorDetectionMonitorCamera(int cameraIndex){
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
-            cvVision->runUnifiedMonitor(cameraIndex);
+void ItemWrapper<T>::updateSurveillanceUserStatus(const std::string& userId, int activeState) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->updateUserStatus(userId, activeState);
         } else {
-            LOG_CONTEXT(LogLevel::ERR, "Run monitor camera failed.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Update surveillance user status failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR, "Run monitor camera not initialized.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when updating user status.", {});
     }
 }
 
 template<typename T>
-void ItemWrapper<T>::addMonitorDetectionZone(const Zone& zone) {
-    if (_motionDetectionManager) {
-        if (auto* cvVision = dynamic_cast<MotionDetection*>(_motionDetectionManager.get())) {
+void ItemWrapper<T>::updateSurveillanceLastLogin(const std::string& userId, const std::string& timestamp) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->updateLastLogin(userId, timestamp);
         } else {
-            LOG_CONTEXT(LogLevel::ERR,
-                        "Add monitor detection zone failed (type mismatch).",
-                        {});
+            LOG_CONTEXT(LogLevel::ERR, "Update surveillance last login failed (type mismatch).", {});
         }
     } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "Monitor detection not initialized when adding zone.",
-                    {});
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when updating last login.", {});
     }
 }
 
+template<typename T>
+void ItemWrapper<T>::changeSurveillanceUserPassword(const std::string& userId, const std::string& newPasswordHash) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->changeUserPassword(userId, newPasswordHash);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Change surveillance user password failed (type mismatch).", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when changing user password.", {});
+    }
+}
 
+template<typename T>
+void ItemWrapper<T>::logSurveillanceTelemetry(const std::string& metricType,
+                                              const std::string& nodeIp,
+                                              std::optional<float> cpuUsage,
+                                              std::optional<float> ramUsageMb,
+                                              std::optional<float> diskUsagePercent,
+                                              std::optional<float> temperatureC,
+                                              int numberOfCameras,
+                                              int numberOfActiveCameras,
+                                              int numberOfNonActiveCameras,
+                                              std::optional<float> fps,
+                                              std::optional<int> latencyMs) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->logTelemetry(metricType, nodeIp, cpuUsage, ramUsageMb, diskUsagePercent, temperatureC,
+                                       numberOfCameras, numberOfActiveCameras, numberOfNonActiveCameras, fps, latencyMs);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Log surveillance telemetry failed (type mismatch).", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when logging telemetry.", {});
+    }
+}
 
+template<typename T>
+void ItemWrapper<T>::insertSurveillanceDailyFaceMetrics(const std::string& detectionDate, int totalDetections, const std::string& timestamp) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->insertDailyFaceMetrics(detectionDate, totalDetections, timestamp);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Insert surveillance daily face metrics failed (type mismatch).", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when inserting daily face metrics.", {});
+    }
+}
 
-
-
-
-
+template<typename T>
+void ItemWrapper<T>::insertSurveillanceChatMessage(const std::string& id, const std::string& content, const std::string& senderName, const std::string& createdAt) {
+    if (_surveillanceManager) {
+        if (auto* surveillance = dynamic_cast<Surveillance*>(_surveillanceManager.get())) {
+            surveillance->insertChatMessage(id, content, senderName, createdAt);
+        } else {
+            LOG_CONTEXT(LogLevel::ERR, "Insert surveillance chat message failed (type mismatch).", {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "Surveillance not initialized when inserting chat message.", {});
+    }
+}
 
 /*
             MICROSERVEICE SECTION
@@ -933,7 +858,7 @@ void ItemWrapper<T>::addMonitorDetectionZone(const Zone& zone) {
 
 
 template<typename T>
-std::string ItemWrapper<T>::scanFromCamera(){
+std::string ItemWrapper<T>::QRCodeScannerWrapper::scanFromCamera(){
     if (_qrCodeScannerManager) {
         if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
             return cvVision->scanFromCamera();
@@ -948,7 +873,7 @@ std::string ItemWrapper<T>::scanFromCamera(){
 }
 
 template<typename T>
-std::string ItemWrapper<T>::scanFromFile(const std::string& imagePath) {
+std::string ItemWrapper<T>::QRCodeScannerWrapper::scanFromFile(const std::string& imagePath) {
     if (_qrCodeScannerManager) {
         if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
             return cvVision->scanFromFile(imagePath);
@@ -963,7 +888,7 @@ std::string ItemWrapper<T>::scanFromFile(const std::string& imagePath) {
 }
 
 template<typename T>
-void ItemWrapper<T>::resetConfig() {
+void ItemWrapper<T>::QRCodeScannerWrapper::resetConfig() {
     if (_qrCodeScannerManager) {
         if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
             cvVision->resetConfig();
@@ -976,7 +901,7 @@ void ItemWrapper<T>::resetConfig() {
 }
 
 template<typename T>
-bool ItemWrapper<T>::isPreviewEnabled() const {
+bool ItemWrapper<T>::QRCodeScannerWrapper::isPreviewEnabled() const {
     if (_qrCodeScannerManager) {
         if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
             return cvVision->isPreviewEnabled();
@@ -991,7 +916,7 @@ bool ItemWrapper<T>::isPreviewEnabled() const {
 }
 
 template<typename T>
-int ItemWrapper<T>::getCameraIndex() const {
+int ItemWrapper<T>::QRCodeScannerWrapper::getCameraIndex() const {
     if (_qrCodeScannerManager) {
         if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
             return cvVision->getCameraIndex();
@@ -1006,7 +931,7 @@ int ItemWrapper<T>::getCameraIndex() const {
 }
 
 template<typename T>
-void ItemWrapper<T>::setCameraIndex(int index) {
+void ItemWrapper<T>::QRCodeScannerWrapper::setCameraIndex(int index) {
     if (_qrCodeScannerManager) {
         if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
             cvVision->setCameraIndex(index);
@@ -1019,7 +944,7 @@ void ItemWrapper<T>::setCameraIndex(int index) {
 }
 
 template<typename T>
-void ItemWrapper<T>::setPreviewEnabled(bool enabled) {
+void ItemWrapper<T>::QRCodeScannerWrapper::setPreviewEnabled(bool enabled) {
     if (_qrCodeScannerManager) {
         if (auto* cvVision = dynamic_cast<QRCodeScanner*>(_qrCodeScannerManager.get())) {
             cvVision->setPreviewEnabled(enabled);
@@ -1061,7 +986,7 @@ void ItemWrapper<T>::setPreviewEnabled(bool enabled) {
 */
 
 template<typename T>
-void ItemWrapper<T>::setEdgeThreshold(int lowerThreshold, int upperThreshold) {
+void ItemWrapper<T>::DocumentScannerWrapper::setEdgeThreshold(int lowerThreshold, int upperThreshold) {
     if (_documentScanner) {
         if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
             cvVision->setEdgeThresholds(lowerThreshold, upperThreshold);
@@ -1074,7 +999,7 @@ void ItemWrapper<T>::setEdgeThreshold(int lowerThreshold, int upperThreshold) {
 }
 
 template<typename T>
-void ItemWrapper<T>::setContourMinArea(double area) {
+void ItemWrapper<T>::DocumentScannerWrapper::setContourMinArea(double area) {
     if (_documentScanner) {
         if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
             cvVision->setContourMinArea(area);
@@ -1087,7 +1012,7 @@ void ItemWrapper<T>::setContourMinArea(double area) {
 }
 
 template<typename T>
-void ItemWrapper<T>::setSharpening(double amount) {
+void ItemWrapper<T>::DocumentScannerWrapper::setSharpening(double amount) {
     if (_documentScanner) {
         if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
             cvVision->setSharpening(amount);
@@ -1100,7 +1025,7 @@ void ItemWrapper<T>::setSharpening(double amount) {
 }
 
 template<typename T>
-void ItemWrapper<T>::setOutputSize(int width, int height) {
+void ItemWrapper<T>::DocumentScannerWrapper::setOutputSize(int width, int height) {
     if (_documentScanner) {
         if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
             cvVision->setOutputSize(width, height);
@@ -1113,7 +1038,7 @@ void ItemWrapper<T>::setOutputSize(int width, int height) {
 }
 
 template<typename T>
-int ItemWrapper<T>::getCannyLow() const {
+int ItemWrapper<T>::DocumentScannerWrapper::getCannyLow() const {
     if (_documentScanner) {
         if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
             return cvVision->getCannyLow();
@@ -1128,7 +1053,7 @@ int ItemWrapper<T>::getCannyLow() const {
 }
 
 template<typename T>
-int ItemWrapper<T>::getCannyHigh() const {
+int ItemWrapper<T>::DocumentScannerWrapper::getCannyHigh() const {
     if (_documentScanner) {
         if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
             return cvVision->getCannyHigh();
@@ -1143,7 +1068,7 @@ int ItemWrapper<T>::getCannyHigh() const {
 }
 
 template<typename T>
-double ItemWrapper<T>::getMinContourArea() const {
+double ItemWrapper<T>::DocumentScannerWrapper::getMinContourArea() const {
     if (_documentScanner) {
         if (auto* cvVision = dynamic_cast<Scanner*>(_documentScanner.get())) {
             return cvVision->getMinContourArea();
@@ -1158,7 +1083,7 @@ double ItemWrapper<T>::getMinContourArea() const {
 }
 
 template<typename T>
-int ItemWrapper<T>::getOutputWidth() const {
+int ItemWrapper<T>::DocumentScannerWrapper::getOutputWidth() const {
     if (!_documentScanner) {
         LOG_CONTEXT(LogLevel::ERR, "Get output width failed: scanner not initialized.", {});
         return -1;
@@ -1174,7 +1099,7 @@ int ItemWrapper<T>::getOutputWidth() const {
 }
 
 template<typename T>
-int ItemWrapper<T>::getOutputHeight() const {
+int ItemWrapper<T>::DocumentScannerWrapper::getOutputHeight() const {
     if (!_documentScanner) {
         LOG_CONTEXT(LogLevel::ERR, "Get output height failed: scanner not initialized.", {});
         return -1;
@@ -1190,7 +1115,7 @@ int ItemWrapper<T>::getOutputHeight() const {
 }
 
 template<typename T>
-double ItemWrapper<T>::getSharpening() const {
+double ItemWrapper<T>::DocumentScannerWrapper::getSharpening() const {
     if (!_documentScanner) {
         LOG_CONTEXT(LogLevel::ERR, "Get sharpening failed: scanner not initialized.", {});
         return -1.0;
@@ -1206,7 +1131,7 @@ double ItemWrapper<T>::getSharpening() const {
 }
 
 template<typename T>
-void ItemWrapper<T>::run(const std::string& mode,
+void ItemWrapper<T>::DocumentScannerWrapper::run(const std::string& mode,
                          const std::string& input,
                          const std::string& output) {
     if (!_documentScanner) {
@@ -1251,7 +1176,7 @@ void ItemWrapper<T>::run(const std::string& mode,
 */
 
 template<typename T>
-void ItemWrapper<T>::triggerAlarm(const std::string& message) {
+void ItemWrapper<T>::AlarmSystemWrapper::triggerAlarm(const std::string& message) {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             alarmSys->triggerAlarm(message);
@@ -1266,7 +1191,7 @@ void ItemWrapper<T>::triggerAlarm(const std::string& message) {
 }
 
 template<typename T>
-void ItemWrapper<T>::setVolume(int level) {
+void ItemWrapper<T>::AlarmSystemWrapper::setVolume(int level) {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             alarmSys->setVolume(level);
@@ -1281,7 +1206,7 @@ void ItemWrapper<T>::setVolume(int level) {
 }
 
 template<typename T>
-void ItemWrapper<T>::setDuration(int seconds) {
+void ItemWrapper<T>::AlarmSystemWrapper::setDuration(int seconds) {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             alarmSys->setDuration(seconds);
@@ -1296,7 +1221,7 @@ void ItemWrapper<T>::setDuration(int seconds) {
 }
 
 template<typename T>
-void ItemWrapper<T>::setDefaultTone(const std::string& tone) {
+void ItemWrapper<T>::AlarmSystemWrapper::setDefaultTone(const std::string& tone) {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             alarmSys->setDefaultTone(tone);
@@ -1311,7 +1236,7 @@ void ItemWrapper<T>::setDefaultTone(const std::string& tone) {
 }
 
 template<typename T>
-void ItemWrapper<T>::setTone(const std::string& toneName, const std::string& filePath) {
+void ItemWrapper<T>::AlarmSystemWrapper::setTone(const std::string& toneName, const std::string& filePath) {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             alarmSys->setTone(toneName, filePath);
@@ -1326,7 +1251,7 @@ void ItemWrapper<T>::setTone(const std::string& toneName, const std::string& fil
 }
 
 template<typename T>
-void ItemWrapper<T>::assignTone(const std::string& event, const std::string& toneName) {
+void ItemWrapper<T>::AlarmSystemWrapper::assignTone(const std::string& event, const std::string& toneName) {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             alarmSys->assignTone(event, toneName);
@@ -1341,7 +1266,7 @@ void ItemWrapper<T>::assignTone(const std::string& event, const std::string& ton
 }
 
 template<typename T>
-int ItemWrapper<T>::getVolume() const {
+int ItemWrapper<T>::AlarmSystemWrapper::getVolume() const {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             return alarmSys->getVolume();
@@ -1358,7 +1283,7 @@ int ItemWrapper<T>::getVolume() const {
 }
 
 template<typename T>
-int ItemWrapper<T>::getDuration() const {
+int ItemWrapper<T>::AlarmSystemWrapper::getDuration() const {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             return alarmSys->getDuration();
@@ -1375,7 +1300,7 @@ int ItemWrapper<T>::getDuration() const {
 }
 
 template<typename T>
-std::string ItemWrapper<T>::getDefaultTone() const {
+std::string ItemWrapper<T>::AlarmSystemWrapper::getDefaultTone() const {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             return alarmSys->getDefaultTone();
@@ -1392,7 +1317,7 @@ std::string ItemWrapper<T>::getDefaultTone() const {
 }
 
 template<typename T>
-std::string ItemWrapper<T>::getTone(const std::string& toneName) const {
+std::string ItemWrapper<T>::AlarmSystemWrapper::getTone(const std::string& toneName) const {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             return alarmSys->getTone(toneName);
@@ -1409,7 +1334,7 @@ std::string ItemWrapper<T>::getTone(const std::string& toneName) const {
 }
 
 template<typename T>
-std::string ItemWrapper<T>::getAssignedTone(const std::string& event) const {
+std::string ItemWrapper<T>::AlarmSystemWrapper::getAssignedTone(const std::string& event) const {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             return alarmSys->getAssignedTone(event);
@@ -1426,7 +1351,7 @@ std::string ItemWrapper<T>::getAssignedTone(const std::string& event) const {
 }
 
 template<typename T>
-void ItemWrapper<T>::resetAlarmConfig() {
+void ItemWrapper<T>::AlarmSystemWrapper::resetAlarmConfig() {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             alarmSys->resetConfig();
@@ -1441,7 +1366,7 @@ void ItemWrapper<T>::resetAlarmConfig() {
 }
 
 template<typename T>
-void ItemWrapper<T>::playTone(const std::string& toneName) {
+void ItemWrapper<T>::AlarmSystemWrapper::playTone(const std::string& toneName) {
     if (_alarmManager) {
         if (auto* alarmSys = dynamic_cast<AlarmSystem*>(_alarmManager.get())) {
             alarmSys->playTone(toneName);

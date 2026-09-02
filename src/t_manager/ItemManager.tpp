@@ -1,4 +1,4 @@
-
+﻿
 #include "author/author.hpp"
 #include "ItemManager.h"
 #include "nlohmann/json.hpp"
@@ -531,7 +531,7 @@ void ItemManager::IO_ToFileManager::exportToFile_Json(const std::string& filenam
 
     for (const auto& [tag, item] : parent.items) {
         if (!item) {
-            LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " â€” skipping.", {});
             continue;
         }
 
@@ -649,13 +649,13 @@ void ItemManager::IO_ToFileManager::importFromFile_Json(const std::string& filen
 
         auto typeIt = parent.registeredTypes.find(typeName);
         if (typeIt == parent.registeredTypes.end()) {
-            LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + parent.demangleType(typeName) + " — skipping.", {});
+            LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + parent.demangleType(typeName) + " â€” skipping.", {});
             continue;
         }
 
         auto desIt = parent.deserializers.find(typeName);
         if (desIt == parent.deserializers.end()) {
-            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + parent.demangleType(typeName) + " — skipping.", {});
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + parent.demangleType(typeName) + " â€” skipping.", {});
             continue;
         }
 
@@ -746,13 +746,13 @@ std::shared_ptr<BaseItem> ItemManager::IO_ToFileManager::importSingleObject_Json
 
             auto typeIt = parent.registeredTypes.find(typeName);
             if (typeIt == parent.registeredTypes.end()) {
-                LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + parent.demangleType(typeName) + " — skipping.", {});
+                LOG_CONTEXT(LogLevel::WARNING, "Unknown type: " + parent.demangleType(typeName) + " â€” skipping.", {});
                 return nullptr;
             }
 
             auto desIt = parent.deserializers.find(typeName);
             if (desIt == parent.deserializers.end()) {
-                LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + parent.demangleType(typeName) + " — skipping.", {});
+                LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + parent.demangleType(typeName) + " â€” skipping.", {});
                 return nullptr;
             }
 
@@ -954,7 +954,7 @@ bool ItemManager::IO_ToFileManager::importFromFile_Binary(const std::string& fil
 
         auto desIt = parent.deserializers.find(type);
         if (desIt == parent.deserializers.end()) {
-            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + type + " — skipping.", {});
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type: " + type + " â€” skipping.", {});
             continue;
         }
 
@@ -1127,7 +1127,7 @@ bool ItemManager::IO_ToFileManager::exportToFile_XML(const std::string& filename
 
     for (const auto& [tag, item] : parent.items) {
         if (!item) {
-            LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " â€” skipping.", {});
             continue;
         }
 
@@ -1199,7 +1199,7 @@ void ItemManager::IO_ToFileManager::asyncExportToFile_XML(const std::string& fil
 bool ItemManager::IO_ToFileManager::importFromFile_XML(const std::string& filename) {
 
     if (filename.empty()) {
-        LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot proceed with XML import.", false);
+        LOG_CONTEXT(LogLevel::ERR, "Filename is empty â€” cannot proceed with XML import.", false);
         return false;
     }
 
@@ -1208,7 +1208,7 @@ bool ItemManager::IO_ToFileManager::importFromFile_XML(const std::string& filena
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLError result = doc.LoadFile(filename.c_str());
     if (result != tinyxml2::XML_SUCCESS) {
-        LOG_CONTEXT(LogLevel::ERR, "Failed to read XML file '" + filename + "' — error code: " + std::to_string(result), false);
+        LOG_CONTEXT(LogLevel::ERR, "Failed to read XML file '" + filename + "' â€” error code: " + std::to_string(result), false);
         return false;
     }
 
@@ -1268,7 +1268,7 @@ bool ItemManager::IO_ToFileManager::importFromFile_XML(const std::string& filena
 
         auto it = parent.deserializers.find(typeName);
         if (it == parent.deserializers.end()) {
-            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + parent.demangleType(typeName) + "' — skipping item with tag '" + tag + "'", {});
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + parent.demangleType(typeName) + "' â€” skipping item with tag '" + tag + "'", {});
             continue;
         }
 
@@ -1279,7 +1279,7 @@ bool ItemManager::IO_ToFileManager::importFromFile_XML(const std::string& filena
                 LOG_CONTEXT(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' from XML.", {});
                 loadedCount++;
             } else {
-                LOG_CONTEXT(LogLevel::ERR, "Deserializer returned null for tag '" + tag + "' — skipping.", {});
+                LOG_CONTEXT(LogLevel::ERR, "Deserializer returned null for tag '" + tag + "' â€” skipping.", {});
             }
         } catch (const std::exception& e) {
             LOG_CONTEXT(LogLevel::ERR, "", std::make_exception_ptr(std::runtime_error(
@@ -1315,7 +1315,7 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::IO_ToFileManager::importSi
                                                                                                const std::string& tag) {
 
     if (filename.empty()) {
-        LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot import from XML.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Filename is empty â€” cannot import from XML.", {});
         return std::nullopt;
     }
 
@@ -1323,7 +1323,7 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::IO_ToFileManager::importSi
                                         " with type '" + parent.demangleType(type) + "' and tag '" + tag + "'", {});
 
     if (filename.empty()) {
-        LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot import from XML.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Filename is empty â€” cannot import from XML.", {});
         return std::nullopt;
     }
 
@@ -1373,7 +1373,7 @@ std::optional<std::shared_ptr<BaseItem>> ItemManager::IO_ToFileManager::importSi
             auto it = parent.deserializers.find(type);
             if (it == parent.deserializers.end()) {
                 LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + parent.demangleType(type) 
-                                                            + "' — cannot import item with tag '" + tag + "'", {});
+                                                            + "' â€” cannot import item with tag '" + tag + "'", {});
                 return std::nullopt;
             }
 
@@ -1436,7 +1436,7 @@ bool ItemManager::IO_ToFileManager::exportToFile_CSV(const std::string& filename
 
     for (const auto& [tag, item] : parent.items) {
         if (!item) {
-            LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " — skipping.", {});
+            LOG_CONTEXT(LogLevel::ERR, "Null item found for tag: " + tag + " â€” skipping.", {});
             continue;
         }
 
@@ -1558,7 +1558,7 @@ bool ItemManager::IO_ToFileManager::importFromFile_CSV(const std::string& filena
         fields.push_back(field); // Final field
 
         if (fields.size() != 4) {
-            LOG_CONTEXT(LogLevel::WARNING, "Malformed CSV row: '" + line + "' — skipping.", {});
+            LOG_CONTEXT(LogLevel::WARNING, "Malformed CSV row: '" + line + "' â€” skipping.", {});
             continue;
         }
 
@@ -1607,7 +1607,7 @@ bool ItemManager::IO_ToFileManager::importFromFile_CSV(const std::string& filena
 
         auto it = parent.deserializers.find(type);
         if (it == parent.deserializers.end()) {
-            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + parent.demangleType(type) + "' — skipping item with tag '" + tag + "'", {});
+            LOG_CONTEXT(LogLevel::WARNING, "No deserializer registered for type '" + parent.demangleType(type) + "' â€” skipping item with tag '" + tag + "'", {});
             continue;
         }
 
@@ -1618,7 +1618,7 @@ bool ItemManager::IO_ToFileManager::importFromFile_CSV(const std::string& filena
                 loadedCount++;
                 LOG_CONTEXT(LogLevel::INFO, "Successfully imported item with tag '" + tag + "' from CSV.", {});
             } else {
-                LOG_CONTEXT(LogLevel::WARNING, "Deserializer returned null for tag '" + tag + "' — skipping.", {});
+                LOG_CONTEXT(LogLevel::WARNING, "Deserializer returned null for tag '" + tag + "' â€” skipping.", {});
             }
         } catch (const std::exception& e) {
             LOG_CONTEXT(LogLevel::ERR, "Exception during deserialization of '" + tag + "': " + e.what(), {});
@@ -1652,7 +1652,7 @@ std::shared_ptr<BaseItem> ItemManager::IO_ToFileManager::importSingleObject_CSV(
                                                                                 const std::string& tag) {
    
     if (filename.empty()) {
-        LOG_CONTEXT(LogLevel::ERR, "Filename is empty — cannot proceed with CSV import.", {});
+        LOG_CONTEXT(LogLevel::ERR, "Filename is empty â€” cannot proceed with CSV import.", {});
         return nullptr;
     }
 
@@ -1731,7 +1731,7 @@ std::shared_ptr<BaseItem> ItemManager::IO_ToFileManager::importSingleObject_CSV(
         auto it = parent.deserializers.find(typeIn);
         if (it == parent.deserializers.end()) {
             LOG_CONTEXT(LogLevel::ERR, "No deserializer registered for type '" + parent.demangleType(typeIn) + 
-                                                    "' — cannot import item with tag '" + parent.demangleType(tagIn) + "'", {});
+                                                    "' â€” cannot import item with tag '" + parent.demangleType(tagIn) + "'", {});
             return nullptr;
         }
 
@@ -1777,733 +1777,706 @@ void ItemManager::IO_ToFileManager::asyncImportSingleObject_CSV(const std::strin
     }).detach();
 }
 
-
-
-
-
-
-
-
+// ComputerVision.cpp
 
 template<typename T>
-bool ItemManager::NetworkManager::networkMessage_Send(std::string& msg, std::string& tag) {
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            wrapper->sendMessage(msg, "");
-            return true;
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING, "Network message failed with tag '" + tag + "'. Requested type: " 
-                        + parent.demangleType(typeid(T).name()) + ", Actual type: " + parent.demangleType(it->second->getTypeName()), {});
-            throw std::runtime_error("\n:::| Please check your item type.\n");
-        }
-        
-    }else{
-        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to send network message.", ErrorCode::FLAG_FALSE);
-        return false;
-    }
-}
-
-template<typename T>
-bool ItemManager::NetworkManager::networkMessage_Receive(Message msg, std::string& tag){
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            wrapper->receiveMessage(msg);
-            return true;
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING, "Network message failed with tag '" + tag + "'. Requested type: " 
-                        + parent.demangleType(typeid(T).name()) + ", Actual type: " + parent.demangleType(it->second->getTypeName()), {});
-            throw std::runtime_error("\n:::| Please check your item type.\n");
-        }
-        
-    }else{
-        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to send network message.", ErrorCode::FLAG_FALSE);
-        return false;
-    }
-}
-
-
-
-
-
-
-
-
-template<typename T>
-void ItemManager::ComputerVision::cvFgn_runRestrictedAreaMonitor(int cameraIndex, const std::string& cascadePath, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            wrapper->runRestrictedAreaMonitor(cameraIndex, cascadePath);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Run restricted area failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        {});
-            throw std::runtime_error("\n:::| Please check your item type.\n");
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to Run restricted area.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-const std::unordered_map<int, FaceTrack>& ItemManager::ComputerVision::cvFgn_getRunRestrictedTracks(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    static std::unordered_map<int, FaceTrack> emptyMap; // Return an empty map if no items found
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            return wrapper->getRunRestrictedTracks();
-        }
-    }
-    LOG_CONTEXT(LogLevel::WARNING, "No FaceRecognitionItem found to get restricted tracks.", {});
-    return emptyMap;
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvFgn_addRunRestrictedTrack(int id, const FaceTrack& track, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            wrapper->addRunRestictedTrack(id, track);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Add restricted track failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to add restricted track.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvFgn_removeRunRestrictedTrack(int id, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            wrapper->removeRunRestrictedTrack(id);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Remove restricted track failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to remove restricted track.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvFgn_resetRunRestrictedConfig(std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            wrapper->restRunstrictedConfig();
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Reset restricted configuration failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                      "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to reset restricted configuration.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvFgn_setRunRestrictedScaleFactor(double scaleFactor, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            wrapper->setRunRestrictedScaleFactor(scaleFactor);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Set restricted scale factor failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set restricted scale factor.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvFgn_setRunRestrictedMinNeighbors(int minNeighbors, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            wrapper->setRunRestrictedMinNeighbors(minNeighbors);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Set restricted min neighbors failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                      "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set restricted min neighbors.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvFgn_setRunRestrictedMinFaceSize(const cv::Size& size, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            wrapper->setRunRestrictedMinFaceSize(size);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Set restricted min face size failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                      "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set restricted min face size.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvFgn_setIouMatchThreshold(double threshold, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            wrapper->setIouMatchThreshold(threshold);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Set IOU match threshold failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                      "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set IOU match threshold.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-double ItemManager::ComputerVision::cvFgn_getRunRestrictedScaleFactor( std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            return wrapper->getRunRestrictedScaleFactor();
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Get restricted scale factor failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                      "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to get restricted scale factor.",
-                    ErrorCode::ITEM_NOT_FOUND);
-        return 0.0;
-    }
-}
-
-template<typename T>
-int ItemManager::ComputerVision::cvFgn_getRunRestrictedMinNeighbors( std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            return wrapper->getRunRestrictedMinNeighbors();
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Get restricted min neighbors failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                      "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to get restricted min neighbors.",
-                    ErrorCode::ITEM_NOT_FOUND);
-        return 0;
-    }
-}
-
-template<typename T>
-cv::Size ItemManager::ComputerVision::cvFgn_getRunRestrictedMinFaceSize( std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            return wrapper->getRunRestrictedMinFaceSize();
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Get restricted min face size failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                      "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to get restricted min face size.",
-                    ErrorCode::ITEM_NOT_FOUND);
-        return cv::Size();
-    }
-}
-
-template<typename T>
-double ItemManager::ComputerVision::cvFgn_getIouMatchThreshold( std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            return wrapper->getIouMatchThreshold();
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Get IOU match threshold failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to get IOU match threshold.",
-                    ErrorCode::ITEM_NOT_FOUND);
-        return 0.0;
-    }
-}
-    
-
-
-
-
-
-
-
-template<typename T>
-void ItemManager::ComputerVision::cvFwl_monitorCamera(const std::string& cascadePath, std::string& tag) {
+void ItemManager::ComputerVision::cvDOC_setEdgeThreshold(int low, int high, std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
+    if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            wrapper->monitorCamera(cascadePath);
-        }else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "monitor camera function failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));   
-        }    
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to get monitor camera threshold.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-double ItemManager::ComputerVision::cvFwl_getMonitorCameraThreshold(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
-    auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            return wrapper->getMonitorCameraThreshold();
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            doc.setEdgeThreshold(low, high);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Get monitor camera threshold failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
+                        "Set edge threshold failed with tag '" + tag + "'.",
+                        {});
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to get monitor camera threshold.",
+                    "No item found with tag '" + tag + "' to set edge threshold.",
                     ErrorCode::ITEM_NOT_FOUND);
-        return -1.0;
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvFwl_setMonitorCameraThreshold(double newThreshold, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-    
+void ItemManager::ComputerVision::cvDOC_setContourMinArea(double area, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
     auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
+    if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            wrapper->setMonitorCameraThreshold(newThreshold);
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            doc.setContourMinArea(area);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Set monitor camera threshold failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
+                        "Set contour min area failed with tag '" + tag + "'.",
+                        {});
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set monitor camera threshold.",
+                    "No item found with tag '" + tag + "' to set contour min area.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvFwl_resetMonitorCameraThreshold(std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+void ItemManager::ComputerVision::cvDOC_setOutputSize(int width, int height, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
-    if(it != parent.items.end()){
+    if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if(wrapper){
-            wrapper->resetMonitorCameraThreshold();
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            doc.setOutputSize(width, height);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Reset monitor camera threshold failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
+                        "Set output size failed with tag '" + tag + "'.",
+                        {});
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to reset monitor camera threshold.",
+                    "No item found with tag '" + tag + "' to set output size.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
 template<typename T>
-std::string ItemManager::ComputerVision::cvFwl_getMonitorCameraCascadePath(std::string& tag) const {
+void ItemManager::ComputerVision::cvDOC_setSharpening(double amount, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            doc.setSharpening(amount);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set sharpening failed with tag '" + tag + "'.",
+                        {});
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set sharpening.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+int ItemManager::ComputerVision::cvDOC_getCannyLow(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            return doc.getCannyLow();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get Canny low failed with tag '" + tag + "'.",
+                        {});
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get Canny low.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return -1;
+    }
+}
+
+template<typename T>
+int ItemManager::ComputerVision::cvDOC_getCannyHigh(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            return doc.getCannyHigh();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get Canny high failed with tag '" + tag + "'.",
+                        {});
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get Canny high.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return -1;
+    }
+}
+
+template<typename T>
+double ItemManager::ComputerVision::cvDOC_getMinContourArea(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            return doc.getMinContourArea();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get min contour area failed with tag '" + tag + "'.",
+                        {});
+            return 0.0;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get min contour area.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return 0.0;
+    }
+}
+
+template<typename T>
+int ItemManager::ComputerVision::cvDOC_getOutputWidth(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            return doc.getOutputWidth();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get output width failed with tag '" + tag + "'.",
+                        {});
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get output width.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return -1;
+    }
+}
+
+template<typename T>
+int ItemManager::ComputerVision::cvDOC_getOutputHeight(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            return doc.getOutputHeight();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get output height failed with tag '" + tag + "'.",
+                        {});
+            return -1;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get output height.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return -1;
+    }
+}
+
+template<typename T>
+double ItemManager::ComputerVision::cvDOC_getSharpening(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            return doc.getSharpening();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Get sharpening failed with tag '" + tag + "'.",
+                        {});
+            return 0.0;
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to get sharpening.",
+                    ErrorCode::ITEM_NOT_FOUND);
+        return 0.0;
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvDOC_run(const std::string& mode,
+                                            const std::string& input,
+                                            const std::string& output,
+                                            std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            typename ItemWrapper<T>::DocumentScannerWrapper doc(*wrapper);
+            doc.run(mode, input, output);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Run document scanner failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to run document scanner.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_start(std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            return wrapper->getMonitorCameraCascadePath();
+            wrapper->startSurveillance();
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Get monitor camera cascade path failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
+                        "Start surveillance failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to get monitor camera cascade path.",
+                    "No item found with tag '" + tag + "' to start surveillance.",
                     ErrorCode::ITEM_NOT_FOUND);
-        return "";
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvFwl_setMonitorCameracascadePath(const std::string& path, std::string& tag) {
+void ItemManager::ComputerVision::cvSurv_stop(std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->setMonitorCameraCascadePath(path);
+            wrapper->stopSurveillance();
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Set monitor camera cascade path failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
+                        "Stop surveillance failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set monitor camera cascade path.",
+                    "No item found with tag '" + tag + "' to stop surveillance.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvFwl_setMonitorCameraCascadePath(const std::string& path, std::string& tag) { 
+bool ItemManager::ComputerVision::cvSurv_isRunning(std::string& tag) const {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->setMonitorCameraCascadePath(path);
+            return wrapper->isSurveillanceRunning();
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Set monitor camera cascade path failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
+                        "Check surveillance running failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+            return false;
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set monitor camera cascade path.",
+                    "No item found with tag '" + tag + "' to check surveillance running state.",
                     ErrorCode::ITEM_NOT_FOUND);
+        return false;
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvFwl_loadKnownFaces(const std::vector<std::string>& filePaths, std::string& tag) {
+void ItemManager::ComputerVision::cvSurv_setCloudEnabled(bool enabled, std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->loadKnownFaces(filePaths);
+            wrapper->setSurveillanceCloudEnabled(enabled);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Load known faces failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
+                        "Set surveillance cloud enabled failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to load known faces.",
+                    "No item found with tag '" + tag + "' to set cloud enabled.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
 template<typename T>
-size_t ItemManager::ComputerVision::cvFwl_getKnownFaceCount(std::string& tag) const {
+void ItemManager::ComputerVision::cvSurv_setCloudSettings(const std::string& baseUrl,
+                                                           const std::string& stationName,
+                                                           const std::string& hardwareToken,
+                                                           int pollIntervalSec,
+                                                           std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            return wrapper->getKnownFaceCount();
+            wrapper->setSurveillanceCloudSettings(baseUrl, stationName, hardwareToken, pollIntervalSec);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Get known face count failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
+                        "Set surveillance cloud settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to get known face count.",
+                    "No item found with tag '" + tag + "' to set cloud settings.",
                     ErrorCode::ITEM_NOT_FOUND);
-        return 0;
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvFwl_resetKnownFaces(std::string& tag) {
+void ItemManager::ComputerVision::cvSurv_addCamera(const std::string& name,
+                                                    const std::string& id,
+                                                    const std::string& source,
+                                                    bool enableFaceRecognition,
+                                                    std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->resetKnownFaces();
+            wrapper->addSurveillanceCamera(name, id, source, enableFaceRecognition);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Reset known faces failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                                        "\n:::| Please check your item type.\n")));
+                        "Add surveillance camera failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to reset known faces.",
+                    "No item found with tag '" + tag + "' to add camera.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
-
-
-
-
-
-
-
 template<typename T>
-void ItemManager::ComputerVision::cvMdn_setMonitorDetectionMinArea(int minArea, std::string& tag) {
+void ItemManager::ComputerVision::cvSurv_setCameraFeature(const std::string& cameraId,
+                                                           const std::string& featureKey,
+                                                           bool value,
+                                                           std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->setMonitorDetectionMinArea(minArea);
+            wrapper->setSurveillanceCameraFeature(cameraId, featureKey, value);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Set monitor detection min area failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                            "\n:::| Please check your item type.\n")));
+                        "Set surveillance camera feature failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set min area.",
+                    "No item found with tag '" + tag + "' to set camera feature.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvMdn_setMonitorDetectionDiffThreshold(double threshold, std::string& tag) {
+void ItemManager::ComputerVision::cvSurv_updateCamera(const std::string& camId,
+                                                       const std::string& name,
+                                                       const std::string& source,
+                                                       std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->setMonitorDetectionDiffThreshold(threshold);
+            wrapper->updateSurveillanceCamera(camId, name, source);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Set monitor detection diff threshold failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                            "\n:::| Please check your item type.\n")));
+                        "Update surveillance camera failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set diff threshold.",
+                    "No item found with tag '" + tag + "' to update camera.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvMdn_setMonitorDetectionLoiterSeconds(int loiterSeconds, std::string& tag) {
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            wrapper->setMonitorDetectionLoiterSeconds(loiterSeconds);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Set monitor detection loiter seconds failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                            "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set loiter seconds.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvMdn_setMonitorDetectionConfig(double diffThreshold,
-                                                int minArea,
-                                                std::size_t crowdThreshold,
-                                                int loiterSeconds,
-                                                int leftBehindSeconds,
-                                                bool enableTracking,
-                                                std::string& tag) {
+void ItemManager::ComputerVision::cvSurv_removeCamera(const std::string& camId, std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->setMonitorDetectionConfig(diffThreshold,
-                                            minArea,
-                                            crowdThreshold,
-                                            loiterSeconds,
-                                            leftBehindSeconds,
-                                            enableTracking);
+            wrapper->removeSurveillanceCamera(camId);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Set monitor detection config failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                            "\n:::| Please check your item type.\n")));
+                        "Remove surveillance camera failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set monitor detection config.",
+                    "No item found with tag '" + tag + "' to remove camera.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvMdn_setMonitorDetectionAlertCallback(std::function<void(const std::string&)> cb,
+void ItemManager::ComputerVision::cvSurv_plugInPendingCamera(const std::string& camName, const std::string& camId, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->plugInSurveillancePendingCamera(camName, camId);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Plug in surveillance pending camera failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to plug in pending camera.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_plugOutPendingCamera(bool isDelete, const std::string& camName, const std::string& camId, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->plugOutSurveillancePendingCamera(isDelete, camName, camId);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Plug out surveillance pending camera failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to plug out pending camera.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setFeatureForAllCameras(const std::string& featureKey, bool value, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceFeatureForAllCameras(featureKey, value);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance feature for all cameras failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set feature for all cameras.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_upLoadModel(const std::string& modelType, const std::string& modelPath, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->upLoadSurveillanceModel(modelType, modelPath);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Upload surveillance model failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to upload model.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_resetModelSettings(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->resetSurveillanceModelSettings();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Reset surveillance model settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to reset model settings.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setBeepEnabled(bool enabled, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceBeepEnabled(enabled);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance beep enabled failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set beep enabled.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setVoiceEnabled(bool enabled, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceVoiceEnabled(enabled);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance voice enabled failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set voice enabled.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setVoiceGender(const std::string& gender, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceVoiceGender(gender);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance voice gender failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set voice gender.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setStationLocation(double latitude, double longitude, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceStationLocation(latitude, longitude);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance station location failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set station location.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_resetFaceSettings(const std::string& camId, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->resetSurveillanceFaceSettings(camId);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Reset surveillance face settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to reset face settings.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_resetMotionSettings(const std::string& camId, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->resetSurveillanceMotionSettings(camId);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Reset surveillance motion settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to reset motion settings.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_addMotionZone(const std::string& camId,
+                                                        const std::string& regionName,
+                                                        int x, int y, int width, int height,
+                                                        bool restricted,
                                                         std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
@@ -2511,246 +2484,753 @@ void ItemManager::ComputerVision::cvMdn_setMonitorDetectionAlertCallback(std::fu
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->setMonitorDetectionAlertCallback(cb);
+            wrapper->addSurveillanceMotionZone(camId, regionName, x, y, width, height, restricted);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Set monitor detection alert callback failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                            "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to set alert callback.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvMdn_resetMonitorDetectionConfig(std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            wrapper->resetMonitorDetectionConfig();
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Reset monitor detection config failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                            "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to reset monitor detection config.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-template<typename T>
-void ItemManager::ComputerVision::cvMdn_resetMonitorDetection(std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            wrapper->resetMonitorDetection();
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Reset monitor detection failed with tag '" + tag + "'.",
+                        "Add surveillance motion zone failed with tag '" + tag + "'.",
                         std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to reset monitor detection.",
+                    "No item found with tag '" + tag + "' to add motion zone.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
 template<typename T>
-void ItemManager::ComputerVision::cvMdn_clearMonitorDetectionZones(std::string& tag) {
+void ItemManager::ComputerVision::cvSurv_clearMotionZones(const std::string& camId, std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->clearMonitorDetectionZones();
+            wrapper->clearSurveillanceMotionZones(camId);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Clear monitor detection zones failed with tag '" + tag + "'.",
+                        "Clear surveillance motion zones failed with tag '" + tag + "'.",
                         std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to clear detection zones.",
+                    "No item found with tag '" + tag + "' to clear motion zones.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
 template<typename T>
-bool ItemManager::ComputerVision::cvMdn_isMonitorDetectionTrackingEnabled(std::string& tag) const {
+void ItemManager::ComputerVision::cvSurv_addPlateToWatchlist(const std::string& plate, std::string& tag) {
     std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            return wrapper->isMonitorDetectionTrackingEnabled();
+            wrapper->addSurveillancePlateToWatchlist(plate);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
-                        "Check tracking enabled failed with tag '" + tag + "'.",
-                        {});
-            return false;
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to check tracking enabled.",
-                    ErrorCode::ITEM_NOT_FOUND);
-        return false;
-    }
-}
-
-template<typename T>
-bool ItemManager::ComputerVision::cvMdn_hasMonitorDetectionCallback(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            return wrapper->hasMonitorDetectionCallback();
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Check monitor detection callback failed with tag '" + tag + "'.",
-                        {});
-            return false;
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to check callback.",
-                    ErrorCode::ITEM_NOT_FOUND);
-        return false;
-    }
-}
-
-template<typename T>
-double ItemManager::ComputerVision::cvMdn_getMonitorDetectionDiffThreshold(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) return wrapper->getMonitorDetectionDiffThreshold();
-    }
-    LOG_CONTEXT(LogLevel::ERR, "Failed to get diff threshold for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
-    return 0.0;
-}
-
-template<typename T>
-int ItemManager::ComputerVision::cvMdn_getMonitorDetectionMinArea(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) return wrapper->getMonitorDetectionMinArea();
-    }
-    LOG_CONTEXT(LogLevel::ERR, "Failed to get min area for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
-    return 0;
-}
-
-template<typename T>
-std::size_t ItemManager::ComputerVision::cvMdn_getMonitorDetectionCrowdThreshold(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) return wrapper->getMonitorDetectionCrowdThreshold();
-    }
-    LOG_CONTEXT(LogLevel::ERR, "Failed to get crowd threshold for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
-    return 0;
-}
-
-template<typename T>
-int ItemManager::ComputerVision::cvMdn_getMonitorDetectionLoiterSeconds(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) return wrapper->getMonitorDetectionLoiterSeconds();
-    }
-    LOG_CONTEXT(LogLevel::ERR, "Failed to get loiter seconds for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
-    return 0;
-}
-
-template<typename T>
-int ItemManager::ComputerVision::cvMdn_getMonitorDetectionLeftBehindSeconds(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) return wrapper->getMonitorDetectionLeftBehindSeconds();
-    }
-    LOG_CONTEXT(LogLevel::ERR, "Failed to get left-behind seconds for tag '" + tag + "'.", ErrorCode::ITEM_NOT_FOUND);
-    return 0;
-}
-
-// ItemManager.tpp
-template<typename T>
-void ItemManager::ComputerVision::cvMdn_addMonitorDetectionZone(const Zone& zone, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            wrapper->addMonitorDetectionZone(zone);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Add monitor detection zone failed with tag '" + tag +
-                        "'. Requested type: " + parent.demangleType(typeid(T).name()) +
-                        ", Actual type: " + parent.demangleType(it->second->getTypeName()),
-                        std::make_exception_ptr(std::runtime_error(
-                            "\n:::| Please check your item type.\n")));
-        }
-    } else {
-        LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to add monitor detection zone.",
-                    ErrorCode::ITEM_NOT_FOUND);
-    }
-}
-
-// ItemManager.h
-template<typename T>
-void ItemManager::ComputerVision::cvMdn_runMonitorDetectionMonitorCamera(int cameraIndex, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
-
-    auto it = parent.items.find(tag);
-    if (it != parent.items.end()) {
-        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
-        if (wrapper) {
-            wrapper->runMonitorDetectionMonitorCamera(cameraIndex);
-        } else {
-            LOG_CONTEXT(LogLevel::WARNING,
-                        "Run monitor detection camera failed with tag '" + tag + "'.",
+                        "Add surveillance plate to watchlist failed with tag '" + tag + "'.",
                         std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
-                    "No item found with tag '" + tag + "' to run monitor detection camera.",
+                    "No item found with tag '" + tag + "' to add plate to watchlist.",
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
 
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_removePlateFromWatchlist(const std::string& plate, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->removeSurveillancePlateFromWatchlist(plate);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Remove surveillance plate from watchlist failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to remove plate from watchlist.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_clearPlateWatchlist(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->clearSurveillancePlateWatchlist();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Clear surveillance plate watchlist failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to clear plate watchlist.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setAccountId(const std::string& accountId, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceAccountId(accountId);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance account id failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set account id.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setKafkaBrokerAddress(const std::string& brokerAddress, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceKafkaBrokerAddress(brokerAddress);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance kafka broker address failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set kafka broker address.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setFaceSettings(const std::string& camId,
+                                                          double scaleFactor,
+                                                          int minNeighbors,
+                                                          int minFaceSizeWidth,
+                                                          int minFaceSizeHeight,
+                                                          double scoreThreshold,
+                                                          double nmsThreshold,
+                                                          int topK,
+                                                          bool useEqualizeHist,
+                                                          int maxDetections,
+                                                          uint64_t maxTrackAgeMs,
+                                                          double iouThreshold,
+                                                          bool debugLogging,
+                                                          std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceFaceSettings(camId, scaleFactor, minNeighbors, minFaceSizeWidth, minFaceSizeHeight,
+                                                 scoreThreshold, nmsThreshold, topK, useEqualizeHist, maxDetections,
+                                                 maxTrackAgeMs, iouThreshold, debugLogging);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance face settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set face settings.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setMotionSettings(const std::string& camId,
+                                                            double diffThreshold,
+                                                            int minArea,
+                                                            std::size_t crowdThreshold,
+                                                            int loiterSeconds,
+                                                            int leftBehindSeconds,
+                                                            bool enableTracking,
+                                                            bool debugLogging,
+                                                            std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceMotionSettings(camId, diffThreshold, minArea, crowdThreshold, loiterSeconds,
+                                                   leftBehindSeconds, enableTracking, debugLogging);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance motion settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set motion settings.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setNightVisionSettings(const std::string& camId,
+                                                                 double gamma,
+                                                                 bool adaptiveMode,
+                                                                 int contrastMode,
+                                                                 double clipLimit,
+                                                                 int tileSize,
+                                                                 int denoisingStrength,
+                                                                 std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceNightVisionSettings(camId, gamma, adaptiveMode, contrastMode, clipLimit,
+                                                        tileSize, denoisingStrength);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance night vision settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set night vision settings.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setObjectDetectionSettings(const std::string& camId,
+                                                                     int inputSize,
+                                                                     int backend,
+                                                                     int target,
+                                                                     bool trackingEnabled,
+                                                                     float minConfForDraw,
+                                                                     std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceObjectDetectionSettings(camId, inputSize, backend, target, trackingEnabled, minConfForDraw);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance object detection settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set object detection settings.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setVehicleSettings(const std::string& camId,
+                                                             const std::string& lang,
+                                                             int minPlateConfidence,
+                                                             bool enableAlerts,
+                                                             bool saveImages,
+                                                             std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceVehicleSettings(camId, lang, minPlateConfidence, enableAlerts, saveImages);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance vehicle settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set vehicle settings.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_setRecorderSettings(const std::string& camId,
+                                                              int codec,
+                                                              int bitrate,
+                                                              int maxDuration,
+                                                              uint64_t maxFileSize,
+                                                              const std::string& eventType,
+                                                              std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->setSurveillanceRecorderSettings(camId, codec, bitrate, maxDuration, maxFileSize, eventType);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING,
+                        "Set surveillance recorder settings failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR,
+                    "No item found with tag '" + tag + "' to set recorder settings.",
+                    ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+// --- DataBaseManager passthroughs -- same lock/find/dynamic_cast/forward
+// shape as every dispatch method above; only the underlying wrapper call
+// and log text change per method. ---
+
+#define DISP_FORWARD0(FnName, WrapperCall, LogText) \
+template<typename T> \
+void ItemManager::ComputerVision::FnName(std::string& tag) { \
+    std::lock_guard<std::mutex> lock(parent.mutex_); \
+    auto it = parent.items.find(tag); \
+    if (it != parent.items.end()) { \
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get()); \
+        if (wrapper) { \
+            wrapper->WrapperCall(); \
+        } else { \
+            LOG_CONTEXT(LogLevel::WARNING, LogText " failed with tag '" + tag + "'.", \
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n"))); \
+        } \
+    } else { \
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to " LogText ".", ErrorCode::ITEM_NOT_FOUND); \
+    } \
+}
+
+// Same shape as DISP_FORWARD0, for the read/query dispatch methods that
+// return a requestId instead of being fire-and-forget.
+#define DISP_FORWARD0_R(FnName, WrapperCall, LogText) \
+template<typename T> \
+std::string ItemManager::ComputerVision::FnName(std::string& tag) { \
+    std::lock_guard<std::mutex> lock(parent.mutex_); \
+    auto it = parent.items.find(tag); \
+    if (it != parent.items.end()) { \
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get()); \
+        if (wrapper) { \
+            return wrapper->WrapperCall(); \
+        } else { \
+            LOG_CONTEXT(LogLevel::WARNING, LogText " failed with tag '" + tag + "'.", \
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n"))); \
+        } \
+    } else { \
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to " LogText ".", ErrorCode::ITEM_NOT_FOUND); \
+    } \
+    return ""; \
+}
+
+DISP_FORWARD0_R(cvSurv_getAllTrackedFaces, getSurveillanceAllTrackedFaces, "get all tracked faces")
+DISP_FORWARD0_R(cvSurv_getUnknownTrackedFaces, getSurveillanceUnknownTrackedFaces, "get unknown tracked faces")
+DISP_FORWARD0_R(cvSurv_getAuthorizedTrackedFaces, getSurveillanceAuthorizedTrackedFaces, "get authorized tracked faces")
+DISP_FORWARD0_R(cvSurv_getWatchlistTrackedFaces, getSurveillanceWatchlistTrackedFaces, "get watchlist tracked faces")
+DISP_FORWARD0(cvSurv_deleteAllTrackedFaces, deleteSurveillanceAllTrackedFaces, "delete all tracked faces")
+DISP_FORWARD0(cvSurv_deleteAllAuthorizedFaces, deleteSurveillanceAllAuthorizedFaces, "delete all authorized faces")
+DISP_FORWARD0(cvSurv_deleteAllWatchlistFaces, deleteSurveillanceAllWatchlistFaces, "delete all watchlist faces")
+
+DISP_FORWARD0_R(cvSurv_getAllTrackedPlates, getSurveillanceAllTrackedPlates, "get all tracked plates")
+DISP_FORWARD0_R(cvSurv_getUnknownTrackedPlates, getSurveillanceUnknownTrackedPlates, "get unknown tracked plates")
+DISP_FORWARD0_R(cvSurv_getAuthorizedTrackedPlates, getSurveillanceAuthorizedTrackedPlates, "get authorized tracked plates")
+DISP_FORWARD0_R(cvSurv_getWatchlistTrackedPlates, getSurveillanceWatchlistTrackedPlates, "get watchlist tracked plates")
+DISP_FORWARD0(cvSurv_deleteAllTrackedPlates, deleteSurveillanceAllTrackedPlates, "delete all tracked plates")
+DISP_FORWARD0(cvSurv_deleteAllAuthorizedPlates, deleteSurveillanceAllAuthorizedPlates, "delete all authorized plates")
+DISP_FORWARD0(cvSurv_deleteAllWatchlistPlates, deleteSurveillanceAllWatchlistPlates, "delete all watchlist plates")
+
+DISP_FORWARD0_R(cvSurv_getAllTrackedWeapons, getSurveillanceAllTrackedWeapons, "get all tracked weapons")
+DISP_FORWARD0_R(cvSurv_getUnknownTrackedWeapons, getSurveillanceUnknownTrackedWeapons, "get unknown tracked weapons")
+DISP_FORWARD0_R(cvSurv_getAuthorizedTrackedWeapons, getSurveillanceAuthorizedTrackedWeapons, "get authorized tracked weapons")
+DISP_FORWARD0_R(cvSurv_getWatchlistTrackedWeapons, getSurveillanceWatchlistTrackedWeapons, "get watchlist tracked weapons")
+DISP_FORWARD0(cvSurv_deleteAllTrackedWeapons, deleteSurveillanceAllTrackedWeapons, "delete all tracked weapons")
+DISP_FORWARD0(cvSurv_deleteAllAuthorizedWeapons, deleteSurveillanceAllAuthorizedWeapons, "delete all authorized weapons")
+DISP_FORWARD0(cvSurv_deleteAllWatchlistWeapons, deleteSurveillanceAllWatchlistWeapons, "delete all watchlist weapons")
+
+DISP_FORWARD0_R(cvSurv_getAllEvents, getSurveillanceAllEvents, "get all events")
+DISP_FORWARD0(cvSurv_deleteAllEvents, deleteSurveillanceAllEvents, "delete all events")
+
+DISP_FORWARD0_R(cvSurv_getAllRecordings, getSurveillanceAllRecordings, "get all recordings")
+DISP_FORWARD0(cvSurv_deleteAllRecordings, deleteSurveillanceAllRecordings, "delete all recordings")
+
+DISP_FORWARD0_R(cvSurv_getAllDailyFaceMetrics, getSurveillanceAllDailyFaceMetrics, "get all daily face metrics")
+DISP_FORWARD0(cvSurv_deleteAllDailyFaceMetrics, deleteSurveillanceAllDailyFaceMetrics, "delete all daily face metrics")
+
+#undef DISP_FORWARD0
+#undef DISP_FORWARD0_R
+
+#define DISP_FORWARD1(FnName, ArgType, ArgName, WrapperCall, LogText) \
+template<typename T> \
+void ItemManager::ComputerVision::FnName(ArgType ArgName, std::string& tag) { \
+    std::lock_guard<std::mutex> lock(parent.mutex_); \
+    auto it = parent.items.find(tag); \
+    if (it != parent.items.end()) { \
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get()); \
+        if (wrapper) { \
+            wrapper->WrapperCall(ArgName); \
+        } else { \
+            LOG_CONTEXT(LogLevel::WARNING, LogText " failed with tag '" + tag + "'.", \
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n"))); \
+        } \
+    } else { \
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to " LogText ".", ErrorCode::ITEM_NOT_FOUND); \
+    } \
+}
+
+// Same shape as DISP_FORWARD1, for the read/query dispatch methods that
+// return a requestId instead of being fire-and-forget.
+#define DISP_FORWARD1_R(FnName, ArgType, ArgName, WrapperCall, LogText) \
+template<typename T> \
+std::string ItemManager::ComputerVision::FnName(ArgType ArgName, std::string& tag) { \
+    std::lock_guard<std::mutex> lock(parent.mutex_); \
+    auto it = parent.items.find(tag); \
+    if (it != parent.items.end()) { \
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get()); \
+        if (wrapper) { \
+            return wrapper->WrapperCall(ArgName); \
+        } else { \
+            LOG_CONTEXT(LogLevel::WARNING, LogText " failed with tag '" + tag + "'.", \
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n"))); \
+        } \
+    } else { \
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to " LogText ".", ErrorCode::ITEM_NOT_FOUND); \
+    } \
+    return ""; \
+}
+
+DISP_FORWARD1_R(cvSurv_getTrackedFaceById, const std::string&, faceId, getSurveillanceTrackedFaceById, "get tracked face by id")
+DISP_FORWARD1(cvSurv_deleteTrackedFace, const std::string&, id, deleteSurveillanceTrackedFace, "delete tracked face")
+DISP_FORWARD1_R(cvSurv_getFaceRegionHistory, const std::string&, faceId, getSurveillanceFaceRegionHistory, "get face region history")
+
+DISP_FORWARD1_R(cvSurv_getTrackedPlateById, const std::string&, plateId, getSurveillanceTrackedPlateById, "get tracked plate by id")
+DISP_FORWARD1(cvSurv_deleteTrackedPlate, const std::string&, id, deleteSurveillanceTrackedPlate, "delete tracked plate")
+DISP_FORWARD1_R(cvSurv_getPlateRegionHistory, const std::string&, plateId, getSurveillancePlateRegionHistory, "get plate region history")
+
+DISP_FORWARD1_R(cvSurv_getObjectRegionHistory, const std::string&, objectId, getSurveillanceObjectRegionHistory, "get object region history")
+
+DISP_FORWARD1_R(cvSurv_getTrackedWeaponById, const std::string&, weaponId, getSurveillanceTrackedWeaponById, "get tracked weapon by id")
+DISP_FORWARD1(cvSurv_deleteTrackedWeapon, const std::string&, id, deleteSurveillanceTrackedWeapon, "delete tracked weapon")
+DISP_FORWARD1_R(cvSurv_getWeaponRegionHistory, const std::string&, weaponId, getSurveillanceWeaponRegionHistory, "get weapon region history")
+
+DISP_FORWARD1(cvSurv_deleteUserById, const std::string&, userId, deleteSurveillanceUserById, "delete user by id")
+
+DISP_FORWARD1_R(cvSurv_getEventById, const std::string&, eventId, getSurveillanceEventById, "get event by id")
+DISP_FORWARD1(cvSurv_deleteEventById, const std::string&, eventId, deleteSurveillanceEventById, "delete event by id")
+
+DISP_FORWARD1_R(cvSurv_getRecordingsByCameraId, const std::string&, cameraId, getSurveillanceRecordingsByCameraId, "get recordings by camera id")
+DISP_FORWARD1_R(cvSurv_getRecordingById, const std::string&, id, getSurveillanceRecordingById, "get recording by id")
+DISP_FORWARD1(cvSurv_deleteRecordingById, const std::string&, id, deleteSurveillanceRecordingById, "delete recording by id")
+
+DISP_FORWARD1(cvSurv_pruneTelemetryBefore, long long, beforeTimestamp, pruneSurveillanceTelemetryBefore, "prune telemetry")
+
+DISP_FORWARD1_R(cvSurv_getDailyFaceMetricsByDate, const std::string&, detectionDate, getSurveillanceDailyFaceMetricsByDate, "get daily face metrics by date")
+DISP_FORWARD1(cvSurv_deleteDailyFaceMetricsByDate, const std::string&, detectionDate, deleteSurveillanceDailyFaceMetricsByDate, "delete daily face metrics by date")
+
+DISP_FORWARD1_R(cvSurv_getRecentChatMessages, int, limit, getSurveillanceRecentChatMessages, "get recent chat messages")
+
+#undef DISP_FORWARD1
+#undef DISP_FORWARD1_R
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_registerFaceFromImage(const std::string& imagePath,
+                                                                const std::string& name,
+                                                                const std::string& status,
+                                                                const std::string& description,
+                                                                const std::string& externalId,
+                                                                bool broadcastToCloud,
+                                                                std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->registerSurveillanceFaceFromImage(imagePath, name, status, description, externalId, broadcastToCloud);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Register surveillance face from image failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to register face from image.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_logTrackedPlate(const std::string& plateNumber, const std::string& status, const std::string& description, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->logSurveillanceTrackedPlate(plateNumber, status, description);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Log surveillance tracked plate failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to log tracked plate.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_registerPlateFromImage(const std::string& imagePath,
+                                                                 const std::string& plateNumber,
+                                                                 const std::string& status,
+                                                                 const std::string& externalId,
+                                                                 std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->registerSurveillancePlateFromImage(imagePath, plateNumber, status, externalId);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Register surveillance plate from image failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to register plate from image.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_registerWeaponFromImage(const std::string& imagePath,
+                                                                  const std::string& name,
+                                                                  const std::string& status,
+                                                                  const std::string& description,
+                                                                  const std::string& externalId,
+                                                                  std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->registerSurveillanceWeaponFromImage(imagePath, name, status, description, externalId);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Register surveillance weapon from image failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to register weapon from image.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_registerUser(const std::string& username,
+                                                       const std::string& passwordHash,
+                                                       const std::string& role,
+                                                       const std::string& name,
+                                                       const std::string& imagePath,
+                                                       const std::string& phoneNumber,
+                                                       const std::string& email,
+                                                       int isActive,
+                                                       std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->registerSurveillanceUser(username, passwordHash, role, name, imagePath, phoneNumber, email, isActive);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Register surveillance user failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to register user.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+std::string ItemManager::ComputerVision::cvSurv_validateUserPassword(const std::string& username, const std::string& inputPlaintextPassword, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->validateSurveillanceUserPassword(username, inputPlaintextPassword);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Validate surveillance user password failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to validate user password.", ErrorCode::ITEM_NOT_FOUND);
+    }
+    return "";
+}
+
+template<typename T>
+std::vector<json> ItemManager::ComputerVision::cvSurv_drainResponses(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            return wrapper->drainSurveillanceResponses();
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Drain surveillance responses failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to drain surveillance responses.", ErrorCode::ITEM_NOT_FOUND);
+    }
+    return {};
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_updateUserProfile(const std::string& username,
+                                                            const std::string& passwordHash,
+                                                            const std::string& role,
+                                                            const std::string& name,
+                                                            const std::string& imagePath,
+                                                            const std::string& phoneNumber,
+                                                            const std::string& email,
+                                                            int isActive,
+                                                            std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->updateSurveillanceUserProfile(username, passwordHash, role, name, imagePath, phoneNumber, email, isActive);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Update surveillance user profile failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to update user profile.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_updateUserStatus(const std::string& userId, int activeState, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->updateSurveillanceUserStatus(userId, activeState);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Update surveillance user status failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to update user status.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_updateLastLogin(const std::string& userId, const std::string& timestamp, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->updateSurveillanceLastLogin(userId, timestamp);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Update surveillance last login failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to update last login.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_changeUserPassword(const std::string& userId, const std::string& newPasswordHash, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->changeSurveillanceUserPassword(userId, newPasswordHash);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Change surveillance user password failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to change user password.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_logTelemetry(const std::string& metricType,
+                                                       const std::string& nodeIp,
+                                                       std::optional<float> cpuUsage,
+                                                       std::optional<float> ramUsageMb,
+                                                       std::optional<float> diskUsagePercent,
+                                                       std::optional<float> temperatureC,
+                                                       int numberOfCameras,
+                                                       int numberOfActiveCameras,
+                                                       int numberOfNonActiveCameras,
+                                                       std::optional<float> fps,
+                                                       std::optional<int> latencyMs,
+                                                       std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->logSurveillanceTelemetry(metricType, nodeIp, cpuUsage, ramUsageMb, diskUsagePercent, temperatureC,
+                                              numberOfCameras, numberOfActiveCameras, numberOfNonActiveCameras, fps, latencyMs);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Log surveillance telemetry failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to log telemetry.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_insertDailyFaceMetrics(const std::string& detectionDate, int totalDetections, const std::string& timestamp, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->insertSurveillanceDailyFaceMetrics(detectionDate, totalDetections, timestamp);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Insert surveillance daily face metrics failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to insert daily face metrics.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
+
+template<typename T>
+void ItemManager::ComputerVision::cvSurv_insertChatMessage(const std::string& id, const std::string& content, const std::string& senderName, const std::string& createdAt, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
+        if (wrapper) {
+            wrapper->insertSurveillanceChatMessage(id, content, senderName, createdAt);
+        } else {
+            LOG_CONTEXT(LogLevel::WARNING, "Insert surveillance chat message failed with tag '" + tag + "'.",
+                        std::make_exception_ptr(std::runtime_error("\n:::| Please check your item type.\n")));
+        }
+    } else {
+        LOG_CONTEXT(LogLevel::ERR, "No item found with tag '" + tag + "' to insert chat message.", ErrorCode::ITEM_NOT_FOUND);
+    }
+}
 
 
 
@@ -2759,59 +3239,62 @@ void ItemManager::ComputerVision::cvMdn_runMonitorDetectionMonitorCamera(int cam
 
 template<typename T>
 std::string ItemManager::ComputerVision::cvQRC_scanFromCamera(std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            return wrapper->scanFromCamera();
+            typename ItemWrapper<T>::QRCodeScannerWrapper qr(*wrapper);
+            return qr.scanFromCamera();
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
                         "Scan from camera failed with tag '" + tag + "'.",
                         {});
-                        return "";
+            return "";
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
                     "No item found with tag '" + tag + "' to scan from camera.",
                     {});
-                    return "";
+        return "";
     }
 }
 
 template<typename T>
 std::string ItemManager::ComputerVision::cvQRC_scanFromFile(const std::string& imagePath, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            return wrapper->scanFromFile(imagePath);
+            typename ItemWrapper<T>::QRCodeScannerWrapper qr(*wrapper);
+            return qr.scanFromFile(imagePath);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
                         "Scan from file failed with tag '" + tag + "'.",
                         {});
-                        return "";
+            return "";
         }
     } else {
         LOG_CONTEXT(LogLevel::ERR,
                     "No item found with tag '" + tag + "' to scan from file.",
                     {});
-                    return "";
+        return "";
     }
 }
 
 template<typename T>
 void ItemManager::ComputerVision::cvQRC_resetConfig(std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->resetConfig();
+            typename ItemWrapper<T>::QRCodeScannerWrapper qr(*wrapper);
+            qr.resetConfig();
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
                         "Reset QR code scanner config failed with tag '" + tag + "'.",
@@ -2826,13 +3309,14 @@ void ItemManager::ComputerVision::cvQRC_resetConfig(std::string& tag) {
 
 template<typename T>
 bool ItemManager::ComputerVision::cvQRC_isPreviewEnabled(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            return wrapper->isPreviewEnabled();
+            typename ItemWrapper<T>::QRCodeScannerWrapper qr(*wrapper);
+            return qr.isPreviewEnabled();
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
                         "Check preview enabled failed with tag '" + tag + "'.",
@@ -2849,13 +3333,14 @@ bool ItemManager::ComputerVision::cvQRC_isPreviewEnabled(std::string& tag) const
 
 template<typename T>
 int ItemManager::ComputerVision::cvQRC_getCameraIndex(std::string& tag) const {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            return wrapper->getCameraIndex();
+            typename ItemWrapper<T>::QRCodeScannerWrapper qr(*wrapper);
+            return qr.getCameraIndex();
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
                         "Get camera index failed with tag '" + tag + "'.",
@@ -2872,13 +3357,14 @@ int ItemManager::ComputerVision::cvQRC_getCameraIndex(std::string& tag) const {
 
 template<typename T>
 void ItemManager::ComputerVision::cvQRC_setCameraIndex(int index, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->setCameraIndex(index);
+            typename ItemWrapper<T>::QRCodeScannerWrapper qr(*wrapper);
+            qr.setCameraIndex(index);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
                         "Set camera index failed with tag '" + tag + "'.",
@@ -2893,13 +3379,14 @@ void ItemManager::ComputerVision::cvQRC_setCameraIndex(int index, std::string& t
 
 template<typename T>
 void ItemManager::ComputerVision::cvQRC_setPreviewEnabled(bool enabled, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
-            wrapper->setPreviewEnabled(enabled);
+            typename ItemWrapper<T>::QRCodeScannerWrapper qr(*wrapper);
+            qr.setPreviewEnabled(enabled);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
                         "Set preview enabled failed with tag '" + tag + "'.",
@@ -2920,19 +3407,18 @@ void ItemManager::ComputerVision::cvQRC_setPreviewEnabled(bool enabled, std::str
 
 
 
-
 template<typename T>
 void ItemManager::AlarmManager::triggerAlarm(Event event, std::string& tag) {
-    std::lock_guard<std::mutex> lock(parent.mutex_);  // Thread guard
+    std::lock_guard<std::mutex> lock(parent.mutex_);
 
     auto it = parent.items.find(tag);
     if (it != parent.items.end()) {
         auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get());
         if (wrapper) {
             std::string eventStr = eventToString(event);
-            // Log with string 
             LOG_CONTEXT(LogLevel::INFO, "Triggering alarm: " + eventStr + " for tag '" + tag + "'.", {});
-            wrapper->triggerAlarm(eventStr);
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            alarm.triggerAlarm(eventStr);
         } else {
             LOG_CONTEXT(LogLevel::WARNING,
                         "Trigger alarm failed with tag '" + tag + "'.",
@@ -2944,6 +3430,156 @@ void ItemManager::AlarmManager::triggerAlarm(Event event, std::string& tag) {
                     ErrorCode::ITEM_NOT_FOUND);
     }
 }
+
+template<typename T>
+void ItemManager::AlarmManager::setVolume(int level, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            alarm.setVolume(level);
+        }
+    }
+}
+
+template<typename T>
+void ItemManager::AlarmManager::setDuration(int seconds, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            alarm.setDuration(seconds);
+        }
+    }
+}
+
+template<typename T>
+void ItemManager::AlarmManager::setDefaultTone(const std::string& tone, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            alarm.setDefaultTone(tone);
+        }
+    }
+}
+
+template<typename T>
+void ItemManager::AlarmManager::setTone(const std::string& toneName, const std::string& filePath, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            alarm.setTone(toneName, filePath);
+        }
+    }
+}
+
+template<typename T>
+void ItemManager::AlarmManager::assignTone(const std::string& event, const std::string& toneName, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            alarm.assignTone(event, toneName);
+        }
+    }
+}
+
+template<typename T>
+int ItemManager::AlarmManager::getVolume(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            return alarm.getVolume();
+        }
+    }
+    return -1;
+}
+
+template<typename T>
+int ItemManager::AlarmManager::getDuration(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            return alarm.getDuration();
+        }
+    }
+    return -1;
+}
+
+template<typename T>
+std::string ItemManager::AlarmManager::getDefaultTone(std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            return alarm.getDefaultTone();
+        }
+    }
+    return {};
+}
+
+template<typename T>
+std::string ItemManager::AlarmManager::getTone(const std::string& toneName, std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            return alarm.getTone(toneName);
+        }
+    }
+    return {};
+}
+
+template<typename T>
+std::string ItemManager::AlarmManager::getAssignedTone(const std::string& event, std::string& tag) const {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            return alarm.getAssignedTone(event);
+        }
+    }
+    return {};
+}
+
+template<typename T>
+void ItemManager::AlarmManager::resetAlarmConfig(std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            alarm.resetAlarmConfig();
+        }
+    }
+}
+
+template<typename T>
+void ItemManager::AlarmManager::playTone(const std::string& toneName, std::string& tag) {
+    std::lock_guard<std::mutex> lock(parent.mutex_);
+    auto it = parent.items.find(tag);
+    if (it != parent.items.end()) {
+        if (auto wrapper = dynamic_cast<ItemWrapper<T>*>(it->second.get())) {
+            typename ItemWrapper<T>::AlarmSystemWrapper alarm(*wrapper);
+            alarm.playTone(toneName);
+        }
+    }
+}
+
 
 inline std::string ItemManager::AlarmManager::eventToString(Event event) const {
     switch (event) {
